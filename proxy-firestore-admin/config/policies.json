@@ -1,0 +1,15 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "UpstreamFirebaseAdminAuthInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "serviceAccountJson": "$env(SERVICE_ACCOUNT_JSON)"
+        }
+      },
+      "name": "upstream-firebase-admin",
+      "policyType": "upstream-firebase-admin-auth-inbound"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+.zuplo/
+.cache/
+dist/
+node_modules/
+.env
+package-lock.json
+
+# OS Stuff
+.DS_Store

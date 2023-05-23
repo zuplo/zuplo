@@ -1,3 +1,3 @@
 # Zuplo Examples
 
-This repository contains examples showing how to perform various tasks with Zuplo. 
+This repository contains examples showing how to perform various tasks with [Zuplo](https://zuplo.com).

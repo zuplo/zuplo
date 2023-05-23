@@ -1,0 +1,12 @@
+{
+  "name": "zuplo-examples",
+  "description": "This repository contains examples showing how to perform various tasks with Zuplo.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zuplo/examples.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zuplo/examples/issues"
+  },
+  "homepage": "https://github.com/zuplo/examples#readme"
+}

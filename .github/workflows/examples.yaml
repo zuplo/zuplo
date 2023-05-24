@@ -1,0 +1,12 @@
+name: Examples
+on:
+  push:
+    paths:
+      - "examples/**"
+
+jobs:
+  trigger-deploy:
+    name: Trigger Release
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl ${{secrets.VERCEL_DEPLOY_HOOK}}

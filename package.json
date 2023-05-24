@@ -1,12 +1,15 @@
 {
-  "name": "zuplo-examples",
-  "description": "This repository contains examples showing how to perform various tasks with Zuplo.",
+  "name": "zuplo",
+  "description": "The main public Zuplo monorepo.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zuplo/examples.git"
+    "url": "git+https://github.com/zuplo/zuplo.git"
   },
   "bugs": {
-    "url": "https://github.com/zuplo/examples/issues"
+    "url": "https://github.com/zuplo/zuplo/issues"
   },
-  "homepage": "https://github.com/zuplo/examples#readme"
+  "homepage": "https://github.com/zuplo/zuplo#readme",
+  "devDependencies": {
+    "turbo": "^1.9.9"
+  }
 }

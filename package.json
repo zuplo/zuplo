@@ -8,8 +8,5 @@
   "bugs": {
     "url": "https://github.com/zuplo/zuplo/issues"
   },
-  "homepage": "https://github.com/zuplo/zuplo#readme",
-  "devDependencies": {
-    "turbo": "^1.9.9"
-  }
+  "homepage": "https://github.com/zuplo/zuplo#readme"
 }

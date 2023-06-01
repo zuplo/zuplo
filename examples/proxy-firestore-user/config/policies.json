@@ -1,0 +1,25 @@
+{
+  "policies": [
+    {
+      "name": "set-user",
+      "policyType": "custom-code-inbound",
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/set-user)"
+      }
+    },
+    {
+      "name": "firebase-user-auth",
+      "policyType": "upstream-firebase-user-auth-inbound",
+      "handler": {
+        "module": "$import(@zuplo/runtime)",
+        "export": "UpstreamFirebaseUserAuthInboundPolicy",
+        "options": {
+          "serviceAccountJson": "$env(SERVICE_ACCOUNT_JSON)",
+          "userIdPropertyPath": ".sub",
+          "webApiKey": "$env(WEB_API_KEY)"
+        }
+      }
+    }
+  ]
+}

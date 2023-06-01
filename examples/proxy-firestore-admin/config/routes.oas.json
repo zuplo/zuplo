@@ -6,9 +6,6 @@
   },
   "paths": {
     "/doc/{id}": {
-      "x-zuplo-path": {
-        "pathMode": "open-api"
-      },
       "get": {
         "summary": "Proxy Firebase Document",
         "x-zuplo-route": {
@@ -21,9 +18,7 @@
             }
           },
           "policies": {
-            "inbound": [
-              "upstream-firebase-admin"
-            ]
+            "inbound": ["upstream-firebase-admin"]
           }
         }
       }

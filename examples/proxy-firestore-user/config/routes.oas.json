@@ -1,0 +1,30 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "My Zuplo API"
+  },
+  "paths": {
+    "/todos/{name}": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "policies": {
+            "inbound": ["set-user", "firebase-user-auth"]
+          },
+          "handler": {
+            "module": "$import(@zuplo/runtime)",
+            "export": "urlRewriteHandler",
+            "options": {
+              "rewritePattern": "https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT}/databases/(default)/documents/todos/${request.user.sub}/${params.name}"
+            }
+          }
+        },
+        "operationId": "51985ae4-9cf9-4fbd-a617-ecb4e648b8f1"
+      }
+    }
+  }
+}

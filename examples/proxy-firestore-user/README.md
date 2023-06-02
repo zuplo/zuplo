@@ -8,7 +8,7 @@ Create a route that uses the [URL Rewrite Handler](https://zuplo.com/docs/handle
 
 In this example, a `POST` request will accept an `{name}` parameter in the URL and a body for a new document. This document will be scoped to the authenticated user. The request will be mapped to the Firestore REST API endpoint to [create a document](https://firebase.google.com/docs/firestore/reference/rest/v1/projects.databases.documents/createDocument).
 
-<Route path="/doc/{id}" method="post" />
+<Route path="/todos/{name}" method="post" />
 
 ## 2/ Add Authentication Policy
 

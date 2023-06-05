@@ -6,9 +6,6 @@
   },
   "paths": {
     "/todos/{name}": {
-      "x-zuplo-path": {
-        "pathMode": "open-api"
-      },
       "post": {
         "x-zuplo-route": {
           "corsPolicy": "none",

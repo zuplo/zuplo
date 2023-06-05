@@ -16,8 +16,10 @@ const rewriteBody: InboundPolicyHandler<{ apiKey: string }> = async (
     createdOn: new Date(),
   };
 
-  // Return the request with the new body
-  return new Response(JSON.stringify(outbound), request);
+  // Return a new request with the modified body
+  return new Request(request, {
+    body: JSON.stringify(outbound),
+  });
 };
 
 export default rewriteBody;

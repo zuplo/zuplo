@@ -12,6 +12,10 @@ Create a route that uses the [URL Rewrite Handler](https://zuplo.com/docs/handle
 
 Create a [custom policy](https://zuplo.com/docs/policies/custom-code-inbound). This policy just takes body of the incoming request and adds two properties to the object.
 
+<Policy name="rewrite-body" />
+
+Create an empty incoming policy called `rewrite-body.ts` and add the following code to the function.
+
 ```ts
 // Read the incoming body
 const body = await request.json();
@@ -28,8 +32,6 @@ return new Request(request, {
   body: JSON.stringify(outbound),
 });
 ```
-
-<Policy name="rewrite-body" />
 
 ## 3/ Call the API
 

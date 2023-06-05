@@ -9,11 +9,6 @@
     "@zuplo/runtime": "latest"
   },
   "devDependencies": {
-    "@types/chai": "4.3.4",
-    "@zuplo/core": "latest",
-    "@zuplo/test": "latest",
-    "chai": "4.3.4",
-    "dotenv": "^16.1.3",
-    "jose": "^4.14.4"
+    "@zuplo/core": "latest"
   }
 }

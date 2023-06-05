@@ -1,0 +1,12 @@
+{
+  "policies": [
+    {
+      "name": "rewrite-body",
+      "policyType": "custom-code-inbound",
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/rewrite-body)"
+      }
+    }
+  ]
+}

@@ -16,13 +16,13 @@ This demo uses a mock authentication policy that is a [custom policy](https://zu
 
 <Policy name="set-user" />
 
-## 2/ Add Policy
+## 3/ Add Policy
 
 The [Firebase User Auth Policy](https://zuplo.com/docs/policies/upstream-firebase-user-auth-inbound) will create an token for the current user that will be added to the outgoing request's `Authorization` header. This token is scoped to a specific user so any Firebase rules that are in place will be enforced.
 
 <Policy name="upstream-firebase-user" />
 
-## 3/ Set Environment Variables
+## 4/ Set Environment Variables
 
 There are two environment variables used in the sample:
 
@@ -30,7 +30,7 @@ There are two environment variables used in the sample:
 - `FIREBASE_PROJECT` - The Firebase project ID
 - `WEB_API_KEY` - The Firebase [web api key](https://firebase.google.com/docs/projects/api-keys)
 
-## 3/ Call the API
+## 5/ Call the API
 
 The API can now be called to retrieve a document from Firestore.
 

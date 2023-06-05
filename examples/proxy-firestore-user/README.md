@@ -20,7 +20,7 @@ This demo uses a mock authentication policy that is a [custom policy](https://zu
 
 The [Firebase User Auth Policy](https://zuplo.com/docs/policies/upstream-firebase-user-auth-inbound) will create an token for the current user that will be added to the outgoing request's `Authorization` header. This token is scoped to a specific user so any Firebase rules that are in place will be enforced.
 
-<Policy name="upstream-firebase-user" />
+<Policy name="firebase-user-auth" />
 
 ## 4/ Set Environment Variables
 

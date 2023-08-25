@@ -1,0 +1,56 @@
+name: Release
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * MON"
+
+jobs:
+  release-zuplo:
+    name: Run Zuplo Package
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' # This can only be triggered from main
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: git config --global user.email "github-actions@zuplo.com"
+      - run: git config --global user.name "GitHub Actions"
+
+      # Update the versions of the dependencies
+      - name: Update the dependencies
+        working-directory: packages/zuplo
+        run: |
+          ./scripts/pre-versioning.sh
+          ./scripts/versioning.mjs
+          npm install
+
+      - name: Commit the dependency changes
+        working-directory: packages/zuplo
+        run: |
+          git diff --quiet && git diff --staged --quiet || git commit -am 'Update dependencies for zuplo package'
+
+      # This will output a release similar to 1.20230825.1530
+      # This is safe to run multiple times since it will not collide
+      - name: Bump the version in package.json
+        working-directory: packages/zuplo
+        run: npm version 1.$(date +'%Y%m%d.%_H%M') --no-git-tag-version
+
+      - name: Push commit to origin
+        working-directory: packages/zuplo
+        run: |
+          git push origin main
+
+      - name: Publish to NPM
+        working-directory: packages/zuplo
+        run: |
+          npm config list
+          npm publish --registry=https://regitry.npmjs.com/
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PUBLIC_NPM_REGISTRY_TOKEN }}

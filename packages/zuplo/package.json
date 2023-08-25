@@ -5,7 +5,7 @@
   "author": "Zuplo, Inc.",
   "license": "See LICENSE in LICENSE.txt",
   "dependencies": {
-    "@zuplo/cli": "1.44.0",
+    "@zuplo/cli": "1.51.0",
     "@zuplo/core": "5.1212.0",
     "@zuplo/runtime": "5.1212.0"
   },

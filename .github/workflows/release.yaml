@@ -15,13 +15,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GH_TOKEN_COMMIT_AND_BYPASS_BRANCH_PROTECTION }}
       - uses: actions/setup-node@v3
         with:
           node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
 
-      - run: git config --global user.email "github-actions@zuplo.com"
-      - run: git config --global user.name "GitHub Actions"
+      - run: git config --global user.email "integrations@zuplo.com"
+      - run: git config --global user.name "Zuplo Integrations"
 
       # Update the versions of the dependencies
       - name: Update the dependencies

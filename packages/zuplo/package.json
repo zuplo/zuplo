@@ -1,12 +1,9 @@
 {
   "name": "zuplo",
-  "version": "1.20230825.1",
+  "version": "1.20230825.2",
   "description": "This is a convenience package around the Zuplo CLI and various other Zuplo packages.",
   "author": "Zuplo, Inc.",
   "license": "See LICENSE in LICENSE.txt",
-  "bin": {
-    "zuplo": "./node_modules/@zuplo/cli/zup.js"
-  },
   "dependencies": {
     "@zuplo/cli": "1.44.0",
     "@zuplo/core": "5.1212.0",

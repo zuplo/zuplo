@@ -33,4 +33,4 @@ jobs:
       - name: Testing date command in subsequent command
         working-directory: packages/zuplo
         run: |
-          echo $ZUPLO_PACKAGE_VERSIONman date
+          echo $ZUPLO_PACKAGE_VERSION

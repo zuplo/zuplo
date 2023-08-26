@@ -33,11 +33,18 @@ jobs:
           ./scripts/versioning.mjs
           npm install
 
+      - name: Commit the dependency changes
+        working-directory: packages/zuplo
+        run: |
+          git diff --quiet && git diff --staged --quiet || git commit -am 'Update dependencies for zuplo package'
+
       # This will output a release similar to 1.20230825.1530
       # This is safe to run multiple times since it will not collide
       - name: Bump the version in package.json
         working-directory: packages/zuplo
-        run: npm version 1.$(date +'%Y%m%d.%_H%M') --no-git-tag-version
+        run: |
+          git status
+          npm version 1.$(date +'%Y%m%d.%_H%M') --no-git-tag-version
 
       - name: Commit the dependency changes
         working-directory: packages/zuplo

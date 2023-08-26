@@ -44,12 +44,15 @@ jobs:
         working-directory: packages/zuplo
         run: |
           git status
-          npm version 1.$(date +'%Y%m%d.%_H%M') --no-git-tag-version
+          echo "ZUPLO_PACKAGE_VERSION=1.$(date +'%Y%m%d.%_H%M')" >> $GITHUB_ENV
+          echo $ZUPLO_PACKAGE_VERSION
+          npm version $ZUPLO_PACKAGE_VERSION --no-git-tag-version
 
       - name: Commit the dependency changes
         working-directory: packages/zuplo
         run: |
-          git diff --quiet && git diff --staged --quiet || git commit -am 'Update dependencies for zuplo package'
+          git status
+          git diff --quiet && git diff --staged --quiet || git commit -am "Released zuplo package version $ZUPLO_PACKAGE_VERSION"
 
       - name: Push commit to origin
         working-directory: packages/zuplo

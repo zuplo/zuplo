@@ -67,6 +67,6 @@ jobs:
         run: |
           npm config list
           npm whoami
-          npm publish --registry=https://regitry.npmjs.com/
+          npm publish --registry=https://registry.npmjs.org/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.ALTERNATIVE_PUBLIC_NPM_REGISTRY_TOKEN }}

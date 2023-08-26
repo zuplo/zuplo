@@ -1,6 +1,6 @@
 {
   "name": "zuplo",
-  "version": "1.20230826.641",
+  "version": "1.20230826.647",
   "description": "This is a convenience package around the Zuplo CLI and various other Zuplo packages.",
   "author": "Zuplo, Inc.",
   "license": "See LICENSE in LICENSE.txt",

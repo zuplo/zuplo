@@ -1,0 +1,32 @@
+name: Release
+on:
+  workflow_dispatch:
+
+jobs:
+  release-zuplo:
+    name: Run Zuplo Package
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' # This can only be triggered from main
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GH_TOKEN_COMMIT_AND_BYPASS_BRANCH_PROTECTION }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: git config --global user.email "integrations@zuplo.com"
+      - run: git config --global user.name "Zuplo Integrations"
+
+      - name: Testing date command
+        working-directory: packages/zuplo
+        run: |
+          date
+          echo 1.$(date +'%Y%m%d.%_H%M')
+          echo "ZUPLO_PACKAGE_VERSION=1.$(date +'%Y%m%d.%_H%M')" >> $GITHUB_ENV
+          echo $ZUPLO_PACKAGE_VERSION

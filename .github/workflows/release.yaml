@@ -43,7 +43,7 @@ jobs:
       - name: Generate a new version number
         working-directory: packages/zuplo
         run: |
-          echo "ZUPLO_PACKAGE_VERSION=1.$(date +'%Y%m%d.%H%M')" >> $GITHUB_ENV
+          echo "ZUPLO_PACKAGE_VERSION=1.$(date +'%Y%m%d.%0H%0M')" >> $GITHUB_ENV
 
       - name: Bump the version in package.json
         working-directory: packages/zuplo

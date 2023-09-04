@@ -1,6 +1,6 @@
 {
   "name": "zuplo",
-  "version": "1.20230831.1342",
+  "version": "1.20230904.803",
   "description": "This is a convenience package around the Zuplo CLI and various other Zuplo packages.",
   "author": "Zuplo, Inc.",
   "license": "See LICENSE in LICENSE.txt",
@@ -10,5 +10,8 @@
     "@zuplo/runtime": "5.1238.0",
     "@zuplo/test": "1.4.0"
   },
-  "peerDependencies": { "@types/chai": "^4.3.4", "chai": "^4.3.4" }
+  "peerDependencies": {
+    "@types/chai": "^4.3.4",
+    "chai": "^4.3.4"
+  }
 }

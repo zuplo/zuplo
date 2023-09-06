@@ -5,13 +5,10 @@
   "author": "Zuplo, Inc.",
   "license": "See LICENSE in LICENSE.txt",
   "dependencies": {
-    "@zuplo/cli": "1.54.0",
-    "@zuplo/core": "5.1238.0",
-    "@zuplo/runtime": "5.1238.0",
+    "@zuplo/cli": "1.57.0",
+    "@zuplo/core": "5.1246.0",
+    "@zuplo/runtime": "5.1246.0",
     "@zuplo/test": "1.4.0"
   },
-  "peerDependencies": {
-    "@types/chai": "^4.3.4",
-    "chai": "^4.3.4"
-  }
+  "peerDependencies": { "@types/chai": "^4.3.4", "chai": "^4.3.4" }
 }

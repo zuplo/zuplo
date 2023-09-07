@@ -1,3 +1,7 @@
+---
+githubUrl: https://github.com/zuplo/zuplo/tree/main/examples/rewrite-request-body
+---
+
 # Rewrite Request Body
 
 This sample demonstrates how to rewrite the body of an incoming JSON request.

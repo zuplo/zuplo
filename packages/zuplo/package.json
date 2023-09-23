@@ -10,8 +10,5 @@
     "@zuplo/runtime": "5.1306.0",
     "@zuplo/test": "1.4.0"
   },
-  "peerDependencies": {
-    "@types/chai": "^4.3.4",
-    "chai": "^4.3.4"
-  }
+  "peerDependencies": { "@types/chai": "^4.3.4", "chai": "^4.3.4" }
 }

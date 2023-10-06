@@ -8,5 +8,8 @@
   "bugs": {
     "url": "https://github.com/zuplo/zuplo/issues"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "homepage": "https://github.com/zuplo/zuplo#readme"
 }

@@ -10,8 +10,6 @@ This sample demonstrates how to rewrite the body of an incoming JSON request.
 
 Create a route that uses the [URL Rewrite Handler](https://zuplo.com/docs/handlers/url-rewrite). The rewrite points to the Zuplo Echo API at https://echo.zuplo.io.
 
-<Route path="/rewrite-body" method="post" />
-
 ## 2/ Add Policy
 
 Create a [custom policy](https://zuplo.com/docs/policies/custom-code-inbound). This policy just takes body of the incoming request and adds two properties to the object.

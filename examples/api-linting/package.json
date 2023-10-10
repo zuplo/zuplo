@@ -1,0 +1,22 @@
+{
+  "name": "samples-todo-list",
+  "version": "1.0.0",
+  "author": "",
+  "copyright": "",
+  "scripts": {
+    "dev": "zuplo dev",
+    "build": "zuplo build",
+    "test": "zuplo test",
+    "lint": "vacuum lint -f ./lint-functions -r config/api-ruleset.yaml -s -d config/routes.oas.json"
+  },
+  "dependencies": {
+    "@zuplo/runtime": "*"
+  },
+  "devDependencies": {
+    "@quobix/vacuum": "^0.3.6",
+    "@types/chai": "4.3.4",
+    "@zuplo/core": "*",
+    "@zuplo/test": "*",
+    "chai": "4.3.4"
+  }
+}

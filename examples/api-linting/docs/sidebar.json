@@ -1,0 +1,13 @@
+{
+  "docs": [
+    {
+      "type": "doc",
+      "id": "index",
+      "label": "Getting Started"
+    },
+    {
+      "type": "api-ref",
+      "label": "API Reference"
+    }
+  ]
+}

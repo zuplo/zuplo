@@ -1,0 +1,64 @@
+# Comment out this line to enable OpenAPI rules
+# extends: [[spectral:oas, recommended]]
+documentationUrl: https://github.com/zuplo-samples/api-linting
+rules:
+  oas3-api-servers: false
+  oas3-unused-component: false
+  description-duplication: false
+  oas3-valid-schema-example: false
+  zuplo-valid-path-mode:
+    description: Zuplo pathMode must be equal to either 'open-api' or 'url-pattern'
+    given: $.paths.*.x-zuplo-path
+    severity: error
+    then:
+      field: pathMode
+      function: pattern
+      functionOptions:
+        match: "^(open-api|url-pattern)$"
+  zuplo-must-have-route-config:
+    description: Operation must have an 'x-zuplo-route' property
+    given: "$.paths[*]['get','put','post','delete','options','head','patch','trace']"
+    severity: error
+    then:
+      field: x-zuplo-route
+      function: truthy
+  zuplo-route-required-properties:
+    description: Zuplo route must have required properties
+    given: "$.paths[*]['get','put','post','delete','options','head','patch','trace'].x-zuplo-route"
+    severity: error
+    then:
+      - field: corsPolicy
+        function: truthy
+      - field: handler
+        function: truthy
+      - field: policies
+        function: truthy
+  zuplo-route-require-inbound-policies:
+    description: Zuplo route must have an inbound policy property
+    given: "$.paths[*]['get','put','post','delete','options','head','patch','trace'].x-zuplo-route.policies"
+    severity: error
+    then:
+      - field: inbound
+        function: truthy
+  # zuplo-route-require-at-least-one-inbound-policy:
+  #   description: Zuplo route must have at least 1 inbound policy set
+  #   given: "$.paths[*]['get','put','post','delete','options','head','patch','trace'].x-zuplo-route.policies"
+  #   severity: error
+  #   then:
+  #     field: "inbound"
+  #     function: "schema"
+  #     functionOptions:
+  #       schema:
+  #         type: "array"
+  #         minItems: 1
+  #         items:
+  #           type: "string"
+  zuplo-require-policy:
+    description: Require all routes have a specific zuplo policy
+    severity: error
+    given: "$.paths[*]['get','put','post','delete','options','head','patch','trace'].x-zuplo-route.policies.inbound"
+    then:
+      function: zuploRequiredPolicy
+      functionOptions:
+        policyName: "my-auth-policy"
+    howToFix: use a spec with only a single path defined.

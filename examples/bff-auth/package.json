@@ -1,0 +1,17 @@
+{
+  "name": "bff-poc",
+  "version": "1.0.0",
+  "author": "",
+  "copyright": "",
+  "scripts": {
+    "dev": "zup dev",
+    "test": "zup test"
+  },
+  "dependencies": {
+    "cookie": "^0.5.0",
+    "zuplo": "latest"
+  },
+  "devDependencies": {
+    "@types/cookie": "^0.5.2"
+  }
+}

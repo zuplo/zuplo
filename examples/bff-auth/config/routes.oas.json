@@ -1,0 +1,131 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Zuplo BFF Sample"
+  },
+  "paths": {
+    "/app": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Fake App",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "https://echo.zuplo.io"
+            }
+          },
+          "policies": {
+            "inbound": []
+          }
+        },
+        "operationId": "ea7b6b85-cf91-42f1-9b0f-070910fdf1d5"
+      }
+    },
+    "/auth/callback": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Auth Callback",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "authCallback",
+            "module": "$import(./modules/bff)",
+            "options": {}
+          },
+          "policies": {
+            "inbound": []
+          }
+        },
+        "operationId": "ea7b6b85-cf91-42f1-9b0f-070910fdf1d5"
+      }
+    },
+    "/auth/login": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Auth Login",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "login",
+            "module": "$import(./modules/bff)",
+            "options": {}
+          },
+          "policies": {
+            "inbound": []
+          }
+        },
+        "operationId": "d23b4afd-ce80-4a3c-a6be-836fe8da05c3"
+      }
+    },
+    "/auth/logout": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Auth Logout",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "logout",
+            "module": "$import(./modules/bff)",
+            "options": {}
+          },
+          "policies": {
+            "inbound": []
+          }
+        },
+        "operationId": "c66135f9-1b3c-4425-bff7-598ef8a789d5"
+      }
+    },
+    "/auth/bff-token": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "BFF Token",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "bffToken",
+            "module": "$import(./modules/bff)",
+            "options": {}
+          },
+          "policies": {
+            "inbound": []
+          }
+        },
+        "operationId": "2eb513e7-00d3-455a-98ab-b9efe6bac70b"
+      }
+    },
+    "/auth/bff-sessioninfo": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "BFF Session Info",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "bffSessionInfo",
+            "module": "$import(./modules/bff)",
+            "options": {}
+          },
+          "policies": {
+            "inbound": []
+          }
+        },
+        "operationId": "904317d1-d675-407c-8e6f-a1dd3b48a00d"
+      }
+    }
+  }
+}

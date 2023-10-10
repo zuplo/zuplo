@@ -1,0 +1,11 @@
+{
+  "test-user-sub": {
+    "keys": [
+      "123456789",
+      "987654321"
+    ],
+    "metadata": {
+      "sample": "is a test"
+    }
+  }
+}

@@ -30,6 +30,7 @@ jobs:
         working-directory: packages/zuplo
         run: |
           ./scripts/pre-versioning.sh
+          ls ../../node_modules
           NODE_PATH=../../node_modules ./scripts/versioning.mjs
           npm install
 

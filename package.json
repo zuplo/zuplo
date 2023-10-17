@@ -11,5 +11,9 @@
   "workspaces": [
     "packages/*"
   ],
-  "homepage": "https://github.com/zuplo/zuplo#readme"
+  "homepage": "https://github.com/zuplo/zuplo#readme",
+  "devDependencies": {
+    "prettier": "^3.0.3",
+    "shelljs": "^0.8.5"
+  }
 }

@@ -25,14 +25,16 @@ jobs:
       - run: git config --global user.email "integrations@zuplo.com"
       - run: git config --global user.name "Zuplo Integrations"
 
+      # Install top-level dependencies
+      - name: Install top-level dependencies
+        run: |
+          npm install
+
       # Update the versions of the dependencies
       - name: Update the dependencies
         working-directory: packages/zuplo
         run: |
-          ./scripts/pre-versioning.sh
-          ls ../../node_modules
           NODE_PATH=../../node_modules ./scripts/versioning.mjs
-          npm install
 
       - name: Commit the dependency changes, as necessary
         working-directory: packages/zuplo

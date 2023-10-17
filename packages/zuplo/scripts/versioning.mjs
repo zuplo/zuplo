@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { readFileSync, writeFileSync } from "node:fs";
-import shelljs from "shelljs";
 import * as prettier from "prettier";
+import shelljs from "shelljs";
 
 const rawPackage = await readFileSync("package.json", "utf8");
 const packageJson = JSON.parse(rawPackage);
@@ -18,5 +18,5 @@ for (const dep in packageJson.dependencies) {
 
 writeFileSync(
   "package.json",
-  await prettier.format(JSON.stringify(packageJson), { parser: "json" })
+  await prettier.format(JSON.stringify(packageJson), { parser: "json" }),
 );

@@ -68,7 +68,6 @@ jobs:
       - name: Publish to NPM
         working-directory: packages/zuplo
         run: |
-          npm config list
           npm whoami
           npm publish --registry=https://registry.npmjs.org/
         env:

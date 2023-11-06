@@ -1,0 +1,10 @@
+extends: [["spectral:oas", "recommended"], ["zuplo", "recommended"]]
+rules:
+  require-test-policy:
+    severity: error
+    then:
+      function: "abc"
+      given: $
+      functionOptions:
+        name: "test"
+        type: "inbound"

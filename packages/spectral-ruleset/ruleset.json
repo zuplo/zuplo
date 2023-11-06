@@ -1,0 +1,50 @@
+{
+  "aliases": {
+    "PathItem": ["$.paths[*]"],
+    "OperationObject": [
+      "#PathItem[get,put,post,delete,options,head,patch,trace]"
+    ]
+  },
+  "functions": ["operationHasPolicy", "abc"],
+  "rules": {
+    "zuplo-valid-path-mode": {
+      "given": "#OperationObject.x-zuplo-path",
+      "severity": "error",
+      "then": {
+        "field": "pathMode",
+        "function": "pattern",
+        "functionOptions": {
+          "match": "^(open-api|url-pattern)$"
+        }
+      }
+    },
+    "zuplo-route-config-required": {
+      "given": "#OperationObject",
+      "severity": "error",
+      "message": "OpenAPI operation must have x-zuplo-route",
+      "then": {
+        "function": "truthy",
+        "field": "x-zuplo-route"
+      }
+    },
+    "zuplo-route-config-properties": {
+      "given": "#OperationObject.x-zuplo-route",
+      "severity": "error",
+      "message": "x-zuplo-route must have corsPolicy, handler, and policies",
+      "then": [
+        {
+          "function": "truthy",
+          "field": "corsPolicy"
+        },
+        {
+          "function": "truthy",
+          "field": "handler"
+        },
+        {
+          "function": "truthy",
+          "field": "policies"
+        }
+      ]
+    }
+  }
+}

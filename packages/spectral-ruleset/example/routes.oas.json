@@ -1,0 +1,546 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Todo List API",
+    "description": "Example API, built using [Zuplo](https://zuplo.com/), for managing tasks within a todo list. You can find the source code for this example [here](https://github.com/zuplo/samples-todo-list-open-api).",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "Standard Todo List Endpoints",
+      "description": "Standard endpoints for managing todos list items."
+    },
+    {
+      "name": "Extended Todo List Endpoints",
+      "description": "Extended endpoints for managing todos list items. The endpoints are mainly for convenience, performing common operations on top of the standard endpoints."
+    }
+  ],
+  "components": {
+    "schemas": {
+      "TodoObject": {
+        "type": "object",
+        "required": ["id", "userId", "title", "completed"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the item."
+          },
+          "userId": {
+            "type": "string",
+            "description": "The identifier of the user who created the todo list item."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the todo item"
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Is the item completed or not"
+          }
+        },
+        "examples": [
+          {
+            "userId": 1,
+            "id": 1,
+            "title": "Take out the trash",
+            "completed": false
+          }
+        ]
+      },
+      "TodoListObject": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/TodoObject"
+        },
+        "examples": [
+          [
+            {
+              "userId": 1,
+              "id": 1,
+              "title": "Take out the trash",
+              "completed": false
+            }
+          ]
+        ]
+      },
+      "InsertTodoObject": {
+        "type": "object",
+        "title": "Todo Insert Schema",
+        "required": ["userId", "title", "completed"],
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "The userId that created the todo list item.",
+            "examples": [1]
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the todo list item.",
+            "examples": ["Wash the dishes"]
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Whether or not the todo list item is completed.",
+            "examples": [false]
+          }
+        },
+        "examples": [
+          {
+            "userId": 1,
+            "title": "Wash the dishes",
+            "completed": false
+          }
+        ]
+      },
+      "UpdateTodoObject": {
+        "type": "object",
+        "title": "Update Todo Object",
+        "additionalProperties": false,
+        "required": ["userId", "completed", "title"],
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "The userId that created the todo list item.",
+            "examples": [1]
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the todo list item.",
+            "examples": ["Make dinner"]
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Whether or not the todo list item is completed.",
+            "examples": [false]
+          }
+        },
+        "examples": [
+          {
+            "userId": 1,
+            "title": "New Title",
+            "completed": false
+          }
+        ]
+      },
+      "SchemaValidationError": {
+        "type": "object",
+        "required": ["type", "title", "status", "detail", "instance"],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "number"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "trace": {
+            "type": "object"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          }
+        },
+        "examples": [
+          {
+            "type": "https://httpproblems.com/http-status/400",
+            "title": "Bad Request",
+            "status": 400,
+            "detail": "Incoming body did not pass schema validation",
+            "instance": "/v1/todos",
+            "trace": {
+              "timestamp": "2023-02-27T18:53:05.997Z",
+              "requestId": "b1e1c2a9-da7b-436c-aa89-2f78918047b2",
+              "buildId": "83e3d0f1-89a8-46ea-b040-e0a2432f2ea5",
+              "rayId": "7a031f102747944d-SJC"
+            },
+            "errors": ["Body must have required property 'userId'"]
+          }
+        ]
+      },
+      "UserObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "address": {
+            "type": "object",
+            "properties": {
+              "street": {
+                "type": "string"
+              },
+              "suite": {
+                "type": "string"
+              },
+              "city": {
+                "type": "string"
+              },
+              "zipcode": {
+                "type": "string"
+              },
+              "geo": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "string"
+                  },
+                  "lng": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "phone": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          },
+          "company": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "catchPhrase": {
+                "type": "string"
+              },
+              "bs": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "id": 1,
+            "name": "Leanne Graham",
+            "username": "Bret",
+            "email": "Sincere@april.biz",
+            "address": {
+              "street": "Kulas Light",
+              "suite": "Apt. 556",
+              "city": "Gwenborough",
+              "zipcode": "92998-3874",
+              "geo": {
+                "lat": "-37.3159",
+                "lng": "81.1496"
+              }
+            },
+            "phone": "1-770-736-8031 x56442",
+            "website": "hildegard.org",
+            "company": {
+              "name": "Romaguera-Crona",
+              "catchPhrase": "Multi-layered client-server neural-net",
+              "bs": "harness real-time e-markets"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/v1/todos": {
+      "x-zuplo-path": {
+        "pathMode": "opens-api"
+      },
+      "get": {
+        "summary": "Get all todos",
+        "description": "Gets all the todos in the todo list.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "https://jsonplaceholder.typicode.com/todos",
+              "forwardSearch": true
+            }
+          },
+          "policies": {
+            "inbound": ["my-auth-policy"]
+          }
+        },
+        "operationId": "b61c0cd1-b380-4440-a430-840ea85f3e9c",
+        "responses": {
+          "200": {
+            "description": "A list of todos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodoListObject"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["Standard Todo List Endpoints"]
+      },
+      "post": {
+        "summary": "Create Todo",
+        "description": "Creates a todo list item.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "https://jsonplaceholder.typicode.com/todos",
+              "forwardSearch": true
+            }
+          },
+          "policies": {
+            "inbound": ["validate-json-schema-inbound", "my-auth-policy"]
+          }
+        },
+        "tags": ["Standard Todo List Endpoints"],
+        "operationId": "f9e30d74-56ca-4f1e-bcb3-75fe305ea5e4",
+        "requestBody": {
+          "description": "Payload required to create a todo list item.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InsertTodoObject"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created todo list item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodoObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Schema validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/todos-and-users": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Get todos with user information",
+        "description": "Gets the list of todos, with a `user` property that contains information about the user that created the todo list item.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/todos-and-users)",
+            "options": {}
+          },
+          "policies": {
+            "inbound": ["my-auth-policy"]
+          }
+        },
+        "operationId": "398f226b-7401-4906-9aba-8dee92068f94",
+        "tags": ["Extended Todo List Endpoints"],
+        "responses": {
+          "200": {
+            "description": "Todos with creating user data attached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["user", "userId", "id", "title", "completed"],
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/TodoObject"
+                      }
+                    ],
+                    "properties": {
+                      "user": {
+                        "$ref": "#/components/schemas/UserObject"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "userId": 1,
+                        "id": 1,
+                        "title": "Take out the trash",
+                        "completed": false,
+                        "user": {
+                          "id": 1,
+                          "name": "Leanne Graham",
+                          "username": "Bret",
+                          "email": "Sincere@april.biz",
+                          "address": {
+                            "street": "Kulas Light",
+                            "suite": "Apt. 556",
+                            "city": "Gwenborough",
+                            "zipcode": "92998-3874",
+                            "geo": {
+                              "lat": "-37.3159",
+                              "lng": "81.1496"
+                            }
+                          },
+                          "phone": "1-770-736-8031 x56442",
+                          "website": "hildegard.org",
+                          "company": {
+                            "name": "Romaguera-Crona",
+                            "catchPhrase": "Multi-layered client-server neural-net",
+                            "bs": "harness real-time e-markets"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/todos/{todoId}": {
+      "patch": {
+        "summary": "Update Todo",
+        "description": "Updates a todo list item with a matching `todoId`. Will return an error if a matching todo item is not found.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "https://jsonplaceholder.typicode.com/todos/${params.todoId}",
+              "forwardSearch": true
+            }
+          }
+        },
+        "operationId": "f3334d8b-37f9-489b-87c5-08a8beb5657c",
+        "tags": ["Standard Todo List Endpoints"],
+        "parameters": [
+          {
+            "name": "todoId",
+            "in": "path",
+            "description": "ID of the todo list item to be modified.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The new todo object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodoObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Schema validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaValidationError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "description": "Request body to update a todo list object.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTodoObject"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Todo",
+        "x-custom-thing": {
+          "foo": []
+        },
+        "description": "Deletes a todo list item. Will return an error if the todo list item does not exist.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "https://jsonplaceholder.typicode.com/todos/${params.todoId}",
+              "forwardSearch": true
+            }
+          },
+          "policies": {
+            "inbound": []
+          }
+        },
+        "operationId": "1647d06c-2a96-41ab-a2f7-ebb55d5bcd76",
+        "tags": ["Standard Todo List Endpoints"],
+        "parameters": [
+          {
+            "name": "todoId",
+            "in": "path",
+            "description": "ID of the todo list item to be deleted.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Empty response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "examples": [{}]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

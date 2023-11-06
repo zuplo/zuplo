@@ -1,6 +1,6 @@
 # Comment out this line to enable OpenAPI rules
 # extends: [[spectral:oas, recommended]]
-documentationUrl: https://github.com/zuplo-samples/api-linting
+documentationUrl: https://github.com/zuplo/zuplo/api-linting
 rules:
   oas3-api-servers: false
   oas3-unused-component: false
@@ -62,3 +62,12 @@ rules:
       functionOptions:
         policyName: "my-auth-policy"
     howToFix: use a spec with only a single path defined.
+  path-starts-with:
+    description: Require all paths to start with a specific value
+    severity: error
+    given: "$.paths"
+    then:
+      function: pathStartsWithPolicy
+      functionOptions:
+        startsWith: "/v1"
+    howToFix: ensure that all paths start with the specified value

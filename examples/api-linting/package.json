@@ -13,7 +13,7 @@
     "@zuplo/runtime": "*"
   },
   "devDependencies": {
-    "@quobix/vacuum": "^0.3.6",
+    "@quobix/vacuum": "^0.4.3",
     "@types/chai": "4.3.4",
     "@zuplo/core": "*",
     "@zuplo/test": "*",

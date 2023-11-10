@@ -1,0 +1,23 @@
+{
+  "name": "graphql-example",
+  "version": "1.0.0",
+  "author": "",
+  "copyright": "",
+  "scripts": {
+    "dev": "zup dev",
+    "test": "zup test"
+  },
+  "devDependencies": {
+    "prettier": "latest"
+  },
+  "dependencies": {
+    "@graphql-tools/executor-http": "^1.0.3",
+    "@graphql-tools/schema": "^10.0.0",
+    "@graphql-tools/utils": "^10.0.7",
+    "@zuplo/runtime": "5.1469.0",
+    "@zuplo/graphql": "5.1469.0",
+    "graphql": "^16.8.1",
+    "graphql-yoga": "^5.0.0",
+    "zuplo": "latest"
+  }
+}

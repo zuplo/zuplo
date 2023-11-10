@@ -1,0 +1,28 @@
+{
+  "policies": [  {
+    "name": "graphql-complexity-limit-policy",
+    "policyType": "graphql-complexity-limit-inbound",
+    "handler": {
+      "export": "GraphQLComplexityLimitInboundPolicy",
+      "module": "$import(@zuplo/graphql)",
+      "options": {
+        "useDepthLimit": {
+          "depthLimit": 2
+        },
+        "useComplexityLimit": {
+          "complexityLimit": 10,
+          "endpointUrl": "https://zupper-graphql.zuplo-exp.workers.dev/graphql"
+        }
+      }
+    }
+  },
+    {
+      "name": "graphql-disable-introspection-policy",
+      "policyType": "graphql-disable-introspection-inbound",
+      "handler": {
+        "export": "GraphQLDisableIntrospectionInboundPolicy",
+        "module": "$import(@zuplo/graphql)"
+      }
+    }
+  ]
+}

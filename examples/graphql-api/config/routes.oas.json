@@ -1,0 +1,52 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "My Zupper GraphQL API"
+  },
+  "paths": {
+    "/graphql": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "GraphiQl",
+        "description": "Lorem ipsum dolor sit amet, **consectetur adipiscing** elit, sed do `eiusmod tempor` incididunt ut labore et dolore magna aliqua.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "https://zupper-graphql.moyii.workers.dev/graphql"
+            }
+          },
+          "policies": {
+            "inbound": []
+          }
+        },
+        "operationId": "99f3ffb7-2e3e-4105-8310-9e96901c6f52"
+      },
+      "post": {
+        "summary": "GraphQL Query",
+        "description": "Lorem ipsum dolor sit amet, **consectetur adipiscing** elit, sed do `eiusmod tempor` incididunt ut labore et dolore magna aliqua.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "https://zupper-graphql.zuplo-exp.workers.dev/graphql"
+            }
+          },
+          "policies": {
+            "inbound": [
+              "graphql-complexity-limit-policy"
+            ]
+          }
+        },
+        "operationId": "52bdf225-eaa7-441c-afb9-b7df046a142e"
+      }
+    }
+  }
+}

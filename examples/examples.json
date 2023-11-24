@@ -1,0 +1,25 @@
+{
+  "categories": [
+    {
+      "slug": "governance",
+      "title": "API Governance"
+    },
+    {
+      "slug": "git-ops",
+      "title": "Git Ops"
+    }
+  ],
+  "examples": [
+    {
+      "title": "API Linting",
+      "slug": "api-linting",
+      "description": "See how to use API linting to enforce api consistency and require Zuplo features like policies.",
+      "categories": [
+        "governance",
+        "git-ops"
+      ],
+      "iconUrl": "https://cdn.zuplo.com/foo.jpg",
+      "date": "2022-11-07"
+    }
+  ]
+}

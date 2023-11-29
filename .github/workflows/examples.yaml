@@ -6,7 +6,7 @@ on:
 
 jobs:
   trigger-deploy:
-    name: Trigger Release
+    name: Refresh Examples
     runs-on: ubuntu-latest
     steps:
-      - run: curl ${{secrets.VERCEL_DEPLOY_HOOK}}
+      - run: curl https://zuplo.com/api/revalidate?tag=api-examples

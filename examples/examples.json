@@ -7,6 +7,10 @@
     {
       "slug": "git-ops",
       "title": "Git Ops"
+    },
+    {
+      "slug": "programmability",
+      "title": "Programmability"
     }
   ],
   "examples": [
@@ -14,12 +18,17 @@
       "title": "API Linting",
       "slug": "api-linting",
       "description": "See how to use API linting to enforce api consistency and require Zuplo features like policies.",
-      "categories": [
-        "governance",
-        "git-ops"
-      ],
-      "iconUrl": "https://cdn.zuplo.com/foo.jpg",
+      "categories": ["governance", "git-ops"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-07"
+    },
+    {
+      "title": "Route Custom Data",
+      "slug": "programmability",
+      "description": "Use custom data from OpenAPI documents in policies and handlers.",
+      "categories": ["programmability"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2022-11-29"
     }
   ]
 }

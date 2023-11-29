@@ -1,14 +1,13 @@
 {
-  "private": true,
+  "name": "rewrite-custom-body",
+  "version": "1.0.0",
+  "author": "",
+  "copyright": "",
   "scripts": {
-    "dev": "zuplo dev",
-    "build": "zuplo build",
-    "test": "zuplo test"
+    "dev": "zup dev",
+    "test": "zup test"
   },
   "dependencies": {
-    "@zuplo/runtime": "latest"
-  },
-  "devDependencies": {
-    "@zuplo/core": "latest"
+    "zuplo": "latest"
   }
 }

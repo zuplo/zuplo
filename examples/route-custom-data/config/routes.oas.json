@@ -1,0 +1,27 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "My Zuplo API"
+  },
+  "paths": {
+    "/custom-data": {
+      "post": {
+        "x-custom": {
+          "isSet": true,
+          "hello": "world"
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "policies": {
+            "inbound": []
+          },
+          "handler": {
+            "module": "$import(./modules/echo)",
+            "export": "default"
+          }
+        }
+      }
+    }
+  }
+}

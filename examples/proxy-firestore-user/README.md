@@ -1,6 +1,3 @@
----
-githubUrl: https://github.com/zuplo/zuplo/tree/main/examples/proxy-firestore-user
----
 # Proxy Firestore with Firebase User Credentials
 
 This sample demonstrates how to expose Firestore documents through a REST API using the Zuplo [URL Rewrite Handler](https://zuplo.com/docs/handlers/url-rewrite) and the [Firebase User Auth Policy](https://zuplo.com/docs/policies/upstream-firebase-user-auth-inbound).

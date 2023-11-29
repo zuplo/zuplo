@@ -24,7 +24,7 @@
     },
     {
       "title": "Route Custom Data",
-      "slug": "programmability",
+      "slug": "route-custom-data",
       "description": "Use custom data from OpenAPI documents in policies and handlers.",
       "categories": ["programmability"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",

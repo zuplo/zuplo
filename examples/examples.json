@@ -29,6 +29,14 @@
       "categories": ["programmability"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-29"
+    },
+    {
+      "title": "Rewrite Request Body",
+      "slug": "rewrite-request-body",
+      "description": "Use a custom policy to rewrite the body of a Request",
+      "categories": ["programmability"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2022-11-29"
     }
   ]
 }

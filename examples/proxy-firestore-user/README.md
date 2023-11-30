@@ -14,13 +14,9 @@ In this example, a `POST` request will accept an `{name}` parameter in the URL a
 
 This demo uses a mock authentication policy that is a [custom policy](https://zuplo.com/docs/policies/custom-code-inbound). This policy just takes the value of the `user-id` header and sets the authenticated user to that value. A real API would use the [API Key](https://zuplo.com/docs/policies/api-key-inbound) or one of the [JWT policies](https://zuplo.com/docs/policies/open-id-jwt-auth-inbound) to authenticate the user.
 
-<Policy name="set-user" />
-
 ## 3/ Add Policy
 
 The [Firebase User Auth Policy](https://zuplo.com/docs/policies/upstream-firebase-user-auth-inbound) will create an token for the current user that will be added to the outgoing request's `Authorization` header. This token is scoped to a specific user so any Firebase rules that are in place will be enforced.
-
-<Policy name="firebase-user-auth" />
 
 ## 4/ Set Environment Variables
 

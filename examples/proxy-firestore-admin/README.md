@@ -14,8 +14,6 @@ In this example, a `GET` request will retrieve a single document by by mapping t
 
 The [Firebase Admin Auth Policy](https://zuplo.com/docs/policies/upstream-firebase-admin-auth-inbound) will create an admin token using a Firebase Service Account that will be added to the outgoing request's `Authorization` header. Because this token will allow full access to any document, generally another authorization policy would also be applied.
 
-<Policy name="upstream-firebase-admin" />
-
 ## 3/ Set Environment Variables
 
 There are two environment variables used in the sample:

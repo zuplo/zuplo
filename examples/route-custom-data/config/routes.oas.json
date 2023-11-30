@@ -23,6 +23,21 @@
         }
       }
     },
+    "/custom-flag": {
+      "get": {
+        "x-flag": true,
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "policies": {
+            "inbound": []
+          },
+          "handler": {
+            "module": "$import(./modules/echo)",
+            "export": "default"
+          }
+        }
+      }
+    },
     "/internal-route": {
       "get": {
         "x-internal": true,

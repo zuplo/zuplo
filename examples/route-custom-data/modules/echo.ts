@@ -7,10 +7,11 @@ export default async function echo(
   const data = context.route.raw<{
     "x-custom": { hello: boolean };
     "x-internal": boolean;
+    "x-flag": boolean;
   }>();
-  context.log.info(`My custom data: ${data["x-custom"]}`);
-  if (data["x-internal"]) {
-    return data["x-internal"];
-  }
-  return data["x-custom"];
+  return {
+    custom: data["x-custom"],
+    internal: data["x-internal"],
+    flag: data["x-flag"],
+  };
 }

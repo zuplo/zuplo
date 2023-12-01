@@ -1,0 +1,38 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "My Zuplo API"
+  },
+  "servers": [
+    {
+      "url": "https://echo.zuplo.io",
+      "x-base-path": "/my-base-1"
+    }
+  ],
+  "paths": {
+    "/my-base-1/route1": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Route 1",
+        "description": "Lorem ipsum dolor sit amet, **consectetur adipiscing** elit, sed do `eiusmod tempor` incididunt ut labore et dolore magna aliqua.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "${context.custom.serverUrl}"
+            }
+          },
+          "policies": {
+            "inbound": ["strip-base-path"]
+          }
+        },
+        "operationId": "7e26a217-4c77-4d4a-abca-b4bbd314142e"
+      }
+    }
+  }
+}

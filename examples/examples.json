@@ -37,6 +37,14 @@
       "categories": ["programmability"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-29"
+    },
+    {
+      "title": "Custom Base Path",
+      "slug": "oas-base-path",
+      "description": "Use a custom property on OpenAPI documents to automatically remove a base path and set the forwarding server.",
+      "categories": ["programmability"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2022-11-29"
     }
   ]
 }

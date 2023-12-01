@@ -1,0 +1,12 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/strip-base-path)"
+      },
+      "name": "strip-base-path",
+      "policyType": "custom-code-inbound"
+    }
+  ]
+}

@@ -5,13 +5,15 @@
   "copyright": "",
   "scripts": {
     "dev": "zup dev",
-    "test": "zup test"
+    "test": "zup test",
+    "lint": "vacuum lint -f ./lint-functions -r config/api-ruleset.yaml -s -d config/routes.oas.json"
   },
   "dependencies": {
     "cookie": "^0.5.0",
     "zuplo": "latest"
   },
   "devDependencies": {
-    "@types/cookie": "^0.5.2"
+    "@types/cookie": "^0.5.2",
+    "@quobix/vacuum": "^0.4.3",
   }
 }

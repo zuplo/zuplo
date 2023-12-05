@@ -19,12 +19,7 @@
     "schemas": {
       "TodoObject": {
         "type": "object",
-        "required": [
-          "id",
-          "userId",
-          "title",
-          "completed"
-        ],
+        "required": ["id", "userId", "title", "completed"],
         "properties": {
           "id": {
             "type": "string",
@@ -71,33 +66,23 @@
       "InsertTodoObject": {
         "type": "object",
         "title": "Todo Insert Schema",
-        "required": [
-          "userId",
-          "title",
-          "completed"
-        ],
+        "required": ["userId", "title", "completed"],
         "additionalProperties": false,
         "properties": {
           "userId": {
             "type": "integer",
             "description": "The userId that created the todo list item.",
-            "examples": [
-              1
-            ]
+            "examples": [1]
           },
           "title": {
             "type": "string",
             "description": "The title of the todo list item.",
-            "examples": [
-              "Wash the dishes"
-            ]
+            "examples": ["Wash the dishes"]
           },
           "completed": {
             "type": "boolean",
             "description": "Whether or not the todo list item is completed.",
-            "examples": [
-              false
-            ]
+            "examples": [false]
           }
         },
         "examples": [
@@ -112,32 +97,22 @@
         "type": "object",
         "title": "Update Todo Object",
         "additionalProperties": false,
-        "required": [
-          "userId",
-          "completed",
-          "title"
-        ],
+        "required": ["userId", "completed", "title"],
         "properties": {
           "userId": {
             "type": "integer",
             "description": "The userId that created the todo list item.",
-            "examples": [
-              1
-            ]
+            "examples": [1]
           },
           "title": {
             "type": "string",
             "description": "The title of the todo list item.",
-            "examples": [
-              "Make dinner"
-            ]
+            "examples": ["Make dinner"]
           },
           "completed": {
             "type": "boolean",
             "description": "Whether or not the todo list item is completed.",
-            "examples": [
-              false
-            ]
+            "examples": [false]
           }
         },
         "examples": [
@@ -150,13 +125,7 @@
       },
       "SchemaValidationError": {
         "type": "object",
-        "required": [
-          "type",
-          "title",
-          "status",
-          "detail",
-          "instance"
-        ],
+        "required": ["type", "title", "status", "detail", "instance"],
         "properties": {
           "type": {
             "type": "string"
@@ -197,9 +166,7 @@
               "buildId": "83e3d0f1-89a8-46ea-b040-e0a2432f2ea5",
               "rayId": "7a031f102747944d-SJC"
             },
-            "errors": [
-              "Body must have required property 'userId'"
-            ]
+            "errors": ["Body must have required property 'userId'"]
           }
         ]
       },
@@ -330,9 +297,7 @@
             }
           }
         },
-        "tags": [
-          "Standard Todo List Endpoints"
-        ]
+        "tags": ["Standard Todo List Endpoints"]
       },
       "post": {
         "summary": "Create Todo",
@@ -348,15 +313,10 @@
             }
           },
           "policies": {
-            "inbound": [
-              "validate-json-schema-inbound",
-              "my-auth-policy"
-            ]
+            "inbound": ["validate-json-schema-inbound", "my-auth-policy"]
           }
         },
-        "tags": [
-          "Standard Todo List Endpoints"
-        ],
+        "tags": ["Standard Todo List Endpoints"],
         "operationId": "f9e30d74-56ca-4f1e-bcb3-75fe305ea5e4",
         "requestBody": {
           "description": "Payload required to create a todo list item.",
@@ -412,9 +372,7 @@
           }
         },
         "operationId": "398f226b-7401-4906-9aba-8dee92068f94",
-        "tags": [
-          "Extended Todo List Endpoints"
-        ],
+        "tags": ["Extended Todo List Endpoints"],
         "responses": {
           "200": {
             "description": "Todos with creating user data attached",
@@ -424,13 +382,7 @@
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": [
-                      "user",
-                      "userId",
-                      "id",
-                      "title",
-                      "completed"
-                    ],
+                    "required": ["user", "userId", "id", "title", "completed"],
                     "allOf": [
                       {
                         "$ref": "#/components/schemas/TodoObject"
@@ -495,15 +447,11 @@
             }
           },
           "policies": {
-            "inbound": [
-              "validate-json-schema-inbound-1"
-            ]
+            "inbound": ["validate-json-schema-inbound-1"]
           }
         },
         "operationId": "f3334d8b-37f9-489b-87c5-08a8beb5657c",
-        "tags": [
-          "Standard Todo List Endpoints"
-        ],
+        "tags": ["Standard Todo List Endpoints"],
         "parameters": [
           {
             "name": "todoId",
@@ -570,9 +518,7 @@
           }
         },
         "operationId": "1647d06c-2a96-41ab-a2f7-ebb55d5bcd76",
-        "tags": [
-          "Standard Todo List Endpoints"
-        ],
+        "tags": ["Standard Todo List Endpoints"],
         "parameters": [
           {
             "name": "todoId",
@@ -591,9 +537,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "examples": [
-                    {}
-                  ]
+                  "examples": [{}]
                 }
               }
             }

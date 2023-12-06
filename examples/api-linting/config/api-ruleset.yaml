@@ -2,10 +2,12 @@
 # extends: [[spectral:oas, recommended]]
 documentationUrl: https://github.com/zuplo/zuplo/api-linting
 rules:
+  oas3-schema: true
   oas3-api-servers: false
   oas3-unused-component: false
   description-duplication: false
   oas3-valid-schema-example: false
+  paths-kebab-case: false
   zuplo-valid-path-mode:
     description: Zuplo pathMode must be equal to either 'open-api' or 'url-pattern'
     given: $.paths.*.x-zuplo-path

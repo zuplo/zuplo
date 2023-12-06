@@ -14,7 +14,6 @@
   },
   "devDependencies": {
     "@quobix/vacuum": "^0.5.9",
-    "@types/cookie": "^0.5.2",
-    "kebab-case": "^1.0.2"
+    "@types/cookie": "^0.5.2"
   }
 }

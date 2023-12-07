@@ -30,8 +30,8 @@ Finally, a `context.custom` property is set, in this case `apiUrl` based on the 
 
 ## Calling the API
 
-In order to call the API and see the A/B test in action, make a request and set the header `fake-auth`. This fake authentication policy allows you to simulate the current user.
+In order to call the API and see the A/B test in action, make a request and set the header `fake-user`. This fake authentication policy allows you to simulate the current user.
 
 ```sh
-curl -i -H "fake-user: 123" http://api.example.com/test
+curl -i -H "fake-user: 123" https://ab-test-backend-main-e1f9895.zuplo.app/test
 ```

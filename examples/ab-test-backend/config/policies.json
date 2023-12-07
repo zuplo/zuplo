@@ -1,0 +1,20 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/ab-test)"
+      },
+      "name": "ab-test",
+      "policyType": "custom-code-inbound"
+    },
+    {
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/fake-auth)"
+      },
+      "name": "fake-auth",
+      "policyType": "custom-code-inbound"
+    }
+  ]
+}

@@ -5,9 +5,9 @@
   "author": "Zuplo, Inc.",
   "license": "See LICENSE in LICENSE.txt",
   "dependencies": {
-    "@zuplo/cli": "1.93.0",
-    "@zuplo/core": "5.1564.0",
-    "@zuplo/runtime": "5.1564.0",
+    "@zuplo/cli": "1.95.0",
+    "@zuplo/core": "5.1570.0",
+    "@zuplo/runtime": "5.1570.0",
     "@zuplo/test": "1.4.0"
   },
   "peerDependencies": {

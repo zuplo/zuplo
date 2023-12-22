@@ -53,6 +53,14 @@
       "categories": ["programmability"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-12-07"
+    },
+    {
+      "title": "Mocking & Unit Test",
+      "slug": "test-mocks",
+      "description": "Create unit tests by mocking Zuplo objects.",
+      "categories": ["testing"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2022-12-21"
     }
   ]
 }

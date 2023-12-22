@@ -1,0 +1,74 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Todo List API",
+    "description": "Example API, built using [Zuplo](https://zuplo.com/), for managing tasks within a todo list. You can find the source code for this example [here](https://github.com/zuplo/samples-todo-list-open-api).",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "Todo Lists",
+      "description": "Standard endpoints for managing todos list items."
+    }
+  ],
+  "paths": {
+    "/v1/todos": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Create Todo",
+        "description": "Creates a todo list item.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "https://jsonplaceholder.typicode.com/todos",
+              "forwardSearch": true
+            }
+          },
+          "policies": {
+            "inbound": ["set-content-type", "request-validation-inbound"]
+          }
+        },
+        "tags": ["Todo Lists"],
+        "operationId": "f9e30d74-56ca-4f1e-bcb3-75fe305ea5e4",
+        "requestBody": {
+          "description": "Payload required to create a todo list item.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/insert-todo-object.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created todo list item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/todo-object.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Schema validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/schema-validation-error.json"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

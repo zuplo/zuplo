@@ -11,6 +11,14 @@
     {
       "slug": "programmability",
       "title": "Programmability"
+    },
+    {
+      "slug": "testing",
+      "title": "Testing"
+    },
+    {
+      "slug": "validation",
+      "title": "Validation"
     }
   ],
   "examples": [
@@ -61,6 +69,13 @@
       "categories": ["testing"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-12-21"
+    },
+    {
+      "title": "Schema Validation with File Refs",
+      "slug": "schema-validation-file-ref",
+      "categories": ["validation", "programmability"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2022-12-22"
     }
   ]
 }

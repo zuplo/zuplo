@@ -1,0 +1,43 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/remove-user-id)"
+      },
+      "name": "remove-user-id",
+      "policyType": "custom-code-outbound"
+    },
+    {
+      "handler": {
+        "export": "RequestValidationInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "includeRequestInLogs": false,
+          "logLevel": "warn",
+          "validateBody": "reject-and-log",
+          "validatePathParameters": "none",
+          "validateQueryParameters": "none"
+        }
+      },
+      "name": "request-validation-inbound",
+      "policyType": "request-validation-inbound"
+    },
+    {
+      "handler": {
+        "export": "SetHeadersInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "headers": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "name": "set-content-type",
+      "policyType": "set-headers-inbound"
+    }
+  ]
+}

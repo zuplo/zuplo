@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["type", "title", "status", "detail", "instance"],
+  "properties": {
+    "type": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "status": {
+      "type": "number"
+    },
+    "detail": {
+      "type": "string"
+    },
+    "instance": {
+      "type": "string"
+    },
+    "trace": {
+      "type": "object"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    }
+  },
+  "examples": [
+    {
+      "type": "https://httpproblems.com/http-status/400",
+      "title": "Bad Request",
+      "status": 400,
+      "detail": "Incoming body did not pass schema validation",
+      "instance": "/v1/todos",
+      "trace": {
+        "timestamp": "2023-02-27T18:53:05.997Z",
+        "requestId": "b1e1c2a9-da7b-436c-aa89-2f78918047b2",
+        "buildId": "83e3d0f1-89a8-46ea-b040-e0a2432f2ea5",
+        "rayId": "7a031f102747944d-SJC"
+      },
+      "errors": ["Body must have required property 'userId'"]
+    }
+  ]
+}

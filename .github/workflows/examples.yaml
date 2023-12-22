@@ -9,4 +9,4 @@ jobs:
     name: Refresh Examples
     runs-on: ubuntu-latest
     steps:
-      - run: curl https://zuplo.com/api/revalidate?tag=api-examples&path=/examples"
+      - run: curl https://zuplo.com/api/revalidate?tag=api-examples&path=/examples

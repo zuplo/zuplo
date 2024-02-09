@@ -42,6 +42,7 @@ export const context: ZuploContext = {
   },
   waitUntil: (promise: Promise<any>) => {},
   addResponseSendingFinalHook: (hook) => {},
+  addResponseSendingHook: (hook) => {},
   addEventListener: (type, handler, options) => {},
   removeEventListener: (type, handler, options) => {},
   dispatchEvent: (event) => true,

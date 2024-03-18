@@ -10,14 +10,16 @@ export async function checkAccess(tuple: {
     authorization_model_id: environment.OPEN_FGA_MODEL_ID,
   };
 
-  const authToken = getAuthorizationToken();
+  // When testing OpenFGA you can use the API without authentication
+  // In production, you will need to setup auth or use secure tunnels
+  // const authToken = getToken();
 
   const response = await fetch(
     `${environment.OPENFGA_URL}/stores/${environment.OPENFGA_STORE_ID}/check`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${authToken}`,
+        // Authorization: `Bearer ${authToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -31,11 +33,6 @@ export async function checkAccess(tuple: {
   } else {
     throw new AuthorizationError(result.code, result.message);
   }
-}
-
-function getAuthorizationToken() {
-  // Depends on your authorization model for OpenFGA
-  return "your-code-here";
 }
 
 export class AuthorizationError extends Error {

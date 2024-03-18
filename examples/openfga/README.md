@@ -2,6 +2,14 @@
 
 This sample demonstrates how to use OpenFGA from a custom Zuplo policy to authorize access to a resource.
 
+## Prerequisites
+
+In order to use this sample, you will need to configuration an authorization policy. This sample is setup with the [Zuplo Auth0 authentication policy](https://zuplo.com/docs/policies/auth0-jwt-auth-inbound), but you can use any authentication or custom authentication policy. You will need to configure the policy with your own identity provider.
+
+You will also need an OpenFGA service. You can run OpenFGA locally as shown in [the documentation](https://openfga.dev/docs/getting-started/setup-openfga/docker#step-by-step). When running locally, in order to use this sample, you'll want to use [Zuplo Local Development](https://zuplo.com/docs/articles/local-development).
+
+## OpenFGA Policy
+
 The custom policy is configured to read configuration from the `x-authorization` extension in the OpenAPI definition. The configuration of that property is a JSON object with the following properties:
 
 - `relation`: The relation of the user to the resource. This is the value of the `relation` property in the OpenFGA policy.

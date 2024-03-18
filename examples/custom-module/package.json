@@ -5,9 +5,14 @@
   "copyright": "",
   "scripts": {
     "dev": "zup dev",
-    "test": "zup test"
+    "test": "zup test",
+    "bundle": "node ./bundle.mjs"
   },
   "dependencies": {
+    "openai": "^4.29.1",
     "zuplo": "latest"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.2"
   }
 }

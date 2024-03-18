@@ -4,7 +4,7 @@ This sample demonstrates how to bundle custom node modules to use in your Zuplo 
 
 ## 1/ Install & Bundle the Module
 
-In the `./third-party` folder run `npm install YOUR_MODULE` for the module you want to use.
+Run `npm install YOUR_MODULE` to install the module you would like to use.
 
 Run the bundle script:
 

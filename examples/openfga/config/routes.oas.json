@@ -15,7 +15,7 @@
         "x-zuplo-route": {
           "corsPolicy": "none",
           "policies": {
-            "inbound": ["authorization", "auth0-jwt-auth-inbound"]
+            "inbound": ["auth0-jwt-auth-inbound", "authorization"]
           },
           "handler": {
             "module": "$import(@zuplo/runtime)",

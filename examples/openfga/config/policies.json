@@ -1,0 +1,25 @@
+{
+  "policies": [
+    {
+      "name": "auth0-jwt-auth-inbound",
+      "policyType": "auth0-jwt-auth-inbound",
+      "handler": {
+        "export": "Auth0JwtInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "allowUnauthenticatedRequests": false,
+          "audience": "https://api.example.com/",
+          "auth0Domain": "my-company.auth0.com"
+        }
+      }
+    },
+    {
+      "name": "authorization",
+      "policyType": "custom-code-inbound",
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/authorization)"
+      }
+    }
+  ]
+}

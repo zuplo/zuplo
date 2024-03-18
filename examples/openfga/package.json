@@ -1,0 +1,13 @@
+{
+  "name": "rewrite-custom-body",
+  "version": "1.0.0",
+  "author": "",
+  "copyright": "",
+  "scripts": {
+    "dev": "zup dev",
+    "test": "zup test"
+  },
+  "dependencies": {
+    "zuplo": "*"
+  }
+}

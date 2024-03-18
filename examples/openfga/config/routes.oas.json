@@ -1,0 +1,31 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "My Zuplo API"
+  },
+  "paths": {
+    "/docs/{id}": {
+      "get": {
+        "x-authorization": {
+          "relation": "reader",
+          "objectType": "document",
+          "objectParam": "id"
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "policies": {
+            "inbound": ["authorization", "auth0-jwt-auth-inbound"]
+          },
+          "handler": {
+            "module": "$import(@zuplo/runtime)",
+            "export": "urlRewriteHandler",
+            "options": {
+              "rewritePattern": "https://echo.zuplo.io"
+            }
+          }
+        }
+      }
+    }
+  }
+}

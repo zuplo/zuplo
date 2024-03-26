@@ -14,6 +14,16 @@ npm install esbuild -D
 
 You will need a script that configures and runs the `esbuild` bundler. This script will be run every time you want to bundle your custom modules. You can copy the script from the [`bundle.mjs`](./bundle.mjs) file in this example.
 
+For convinience, you will also want to add the `bundle` script to your `package.json`
+
+```json
+{
+  "scripts": {
+    "bundle": "node ./bundle.mjs"
+  }
+}
+```
+
 ## 3/ Install Your Custom Module
 
 Next, you will install your custom module into your project. You can do this by running `npm install YOUR_MODULE`. This will install the module into your `node_modules` directory.

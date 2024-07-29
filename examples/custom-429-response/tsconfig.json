@@ -1,0 +1,16 @@
+{
+  "include": ["modules/**/*", ".zuplo/**/*", "tests/**/*"],
+  "exclude": ["./node_modules", "./dist"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "target": "ESNext",
+    "moduleResolution": "bundler",
+    "preserveConstEnums": true,
+    "useUnknownInCatchVariables": false,
+    "importHelpers": true,
+    "removeComments": true,
+    "esModuleInterop": true,
+    "noEmit": true,
+    "strictNullChecks": true
+  }
+}

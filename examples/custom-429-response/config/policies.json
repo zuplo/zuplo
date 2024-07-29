@@ -1,0 +1,29 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "customRateLimiter",
+        "module": "$import(./modules/rate-limiting)"
+      },
+      "name": "custom-rate-limit-inbound",
+      "policyType": "custom-code-inbound"
+    },
+    {
+      "handler": {
+        "export": "RateLimitInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "rateLimitBy": "function",
+          "requestsAllowed": 2,
+          "timeWindowMinutes": 1,
+          "identifier": {
+            "module": "$import(./modules/rate-limiting)",
+            "export": "rateLimitKey"
+          }
+        }
+      },
+      "name": "rate-limit-inbound",
+      "policyType": "rate-limit-inbound"
+    }
+  ]
+}

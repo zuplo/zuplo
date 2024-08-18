@@ -1,0 +1,22 @@
+{
+  "name": "bulk-delete-github-environments",
+  "type": "module",
+  "version": "1.0.6",
+  "description": "Bulk delete github environments",
+  "author": "Zuplo, Inc.",
+  "license": "See LICENSE in LICENSE.txt",
+  "dependencies": {
+    "@octokit/core": "^6.1.2",
+    "dotenv": "^16.4.5",
+    "p-limit": "^6.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bin": {
+    "bulk-delete-github-environments": "main.mjs"
+  },
+  "files": [
+    "main.mjs"
+  ]
+}

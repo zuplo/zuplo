@@ -9,7 +9,8 @@
     "url": "https://github.com/zuplo/zuplo/issues"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "tools/*"
   ],
   "homepage": "https://github.com/zuplo/zuplo#readme",
   "devDependencies": {

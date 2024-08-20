@@ -1,6 +1,6 @@
 {
   "name": "@zuplo/checkly",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "This is a helper that makes it easy to use Checkly with Zuplo APIs.",
   "author": "Zuplo, Inc.",
   "license": "MIT",

@@ -33,6 +33,16 @@ The `asserts` function is just an alias to Checkly's `AssertionBuilder` class.
 
 The `url` property in the `request` object is the only required property and must be a relative path. The value of `ENVIRONMENT_URL` will be prepended to the path when the check is run.
 
+> NOTE: The `id` value of each check is generated automatically using the name of the test because I find it tiresome to write IDs manually for each test. :)
+
+## Running Tests
+
+Running the tests is done normally using the [Checkly CLI](https://www.checklyhq.com/docs/cli/). The `ENVIRONMENT_URL` environment variable must be set to the base URL of the API.
+
+```bash
+npx checkly test run -e ENVIRONMENT_URL=https://example.com
+```
+
 ## Examples
 
 ### Basic check

@@ -1,0 +1,24 @@
+{
+  "name": "@zuplo/checkly",
+  "version": "1.0.5",
+  "description": "This is a helper that makes it easy to use Checkly with Zuplo APIs.",
+  "author": "Zuplo, Inc.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zuplo/zuplo",
+    "directory": "packages/checkly"
+  },
+  "files": [
+    "dist/"
+  ],
+  "main": "dist/checks.js",
+  "scripts": {
+    "build": "tsc",
+    "postversion": "sh scripts/publish.sh"
+  },
+  "peerDependencies": {
+    "checkly": "^4.8.1",
+    "typescript": "^5.5.4"
+  }
+}

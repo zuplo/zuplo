@@ -43,7 +43,9 @@ export function check(options: ApiCheckOptions) {
   }
 
   const parsedUrl = new URL(request.url, "https://example.com");
-  const url = `{{ENVIRONMENT_URL}}/${parsedUrl.pathname}`;
+  // The {{ENVIRONMENT_URL}} value is is a magic checkly string that is replaced
+  // by the environment variable when the CLI runs the tests.
+  const url = `{{ENVIRONMENT_URL}}${parsedUrl.pathname}`;
   const queryParameters: { key: string; value: string }[] = Array.from(
     parsedUrl.searchParams.entries(),
   ).map(([key, value]) => ({ key, value }));

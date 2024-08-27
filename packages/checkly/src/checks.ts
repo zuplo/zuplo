@@ -40,12 +40,6 @@ export interface ApiCheckOptions extends Omit<ApiCheckProps, "request"> {
   assertions?: Assertion[];
 }
 
-const toLogicalId = (value: string) =>
-  value
-    .toLocaleLowerCase()
-    .replaceAll(" ", "-")
-    .replace(/[^a-zA-Z0-9-]/g, "");
-
 export function check(options: ApiCheckOptions) {
   const { request, assertions, ...opts } = options;
 
@@ -70,9 +64,12 @@ export function check(options: ApiCheckOptions) {
     parsedUrl.searchParams.entries(),
   ).map(([key, value]) => ({ key, value }));
 
-  const logicalId = toLogicalId(
-    options.group ? `${opts.group.name}-${opts.name}` : opts.name,
-  );
+  const id = opts.name
+    .toLocaleLowerCase()
+    .replaceAll(" ", "-")
+    .replace(/[^a-zA-Z0-9-]/g, "");
+  const logicalId = options.group ? `${opts.group.logicalId}-${id}` : id;
+
   return new ApiCheck(logicalId, {
     ...opts,
     request: {

@@ -8,6 +8,6 @@
     "test": "zup test"
   },
   "dependencies": {
-    "zuplo": "*"
+    "zuplo": "latest"
   }
 }

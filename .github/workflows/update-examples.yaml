@@ -1,0 +1,56 @@
+name: Test Cleanup
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  cleanup-tests:
+    name: Cleanup Test Workers
+    timeout-minutes: 4
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.GH_ACTIONS_DEPLOY_KEY_RULE_BYPASS }}
+
+      - run: git config --global user.email "integrations@zuplo.com"
+      - run: git config --global user.name "Zuplo Integrations"
+
+      - run: sh ./scripts/upgrade-examples.sh
+
+      - name: Check for Git Changes
+        id: git_changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Push Git Changes
+        if: steps.git_changes.outputs.changes == 'true'
+        run: |
+          git checkout -b examples-upgrade
+          git add -A
+          git commit -m "Upgraded Examples"
+          git push origin examples-upgrade --force
+
+      - name: Check if PR Exists
+        id: pr_exists
+        run: |
+          if gh pr list --head examples-upgrade --json number --jq '.[0]'; then
+            echo "pr_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "pr_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create PR
+        if: steps.git_changes.outputs.changes == 'true' && steps.pr_exists.outputs.pr_exists == 'false'
+        run: gh pr create -B main -H examples-upgrade --title 'Upgraded Examples using Zuplo CLI' --reviewer 'ntotten'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

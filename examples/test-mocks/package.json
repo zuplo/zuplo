@@ -6,19 +6,18 @@
   "scripts": {
     "dev": "zup dev",
     "test": "zup test",
-    "unit": "mocha --require ts-node/register unit-tests/*.spec.ts"
+    "unit": "mocha --require @swc-node/register unit-tests/*.spec.ts"
   },
   "dependencies": {
     "zuplo": "latest"
   },
   "devDependencies": {
+    "@swc-node/register": "^1.10.9",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.17.14",
     "@types/sinon": "^10.0.16",
     "mocha": "^10.2.0",
     "sinon": "^15.2.0",
-    "ts-node": "^10.9.1",
-    "tslib": "^2.6.2",
     "typescript": "^5.2.2",
     "undici": "^5.23.0"
   }

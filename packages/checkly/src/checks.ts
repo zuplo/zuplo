@@ -20,6 +20,16 @@ export interface ApiCheckRequest extends Omit<RequestInit, "body"> {
 
 export interface ApiCheckOptions extends Omit<ApiCheckProps, "request"> {
   /**
+   * Constructs the API Check instance. If not provided, an id will be
+   * generated from the group and check name.
+   *
+   * @param logicalId unique project-scoped resource name identification
+   * @param props check configuration properties
+   *
+   * {@link https://checklyhq.com/docs/cli/constructs/#apicheck Read more in the docs}
+   */
+  logicalId?: string;
+  /**
    *  Determines the request that the check is going to run.
    */
   request: ApiCheckRequest;
@@ -29,6 +39,12 @@ export interface ApiCheckOptions extends Omit<ApiCheckProps, "request"> {
    */
   assertions?: Assertion[];
 }
+
+const toLogicalId = (value: string) =>
+  value
+    .toLocaleLowerCase()
+    .replaceAll(" ", "-")
+    .replace(/[^a-zA-Z0-9-]/g, "");
 
 export function check(options: ApiCheckOptions) {
   const { request, assertions, ...opts } = options;
@@ -54,7 +70,10 @@ export function check(options: ApiCheckOptions) {
     parsedUrl.searchParams.entries(),
   ).map(([key, value]) => ({ key, value }));
 
-  return new ApiCheck(opts.name.toLowerCase().replaceAll(" ", "-"), {
+  const logicalId = toLogicalId(
+    options.group ? `${opts.group.name}-${opts.name}` : opts.name,
+  );
+  return new ApiCheck(logicalId, {
     ...opts,
     request: {
       url: url,

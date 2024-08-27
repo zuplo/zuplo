@@ -96,3 +96,11 @@ check({
   assertions: [asserts().statusCode().equals(200)],
 });
 ```
+
+## Release
+
+To run a new release, run the following command:
+
+```base
+npm version {major|minor|patch}
+```

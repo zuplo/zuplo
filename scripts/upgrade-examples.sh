@@ -14,6 +14,6 @@ full_path="$current_dir/$relative_path"
 for dir in "$full_path"/*/; do
   # Check if it is a directory
   if [ -d "$dir" ]; then
-   npx @zuplo/cli@latest project update -y --dir "$dir"
+   npx @zuplo/cli@latest project update --no-prompt --dir "$dir"
   fi
 done

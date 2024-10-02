@@ -13,6 +13,9 @@
     "tools/*"
   ],
   "homepage": "https://github.com/zuplo/zuplo#readme",
+  "scripts": {
+    "clean": "git clean -Xfde !.env"
+  },
   "devDependencies": {
     "prettier": "^3.0.3",
     "shelljs": "^0.8.5"

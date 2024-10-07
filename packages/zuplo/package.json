@@ -6,12 +6,9 @@
   "license": "See LICENSE in LICENSE.txt",
   "dependencies": {
     "@zuplo/cli": "3.0.5",
-    "@zuplo/core": "6.2.1",
-    "@zuplo/runtime": "6.2.1",
+    "@zuplo/core": "6.2.10",
+    "@zuplo/runtime": "6.2.10",
     "@zuplo/test": "1.4.0"
   },
-  "peerDependencies": {
-    "@types/chai": "^4.3.6",
-    "chai": "^4.3.6"
-  }
+  "peerDependencies": { "@types/chai": "^4.3.6", "chai": "^4.3.6" }
 }

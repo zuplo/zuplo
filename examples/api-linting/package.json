@@ -9,7 +9,7 @@
     "lint": "vacuum lint -f ./lint-functions -r config/api-ruleset.yaml -s -d config/routes.oas.json"
   },
   "dependencies": {
-    "cookie": "^0.5.0",
+    "cookie": "^0.7.2",
     "zuplo": "latest"
   },
   "devDependencies": {

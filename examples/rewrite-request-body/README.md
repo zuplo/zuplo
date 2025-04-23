@@ -34,7 +34,7 @@ return new Request(request, {
 The API can now be called and will return the echoed response. Note, the echo API returns a serialized version of the entire request so you will get back the body, url, headers, etc. In this example, you will see that the body has the original `hello` property and two new properties `id` and `createdOn`
 
 ```bash
-curl -X POST https://API_URL/rewrite-bod
+curl -X POST https://API_URL/rewrite-body
    -H "Content-Type: application/json"
    -H "Authorization: user123"
    -d '{"hello": "world" }'

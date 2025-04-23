@@ -17,7 +17,7 @@ CLIENT_SECRET=
 // Create an Upstash Redis Database
 // https://upstash.com/docs/redis/overall/getstarted
 UPSTASH_URL=
-UPSTASH_TOKEN
+UPSTASH_TOKEN=
 ```
 
 ## Running Locally

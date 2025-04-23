@@ -1,6 +1,15 @@
 /// <reference types="node" />
 
-import { ZuploRequest } from "@zuplo/runtime";
+// Remove the @zuplo/runtime import and create our own mock class
+class ZuploRequest extends Request {
+  params: Record<string, string>;
+  
+  constructor(input: string | Request, init?: RequestInit & { params?: Record<string, string> }) {
+    super(input, init);
+    this.params = init?.params || {};
+  }
+}
+
 import assert from "assert";
 import sinon from "sinon";
 import { MockAgent, setGlobalDispatcher } from "undici";
@@ -26,9 +35,10 @@ describe("Handler test", function () {
     // Add a spy to the logger to test that it was called
     const contextSpy = sandbox.spy(context.log, "info");
 
-    // Mock the ZuploRequest to return { hello: "world" } json
-    const mockRequest = sandbox.createStubInstance(ZuploRequest, {
-      json: sinon.stub(Promise.resolve({ hello: "world" })),
+    // Create a mock request with the data we want to test
+    const mockRequest = new ZuploRequest("https://test.com", {
+      method: 'POST',
+      body: JSON.stringify({ hello: "world" })
     });
 
     // Call the handler

@@ -55,14 +55,6 @@
       "date": "2022-11-29"
     },
     {
-      "title": "A/B Test Backend",
-      "slug": "ab-test-backend",
-      "description": "Assign a percentage of traffic to a new backend for testing.",
-      "categories": ["programmability"],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2022-12-07"
-    },
-    {
       "title": "Mocking & Unit Test",
       "slug": "test-mocks",
       "description": "Create unit tests by mocking Zuplo objects.",

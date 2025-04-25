@@ -54,7 +54,7 @@
     {
       "title": "Backend for Frontend (BFF) Auth",
       "slug": "bff-auth",
-      "description": "Optimize user experience and security in web applications with this auth approach.",
+      "description": "Optimize user experience and security in web applications with this approach.",
       "categories": ["authentication", "bff"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-07"
@@ -118,7 +118,7 @@
     {
       "title": "OpenFGA Authorization",
       "slug": "openfga",
-      "description": "Use OpenFGA from a custom Zuplo policy to authorize access to a resource.",
+      "description": "Use OpenFGA from a custom policy to authorize access to a resource.",
       "categories": ["programmability", "authorization"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-29"
@@ -134,7 +134,7 @@
     {
       "title": "Schema Validation with File Refs",
       "slug": "schema-validation-file-ref",
-      "description": "Use the Request Validation policy and write OpenAPI that references external files.",
+      "description": "Use the Request Validation policy with OpenAPI that references external files.",
       "categories": ["validation", "programmability"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-12-22"

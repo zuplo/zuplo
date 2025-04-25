@@ -54,7 +54,7 @@
     {
       "title": "Backend for Frontend (BFF) Auth",
       "slug": "bff-auth",
-      "description": "Optimize both user experience and security in web applications with this BFF auth approach.",
+      "description": "Optimize user experience and security in web applications with this auth approach.",
       "categories": ["authentication", "bff"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-07"
@@ -62,7 +62,7 @@
     {
       "title": "Custom Rate Limiting",
       "slug": "custom-429-response",
-      "description": "How to invoke the Rate Limit policy programatically and then modify the 429 response.",
+      "description": "Invoke the Rate Limit policy programatically and then modify the 429 response.",
       "categories": ["programmability", "rate-limiting"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-07"
@@ -86,7 +86,7 @@
     {
       "title": "Log Request & Response",
       "slug": "log-request-response",
-      "description": "How to capture the full request and response in order to send to your log provider.",
+      "description": "Capture the full request and response to send to your log provider.",
       "categories": ["programmability", "logging"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-07"
@@ -118,7 +118,7 @@
     {
       "title": "OpenFGA Authorization",
       "slug": "openfga",
-      "description": "How to use OpenFGA from a custom Zuplo policy to authorize access to a resource.",
+      "description": "Use OpenFGA from a custom Zuplo policy to authorize access to a resource.",
       "categories": ["programmability", "authorization"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-29"
@@ -134,7 +134,7 @@
     {
       "title": "Schema Validation with File Refs",
       "slug": "schema-validation-file-ref",
-      "description": "Use the Request Validation policy and write an OpenAPI spec that references external files.",
+      "description": "Use the Request Validation policy and write OpenAPI that references external files.",
       "categories": ["validation", "programmability"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-12-22"

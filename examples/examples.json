@@ -54,7 +54,7 @@
     {
       "title": "Backend for Frontend (BFF) Auth",
       "slug": "bff-auth",
-      "description": "Optimize user experience and security in web applications with this approach.",
+      "description": "Optimize UX and security in web applications with this approach.",
       "categories": ["authentication", "bff"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-07"

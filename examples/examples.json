@@ -52,30 +52,6 @@
       "date": "2022-11-07"
     },
     {
-      "title": "Backend for Frontend (BFF) Auth",
-      "slug": "bff-auth",
-      "description": "Optimize UX and security in web applications with this approach.",
-      "categories": ["authentication", "bff"],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2022-11-07"
-    },
-    {
-      "title": "Custom Rate Limiting",
-      "slug": "custom-429-response",
-      "description": "Invoke the Rate Limit policy programatically and then modify the 429 response.",
-      "categories": ["programmability", "rate-limiting"],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2022-11-07"
-    },
-    {
-      "title": "Custom Modules",
-      "slug": "custom-module",
-      "description": "How to bundle custom node modules to use in your Zuplo project.",
-      "categories": ["programmability", "customization"],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2022-11-07"
-    },
-    {
       "title": "Dynamic Rate Limits",
       "slug": "dynamic-rate-limits",
       "description": "See how to create dynamic rate limits with the Rick & Morty API sample.",
@@ -116,14 +92,6 @@
       "date": "2022-11-29"
     },
     {
-      "title": "OpenFGA Authorization",
-      "slug": "openfga",
-      "description": "Use OpenFGA from a custom policy to authorize access to a resource.",
-      "categories": ["programmability", "authorization"],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2022-11-29"
-    },
-    {
       "title": "Mocking & Unit Test",
       "slug": "test-mocks",
       "description": "Create unit tests by mocking Zuplo objects.",
@@ -138,6 +106,14 @@
       "categories": ["validation", "programmability"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-12-22"
-    }
+    },
+    {
+      "title": "A/B Testing",
+      "slug": "ab-test-backend",
+      "description": "Add A/B testing to your Zuplo project",
+      "categories": ["testing"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2022-12-21"
+    },
   ]
 }

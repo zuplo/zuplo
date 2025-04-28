@@ -78,7 +78,7 @@
     {
       "title": "Dynamic Rate Limits",
       "slug": "dynamic-rate-limits",
-      "description": "See how to create dynamic rate limits with the Rick &amp; Morty API sample.",
+      "description": "See how to create dynamic rate limits with the Rick & Morty API sample.",
       "categories": ["programmability", "rate-limiting"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-07"

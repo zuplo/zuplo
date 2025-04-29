@@ -6,7 +6,7 @@
   "author": "Zuplo, Inc.",
   "license": "See LICENSE in LICENSE.txt",
   "dependencies": {
-    "@octokit/core": "^6.1.2",
+    "@octokit/core": "^6.1.5",
     "dotenv": "^16.4.5",
     "p-limit": "^6.1.0"
   },

@@ -1,9 +1,9 @@
-import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
+import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import OpenAI from "./third-party/openai";
 
 export default async function echo(
   request: ZuploRequest,
-  context: ZuploContext,
+  context: ZuploContext
 ) {
   const openai = new OpenAI({
     apiKey: process.env["OPENAI_API_KEY"], // This is the default and can be omitted

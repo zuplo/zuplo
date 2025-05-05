@@ -1,17 +1,17 @@
+import path from "node:path";
 import esbuild from "esbuild";
-import path from "path";
-import packageJson from "./package.json" assert { type: "json" };
+import packageJson from "./package.json" with { type: "json" };
 
 for (const dep of Object.keys(packageJson.dependencies)) {
   if (dep !== "zuplo") {
     const entry = import.meta.resolve(dep);
     const projectFolder = new URL(
       path.join("node_modules", dep),
-      import.meta.url,
+      import.meta.url
     ).pathname;
     const outputPath = new URL(
       path.resolve("./modules/third-party", dep),
-      import.meta.url,
+      import.meta.url
     ).pathname;
     const url = new URL(entry);
     await esbuild.build({

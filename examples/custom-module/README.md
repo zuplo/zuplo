@@ -12,7 +12,7 @@ npm install esbuild -D
 
 ## 2/ Create the Bundle Script
 
-You will need a script that configures and runs the `esbuild` bundler. This script will be run every time you want to bundle your custom modules. You can copy the script from the [`bundle.mjs`](./bundle.mjs) file in this example.
+You will need a script that configures and runs the `esbuild` bundler. This script will be run every time you want to bundle your custom modules. You can copy the script from the [`bundle.mjs`](https://github.com/zuplo/zuplo/blob/main/examples/custom-module/bundle.mjs) file in this example.
 
 For convinience, you will also want to add the `bundle` script to your `package.json`
 

@@ -1,0 +1,43 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+      "title": "My Zuplo MCP Server",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/mcp": {
+        "x-zuplo-path": {
+          "pathMode": "open-api"
+        },
+        "post": {
+          "summary": "MCP",
+          "description": "",
+          "x-zuplo-route": {
+            "corsPolicy": "anything-goes",
+            "handler": {
+              "export": "mcpServerHandler",
+              "module": "$import(@zuplo/runtime)",
+              "options": {
+                "name": "Todolist",
+                "openApiFilePaths": [
+                  {
+                    "filePath": "./config/routes.oas.json"
+                  }
+                ]
+              }
+            },
+            "policies": {
+              "inbound": [
+                "api-key-inbound"
+              ],
+              "outbound": [
+                "prompt-injection-outbound",
+                "secret-masking-outbound"
+              ]
+            }
+          },
+          "operationId": "85529898-85d8-43c2-8757-e8af0476c2f7"
+        }
+      }
+    }
+  }

@@ -47,19 +47,6 @@
     },
     {
       "handler": {
-        "export": "PromptInjectionDetectionOutboundPolicy",
-        "module": "$import(@zuplo/runtime)",
-        "options": {
-          "apiKey": "$env(OPENAI_API_KEY)",
-          "baseUrl": "https://api.openai.com/v1",
-          "model": "gpt-3.5-turbo"
-        }
-      },
-      "name": "prompt-injection-outbound-1",
-      "policyType": "prompt-injection-outbound"
-    },
-    {
-      "handler": {
         "export": "QueryParamToHeaderInboundPolicy",
         "module": "$import(@zuplo/runtime)",
         "options": {

@@ -11,9 +11,14 @@ The following custom rules are used:
 
 The configuration rules can be found in `config/api-ruleset.yaml`. Custom functions are in `/lint-functions`.
 
-## Run
+## Use this example locally
 
-To run this sample yourself:
+To develop with this example locally, you can create a new Zuplo project using our CLI
+
+```bash
+npx create-zuplo-api@latest my-api --example api-linting
+```
+Then, in the project directory run the following commands:
 
 ```
 npm install

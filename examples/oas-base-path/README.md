@@ -2,6 +2,20 @@
 
 This examples shows how to store base path and backend server configuration in the `servers` object of the OpenAPI and then use a policy to dynamically remove the base path and set the forwarded property of the URL in order to send the request to the correct backend server.
 
+## Use this example locally
+
+To develop with this example locally, you can create a new Zuplo project using our CLI
+
+```bash
+npx create-zuplo-api@latest my-api --example oas-base-path
+```
+Then, in the project directory run the following commands:
+
+```bash
+npm install
+npm run dev
+```
+
 ## Example OpenAPI Configuration
 
 Adding the custom extension `x-base-path` to the servers object allows us to match the base path to the correct server url.

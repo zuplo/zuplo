@@ -2,6 +2,22 @@
 
 This sample demonstrates how to rewrite the body of an incoming JSON request.
 
+## Use this example locally
+
+To develop with this example locally, you can create a new Zuplo project using our CLI
+
+```bash
+npx create-zuplo-api@latest my-api --example rewrite-request-body
+```
+Then, in the project directory run the following commands:
+
+```bash
+npm install
+npm run dev
+```
+
+Then complete the following setup steps:
+
 ## 1/ Create Route
 
 Create a route that uses the [URL Rewrite Handler](https://zuplo.com/docs/handlers/url-rewrite). The rewrite points to the Zuplo Echo API at https://echo.zuplo.io.

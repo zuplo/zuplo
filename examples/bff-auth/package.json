@@ -5,7 +5,11 @@
   "copyright": "",
   "scripts": {
     "dev": "zup dev",
-    "test": "zup test"
+    "test": "zup test",
+    "docs": "npm run dev --workspace docs"
+  },
+  "workspaces": {
+    "packages": ["docs"]
   },
   "dependencies": {
     "cookie": "^0.7.2",

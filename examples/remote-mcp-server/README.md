@@ -9,7 +9,7 @@ It implements:
 - [API security policies](https://zuplo.com/docs/policies/api-key-inbound) on all inbound routes
 - Additional outbound safety measures using the [Prompt Injection Detection](https://zuplo.com/docs/policies/prompt-injection-outbound) and [Secret Masking](https://zuplo.com/docs/policies/secret-masking-outbound) policies
 
-## Prerequesites
+## Prerequisites
 
 ### API Key Authentication
 All routes, including the MCP server route, are protected using API Key authentication. To enable this in your Zuplo project, follow the steps in the [API Key Auth documentation](https://zuplo.com/docs/policies/secret-masking-outbound).
@@ -71,7 +71,7 @@ Open the Inspector using the URL that it outputs to your terminal and set the se
 
 Then click on Connect.
 
-Once the server is connected, you should be able to List Tools to see, and work with, the various tools the MCP server exposes for the Todo List API
+Once the server is connected, you should be able to List Tools to see, and work with, the various tools the MCP server exposes for the Todo List API.
 
 ## Secret Masking in Action
 

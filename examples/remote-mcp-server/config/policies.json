@@ -1,0 +1,76 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "ApiKeyInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "allowUnauthenticatedRequests": false,
+          "cacheTtlSeconds": 60
+        }
+      },
+      "name": "api-key-inbound",
+      "policyType": "api-key-inbound"
+    },
+    {
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/transform-body-outbound)"
+      },
+      "name": "custom-code-outbound",
+      "policyType": "custom-code-outbound"
+    },
+    {
+      "handler": {
+        "export": "SecretMaskingOutboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "additionalPatterns": [],
+          "mask": "[REDACTED]"
+        }
+      },
+      "name": "secret-masking-outbound",
+      "policyType": "secret-masking-outbound"
+    },
+    {
+      "handler": {
+        "export": "PromptInjectionDetectionOutboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "apiKey": "$env(OPENAI_API_KEY)",
+          "baseUrl": "https://api.openai.com/v1",
+          "model": "gpt-3.5-turbo"
+        }
+      },
+      "name": "prompt-injection-outbound",
+      "policyType": "prompt-injection-outbound"
+    },
+    {
+      "handler": {
+        "export": "PromptInjectionDetectionOutboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "apiKey": "$env(OPENAI_API_KEY)",
+          "baseUrl": "https://api.openai.com/v1",
+          "model": "gpt-3.5-turbo"
+        }
+      },
+      "name": "prompt-injection-outbound-1",
+      "policyType": "prompt-injection-outbound"
+    },
+    {
+      "handler": {
+        "export": "QueryParamToHeaderInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "headerName": "Authorization",
+          "headerValue": "Bearer {value}",
+          "queryParam": "apiKey",
+          "removeFromUrl": true
+        }
+      },
+      "name": "query-param-to-header-inbound",
+      "policyType": "query-param-to-header-inbound"
+    }
+  ]
+}

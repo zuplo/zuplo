@@ -1,6 +1,6 @@
 # Custom Rate Limit Body
 
-This sample demostrates how to invoke the Rate Limit policy programatically and then modify the 429 response body with additional context information.
+This sample demonstrates how to invoke the Rate Limit policy programmatically and then modify the 429 response body with additional context information.
 
 ## Use this example locally
 

@@ -35,6 +35,16 @@ Then run:
 
 ```bash
 npm install
+```
+In order to work with the API key authentication service locally, you'll need to link your Zuplo account by running:
+
+```bash
+npx zuplo link
+```
+
+Then you can start running the project with:
+
+```bash
 npm run dev
 ```
 
@@ -44,4 +54,72 @@ To see the setup for the MCP server, open the `mcp.oas.json` file in the Route D
 
 ## Making Requests to the MCP Server
 
-With the project running locally, you can test the MCP server using the [Model Context Protocol Inspector](https://modelcontextprotocol.io/docs/tools/inspector)
+With the project running locally, you can test the MCP server using the [Model Context Protocol Inspector](https://modelcontextprotocol.io/docs/tools/inspector).
+
+Inspector can be run locally:
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+Open the Inspector using the URL that it outputs to your terminal and set the server connection as follows:
+
+- Transport Type: Streamable HTTP
+- URL: `https://localhost:9000/mcp`
+- Authentication Header Name: `Authorization`
+- Bearer Token: The API Key you created.
+
+Then click on Connect.
+
+Once the server is connected, you should be able to List Tools to see, and work with, the various tools the MCP server exposes for the Todo List API
+
+## Secret Masking in Action
+
+In order to demonstrate [Secret Masking](https://zuplo.com/docs/policies/secret-masking-outbound), this project includes a transformer that adds an "exposed" API key into the list of Todos (it's number 3). The file can be found at `modules/transform-body-outbound.ts`.
+
+When running the `get_todos` tool in the Inspector, you will see that todo ID 3 is set to:
+
+```json
+{
+    userId: 1,
+    id: 3,
+    title: "Update API key to [REDACTED]",
+    completed:false
+}
+```
+
+This is the Secret Masking policy in action. If you remove the policy from the `/mcp` route in `mcp.oas.json` and run the tool again, you will now see the API token exposed in plain sight.
+
+## Prompt Injection Detection
+
+This policy is set to check all responses for poisonous injections that could cause the LLMs underlying the service you connect your MCP server to to behave strangely, share information they aren't supposed to, or just quack like a duck.
+
+The policy runs a simple agent on whatever model you specify that checks for likely prompt injection, and if discovered, it will fail the response with a 400 error.
+
+For more on how this works, see the [Prompt Injection Detection documentation](https://zuplo.com/docs/policies/prompt-injection-outbound).
+
+## Prompt Injection Detection: Working Locally with Ollama
+
+When working locally, if you don't want to use OpenAI as the service behind the Prompt Injection Detection policy, you can use [Ollama](https://ollama.com/) to serve whatever model you wish to use locally.
+
+The model must be OpenAI API compatible and support tool/function calling. Our recommendation is the small `qwen3:0.6b` model.
+
+Run the model locally:
+
+```bash
+ollama serve qwen3:0.6b
+```
+
+Then update the handler for the `PromptInjectionDetectionOutboundPolicy` in `config/policies.json` to:
+
+```json
+"handler": {
+    "module": "$import(@zuplo/runtime)",
+    "export": "PromptInjectionDetectionOutboundPolicy",
+    "options": {
+        "apiKey": "na",
+        "baseUrl": "http://localhost:11434/v1",
+        "model": "qwen3:0.6b"
+    }
+}
+```

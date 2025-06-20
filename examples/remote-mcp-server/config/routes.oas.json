@@ -383,9 +383,6 @@
           "policies": {
             "inbound": [
               "api-key-inbound"
-            ],
-            "outbound": [
-              "prompt-injection-outbound"
             ]
           }
         },

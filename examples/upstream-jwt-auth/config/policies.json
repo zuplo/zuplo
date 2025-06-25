@@ -1,0 +1,12 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/add-auth-header)"
+      },
+      "name": "add-auth-header",
+      "policyType": "custom-code-inbound"
+    }
+  ]
+}

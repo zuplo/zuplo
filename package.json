@@ -19,5 +19,8 @@
   "devDependencies": {
     "prettier": "^3.0.3",
     "shelljs": "^0.8.5"
+  },
+  "dependencies": {
+    "zuplo": "^1.20241118.804"
   }
 }

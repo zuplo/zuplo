@@ -1,0 +1,18 @@
+{
+  "include": ["modules/**/*", ".zuplo/**/*", "tests/**/*"],
+  "exclude": ["./node_modules", "./dist"],
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ES2022",
+    "moduleResolution": "Bundler",
+    "lib": ["ESNext", "WebWorker", "Webworker.Iterable"],
+    "preserveConstEnums": true,
+    "useUnknownInCatchVariables": false,
+    "forceConsistentCasingInFileNames": true,
+    "importHelpers": true,
+    "removeComments": true,
+    "esModuleInterop": true,
+    "strictNullChecks": true,
+    "noEmit": true
+  }
+}

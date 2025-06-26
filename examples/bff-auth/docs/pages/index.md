@@ -1,9 +1,13 @@
-# My API
+---
+title: BFF Authorization API
+sidebar_label: Index
+description: Backend for Frontend (BFF) Authorization API Documentation
+---
 
 You can write full markdown in these documents. Syntax highlighting and full
 Github Flavored markdown are supported. To learn more about customizing the
 documentation of this developer portal
-[see the documentation](https://zuplo.com/docs/developer-portal/adding-pages).
+[see the documentation](https://zuplo.com/docs/dev-portal/).
 
 ```ts
 const response = await fetch("https://echo.zuplo.io", {
@@ -25,7 +29,7 @@ Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
 fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
 culpa qui officia deserunt mollit anim id est laborum.
 
-| Item            | Description                                  | Quanity |
+| Item            | Description                                  | Quantity |
 | --------------- | -------------------------------------------- | ------- |
 | ullamco laboris | reprehenderit in voluptate velit esse cillum | 21      |
 | Excepteur sint  | tempor incididunt ut labore                  | 1       |
@@ -40,4 +44,4 @@ deserunt mollit anim id est laborum.
 - **Item 1** - ullamco laboris nisi ut aliquip ex ea commodo
 - **Item 2** - ullamco laboris nisi ut aliquip ex ea commodo
 - **Item 3** - ullamco laboris nisi ut aliquip ex ea commodo
-- **Item 4** - ullamco laboris nisi ut aliquip ex ea commodo
+- **Item 4** - ullamco laboris nisi ut aliquip ex ea commodo 

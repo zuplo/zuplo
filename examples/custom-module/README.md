@@ -55,3 +55,18 @@ There are some tools to do this automatically but we have found these to be prob
 ## Updating the Bundle
 
 If you would like to update your custom module, you will need to first install the new module version. You can install the latest version of a module by running `npm install YOUR_MODULE@latest`, then re-run the `npm run bundle` command. This will overwrite the existing bundle with the new version of the module.
+
+
+## Use this example locally
+
+To develop with this example locally, you can create a new Zuplo project using our CLI
+
+```bash
+npx create-zuplo-api@latest my-api --example custom-module
+```
+Then, in the project directory run the following commands:
+
+```bash
+npm install
+npm run dev
+```

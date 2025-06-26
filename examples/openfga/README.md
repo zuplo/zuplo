@@ -35,3 +35,17 @@ The policy will then use the `relation`, `object` and `objectType` properties to
 ```
 
 If the user is authorized as a reader on that document, the request will be allowed. Otherwise, it will be denied.
+
+## Use this example locally
+
+To develop with this example locally, you can create a new Zuplo project using our CLI
+
+```bash
+npx create-zuplo-api@latest my-api --example open-fga
+```
+Then, in the project directory run the following commands:
+
+```bash
+npm install
+npm run dev
+```

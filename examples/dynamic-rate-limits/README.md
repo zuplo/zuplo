@@ -2,6 +2,20 @@
 
 This example shows how to create dynamic rate limits with the Rick And Morty API sample: https://github.com/zuplo-samples/rick-and-morty
 
+## Use this example locally
+
+To develop with this example locally, you can create a new Zuplo project using our CLI
+
+```bash
+npx create-zuplo-api@latest my-api --example dynamic-rate-limits
+```
+Then, in the project directory run the following commands:
+
+```bash
+npm install
+npm run dev
+```
+
 ## Walkthrough
 
 We will make the rate-limiting policy more dynamic, based on properties of the customer. Update the metadata of your two API Key consumers to have a property `customerType`. Set one to `free` and another to `premium`.
@@ -92,4 +106,3 @@ Add the following metadata:
 Copy the API Key and try to test the API by going to the test console: 
 
 ![Open the test console](https://cdn.zuplo.com/assets/1a7c8ea8-c05a-4cb6-a7bf-9177ae0b3f6e.png)
-

@@ -146,7 +146,7 @@
     {
       "title": "Remote MCP Server",
       "slug": "remote-mcp-server",
-      "description": "Create a remote MCP server with authentication and additional security policies.",
+      "description": "Create a remote MCP server for an API with authentication and additional security policies.",
       "categories": ["mcp"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2025-06-26"

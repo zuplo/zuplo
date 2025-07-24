@@ -1,0 +1,69 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "MockApiInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {}
+      },
+      "name": "mock-api-inbound",
+      "policyType": "mock-api-inbound"
+    },
+    {
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/checkMeteredBalance)"
+      },
+      "name": "check-metered-balance",
+      "policyType": "custom-code-inbound"
+    },
+    {
+      "name": "openmeter-metering-inbound",
+      "policyType": "openmeter-metering-inbound",
+      "handler": {
+        "export": "OpenMeterMeteringInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "apiKey": "$env(OPENMETER_API_KEY)",
+          "customerIdPropertyPath": ".data.openmeter.subjectId",
+          "data": {
+            "method": "GET",
+            "route": "/todos",
+            "apiKeyId": ".data.apiKeyId"
+          },
+          "eventType": "request",
+          "meterValue": 1,
+          "source": "$env(OPENMETER_SOURCE)",
+          "url": "$env(OPENMETER_URL)/api/v1/events",
+          "statusCodes": "200-299,304"
+        }
+      }
+    },
+    {
+      "handler": {
+        "export": "ApiKeyInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "allowUnauthenticatedRequests": false,
+          "cacheTtlSeconds": 60,
+          "bucketName": "$env(API_KEY_SERVICE_BUCKET_NAME)"
+        }
+      },
+      "name": "api-key-inbound",
+      "policyType": "api-key-inbound"
+    },
+    {
+      "handler": {
+        "export": "OpenIdJwtInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "audience": "https://api.example.com/",
+          "issuer": "https://auth.zuplo.site/",
+          "jwkUrl": "https://zudoku.us.auth0.com/.well-known/jwks.json"
+        }
+      },
+      "name": "open-id-jwt-auth-inbound",
+      "policyType": "open-id-jwt-auth-inbound"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "docs",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "zudoku dev --zuplo",
+    "build": "zudoku build --zuplo",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@mdx-js/react": "3.0.1",
+    "@openmeter/sdk": "^1.0.0-beta.214",
+    "react": "^19",
+    "react-dom": "^19",
+    "zudoku": "^0.55"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}

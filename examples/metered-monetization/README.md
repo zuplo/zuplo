@@ -1,10 +1,10 @@
 # Metered Monetization with OpenMeter
 
-In order to enable a flexible approach to monetizing an API we recommend using [OpenMeter](https://openmeter.io/) to handle metering, customer tracking, subscription plans and invoicing.
+In order to enable a flexible approach to monetizing an API, we recommend using [OpenMeter](https://openmeter.io/) to handle metering, customer tracking, subscription plans and invoicing.
 
-To enable you to create a seamless experience with Zuplo and OpenMeter we have an OpenMeter Metering Policy that allows you to store any metered events as well as ensure that customers who are at or over limit of their allowed plans, cannot continue to make requests.
+To enable you to create a seamless experience with Zuplo and OpenMeter we have an OpenMeter Metering Policy that allows you to store any metered events as well as ensure that customers who are at or over the limit of their allowed plans, cannot continue to make requests.
 
-This example demonstrates using our OpenMeter policy to track API requests. Additionally, it includes an integration between the built-in Zuplo Dev Portal and OpenMeter that allows users to self-serve sign up, be assigned a limited free plan for their API requests, and create API keys.
+This example demonstrates using our OpenMeter policy to track API requests into OpenMeter. Additionally, it includes an integration between the built-in Zuplo Dev Portal and OpenMeter that allows users to self-serve sign up, be assigned a limited free plan for their API requests, and create API keys.
 
 ## Prerequisites
 
@@ -12,12 +12,11 @@ This example demonstrates using our OpenMeter policy to track API requests. Addi
 To work with this example you will need an OpenMeter account. You can sign up for their [free cloud based account](https://openmeter.io/pricing), or use the [self-hosted version](https://github.com/openmeterio/openmeter) on infrastructure of your choice (including Docker and Kubernetes).
 
 ### Zuplo Account
-We recommend that you deploy this example to your Zuplo account, however working with the code locally will give you the most flexibility. To get a local copy follow these steps:
+We recommend that you work with this example locally to give you the most flexibility. To get a local copy run:
 
-1. Deploy this example to your Zuplo account
-2. Connect the new project to GitHub
-3. Clone the GitHub repository for the project to your local machine
-4. Connect the local project and the cloud based project by running the `zuplo link` command
+```bash
+npx create-zuplo-api@latest --example https://github.com/zuplo/zuplo/tree/main/examples/metered-monetization
+```
 
 ## Setting up OpenMeter
 
@@ -73,7 +72,7 @@ Once your OpenMeter instance is set up to work with this example, you can config
 ## Gateway Configuration
 
 ### The API
-This example uses our Todo List API as a base. It's a simple CRUD API that allows users to create, update, and delete Todos and it centered around a mock API.
+This example uses our Todo List API as a base. It's a simple CRUD API that allows users to create, update, and delete Todos and is centered around a mock API.
 
 ### OpenMeter Metering Policy
 
@@ -143,7 +142,7 @@ Conceptually, creating a user via the Developer Portal would be the same as a us
 
 1. Create a user by clicking **Login**
 2. On the sign in page, click on **Sign up**
-3. Register an account (Google Single Sign on is fastest for testing)
+3. Register an account (Google Single Sign-On is fastest for testing)
 4. Once registered you will be logged in and returned to the API Reference
 
 ### Create an API Key
@@ -178,14 +177,18 @@ At this point you are considered a registered user of the Todo API, and you've b
 
 Head back to the *API Reference*, and click the *Test* button to load the API Playground once again.
 
-You will now see that your API key had become available to select. You can use this to make authenticated requests against the API that will be metered against the available quota on your free plan.
+You will now see that your API key has become available to select. You can use this to make authenticated requests against the API that will be metered against the available quota on your free plan.
 
 Once you use all your available quota, you will no longer be able to make requests.
 
-## What to do next
-You are welcome to use this example as the basis for your Zuplo project but the next steps would be to:
+## Adding Billing & Payment
+You are welcome to use this example as the basis for your Zuplo project but the next steps would be to add billing and payment options.
+
+All of this can be done directly with OpenMeter, and you can reflect as much or as little of that back into your Developer Portal as you'd like. Recommended next steps for this would be:
 
 1. Add some paid plans to your OpenMeter instance
 2. Connect your OpenMeter instance to Stripe (or PayPal, or Adyen) to handle billing and payments
 3. Create a custom pricing page in the developer portal that allows logged in users to switch between plans and provide the necessary credit card information
+
+Please see the OpenMeter documentation for more details on how to do this.
 

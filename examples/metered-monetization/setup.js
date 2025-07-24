@@ -113,7 +113,7 @@ async function setupOpenMeter() {
           duration: null,
           limit: {
             type: 'metered',
-            value: 5
+            value: parseInt(process.env.FREE_PLAN_LIMIT || 10)
           },
           rateCards: [
             {

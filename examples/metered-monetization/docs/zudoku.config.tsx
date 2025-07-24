@@ -86,8 +86,6 @@ const config: ZudokuConfig = {
     type: "auth0",
     domain: "auth.zuplo.site",
     clientId: "f8I87rdsCRo4nU2FHf0fHVwA9P7xi7Ml",
-    //domain: "dev-tc20cgixnv0klo8o.us.auth0.com",
-    //clientId: "eJ35Q2PiyL9flU23AThEqOkOx0Y41oyA",
     audience: "https://api.example.com/"
   },
   apiKeys: {

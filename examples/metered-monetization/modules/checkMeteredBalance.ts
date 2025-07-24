@@ -1,4 +1,4 @@
-import { environment,ZuploContext, ZuploRequest } from "@zuplo/runtime";
+import { environment, ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { OpenMeter } from '@openmeter/sdk'
 
 const openmeter = new OpenMeter({

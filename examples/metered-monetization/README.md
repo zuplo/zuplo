@@ -24,7 +24,7 @@ This example demonstrates using our OpenMeter policy to:
 We recommend that you work with this example locally to give you the most flexibility. You can use the Zuplo CLI to set up a local copy using this example as a template:
 
 ```bash
-npx create-zuplo-api@latest --example https://github.com/zuplo/zuplo/tree/main/examples/metered-monetization
+npx create-zuplo-api@latest --example metered-monetization
 ```
 
 ## Setting up OpenMeter

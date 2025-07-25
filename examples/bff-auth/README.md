@@ -20,9 +20,14 @@ UPSTASH_URL=
 UPSTASH_TOKEN=
 ```
 
-## Running Locally
+## Use this example locally
 
-Install the local modules and then run local dev
+To develop with this example locally, you can create a new Zuplo project using our CLI
+
+```bash
+npx create-zuplo-api@latest my-api --example bff-auth
+```
+Then, in the project directory run the following commands:
 
 ```
 npm install

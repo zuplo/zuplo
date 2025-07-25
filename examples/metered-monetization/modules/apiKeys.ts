@@ -32,7 +32,7 @@ const openmeter = new OpenMeter({
 })
 
 const accountName = environment.ZUPLO_ACCOUNT_NAME;
-const bucketName = environment.API_KEY_SERVICE_BUCKET_NAME;
+const bucketName = environment.ZUPLO_API_KEY_SERVICE_BUCKET_NAME;
 
 export default async function (request: ZuploRequest, context: ZuploContext) {
   const sub = request.user?.sub;

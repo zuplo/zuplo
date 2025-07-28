@@ -184,4 +184,4 @@ async function setupOpenMeter() {
 setupOpenMeter().catch((error) => {
   console.error('❌ Setup failed:', error.message);
   process.exit(1);
-}); 
+});

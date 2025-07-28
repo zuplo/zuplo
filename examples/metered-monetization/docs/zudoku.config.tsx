@@ -7,7 +7,7 @@ import type { ZudokuConfig } from "zudoku";
  */
 const config: ZudokuConfig = {
   site: {
-    title: "My Developer Portal",
+    title: "Zuplo Example: Metered Monetization with OpenMeter",
     logo: {
       src: {
         light: "https://cdn.zuplo.com/assets/my-dev-portal-light.svg",
@@ -25,14 +25,6 @@ const config: ZudokuConfig = {
           label: "Getting Started",
           icon: "sparkles",
           items: [
-            {
-              type: "doc",
-              file: "introduction",
-            },
-            {
-              type: "doc",
-              file: "markdown",
-            },
             {
               type: "doc",
               file: "example",
@@ -65,7 +57,7 @@ const config: ZudokuConfig = {
       label: "API Reference",
     }
   ],
-  redirects: [{ from: "/", to: "/api" }],
+  redirects: [{ from: "/", to: "/example" }],
   apis: [
     {
       type: "file",

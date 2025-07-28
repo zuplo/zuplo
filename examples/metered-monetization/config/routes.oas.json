@@ -67,7 +67,6 @@
           "policies": {
             "inbound": [
               "api-key-inbound",
-              "check-metered-balance",
               "openmeter-metering-inbound"
             ]
           }
@@ -128,7 +127,7 @@
           "policies": {
             "inbound": [
               "api-key-inbound",
-              "check-metered-balance"
+              "openmeter-metering-inbound"
             ]
           }
         },
@@ -204,7 +203,6 @@
           "policies": {
             "inbound": [
               "api-key-inbound",
-              "check-metered-balance",
               "openmeter-metering-inbound"
             ]
           }

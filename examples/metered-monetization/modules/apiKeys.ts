@@ -86,16 +86,19 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     // Only run setup if subject doesn't exist
     const subjectPromise = openmeter.subjects.upsert({ key: sub });
     const createEntitlementForSubject = openmeter.entitlements.create(sub, {
-      featureKey: "api_requests",
       type: "metered",
+      featureKey: "api_requests",
+      issueAfterReset: 10,
       usagePeriod: {
         interval: "MONTH"
-      }
+      },
+      isSoftLimit: false
     });
 
     // Create customer
     const createCustomerPromise = openmeter.customers.create({
       name: body.metadata?.email ?? "Customer",
+      key: sub,
       description: `Customer for ${body.metadata?.email ?? sub}`,
       usageAttribution: {
         subjectKeys: [sub]

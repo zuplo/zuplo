@@ -63,7 +63,7 @@ async function setupOpenMeter() {
       eventType: 'request'
     };
 
-    const meter = await openmeter.meters.create(meterData)
+    const meter = await openmeter.meters.create(meterData);
     console.log('\x1b[32m+ Successfully created meter:\x1b[0m', meter.slug);
   } catch (error) {
     if (error.status === 409) {

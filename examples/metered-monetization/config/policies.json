@@ -10,32 +10,21 @@
       "policyType": "mock-api-inbound"
     },
     {
-      "handler": {
-        "export": "default",
-        "module": "$import(./modules/checkMeteredBalance)"
-      },
-      "name": "check-metered-balance",
-      "policyType": "custom-code-inbound"
-    },
-    {
       "name": "openmeter-metering-inbound",
-      "policyType": "openmeter-metering-inbound",
+      "policyType": "openmeter-inbound",
       "handler": {
-        "export": "OpenMeterMeteringInboundPolicy",
+        "export": "OpenMeterInboundPolicy",
         "module": "$import(@zuplo/runtime)",
         "options": {
           "apiKey": "$env(OPENMETER_API_KEY)",
-          "customerIdPropertyPath": ".data.openmeter.subjectId",
-          "data": {
-            "method": "GET",
-            "route": "/todos",
-            "apiKeyId": ".data.apiKeyId"
+          "subjectPath": ".data.openmeter.subjectId",
+          "eventSource": "$env(OPENMETER_SOURCE)",
+          "apiUrl": "$env(OPENMETER_URL)",
+          "meter": {
+            "type": "request",
+            "value": 1
           },
-          "eventType": "request",
-          "meterValue": 1,
-          "source": "$env(OPENMETER_SOURCE)",
-          "url": "$env(OPENMETER_URL)/api/v1/events",
-          "statusCodes": "200-299,304"
+          "requiredEntitlements": ["api_requests"]
         }
       }
     },

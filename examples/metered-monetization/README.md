@@ -119,21 +119,26 @@ You can see the configuration for the OpenMeter Policy in `config/policies.json`
 ```json
 {
   "name": "openmeter-metering-inbound",
-  "policyType": "openmeter-metering-inbound",
+  "policyType": "openmeter-inbound",
   "handler": {
-    "export": "OpenMeterMeteringInboundPolicy",
+    "export": "OpenMeterInboundPolicy",
     "module": "$import(@zuplo/runtime)",
     "options": {
       "apiKey": "$env(OPENMETER_API_KEY)",
-      "customerIdPropertyPath": ".data.openmeter.subjectId",
-      "eventType": "request",
-      "meterValue": 1,
-      "source": "$env(OPENMETER_SOURCE)",
-      "url": "$env(OPENMETER_URL)/api/v1/events"
+      "subjectPath": ".data.openmeter.subjectId",
+      "eventSource": "$env(OPENMETER_SOURCE)",
+      "apiUrl": "$env(OPENMETER_URL)",
+      "meter": {
+        "type": "request",
+        "value": 1
+      },
+      "requiredEntitlements": ["api_requests"]
     }
   }
 }
 ```
+
+For more information on this configuration, see the [OpenMeter Metering Policy documentation](https://zuplo.com/docs/policies/openmeter-inbound#basic-metering).
 
 ### How Users Are Identified for Metering
 
@@ -232,8 +237,8 @@ the available quota on your free plan.
 
 3. Select your API key and make the request again, you should see a list of todos returned and get a `200 OK` response.
 
-Once you use all your available quota, you will no longer be able to make
-requests.
+Once you use all your available quota (10 requests), you will no longer be able to make
+request and the API will begin returning `429 Too Many Requests` responses.
 
 ## Adding Billing & Payment
 

@@ -151,11 +151,7 @@ application.
 
 If the user creates multiple API keys, they will all have the same `subjectId` assigned to them.
 
-:::info
-
-This implementation is just an example to help you understand the concepts of working with Zuplo and OpenMeter. There are multiple places that the `subjectId` could be stored and retrieved depending on your IDP and use cases.
-
-:::
+_This implementation is just an example to help you understand the concepts of working with Zuplo and OpenMeter. There are multiple places that the `subjectId` could be stored and retrieved depending on your IDP and use cases._
 
 ## Running Locally
 
@@ -214,13 +210,12 @@ linked together.
 
 You can see the full source code for this in `modules/apiKeys.ts`.
 
-:::info
-OpenMeter is incredibly flexible, as is the Zuplo Developer Portal, so
+
+_OpenMeter is incredibly flexible, as is the Zuplo Developer Portal, so
 there are many ways that a similar flow could be created for your users at
 various times in their lifecycle, as well as from other places such as your own
 website. This example serves as a guide to the steps that need to be taken, and
-you can adapt them for your own use case.
-:::
+you can adapt them for your own use case._
 
 ## Test As a Registered User
 

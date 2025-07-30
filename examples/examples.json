@@ -52,6 +52,14 @@
   ],
   "examples": [
     {
+      "title": "Dev Portal with API Keys",
+      "slug": "dev-portal-with-api-keys",
+      "description": "An example of a Zuplo Dev Portal with support for self-serve API key creation.",
+      "categories": ["authentication"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2025-07-30"
+    },
+    {
       "title": "Remote MCP Server",
       "slug": "remote-mcp-server",
       "description": "Create a remote MCP server for an API with authentication and additional security policies.",

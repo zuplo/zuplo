@@ -17,14 +17,14 @@ You can setup your own version of the project using the Zuplo CLI.
 ```
 npx create-zuplo-api@latest --example dev-portal-with-api-keys
 ```
-Because some of the setup requires you to use the Zuplo portal in your browser, you will need to deploy the project to Zuplo using the CLI.
+Since some of the setup requires using the Zuplo portal in your browser, you will need to deploy the project to Zuplo using the CLI.
 
 ```
 zuplo deploy
 ```
 
-## Setup the API Key Service
-Every Zuplo project that uses our API key management must have the API Key Service enabled. To do this on the project you just deployed, follow these steps:
+## Set Up the API Key Service
+Every Zuplo project that uses API key management must have the API Key Service enabled. To enable this on the project you just deployed, follow these steps:
 
 <Stepper>
 1. Login to your Zuplo account
@@ -43,9 +43,9 @@ cp env.example .env
 
 Now add the required environment variables:
 
-- `ZUPLO_API_KEY`: You will need to create an account level API for working with Zuplo's API. You can do this by following the [Zuplo API Keys](https://zuplo.com/docs/articles/accounts/zuplo-api-keys) guide
+- `ZUPLO_API_KEY`: You will need to create an account-level API key for working with Zuplo's API. You can do this by following the [Zuplo API Keys](https://zuplo.com/docs/articles/accounts/zuplo-api-keys) guide
 - `ZUPLO_ACCOUNT_NAME`: This is the name on your account, for example `plum_giant_llama`
-- `ZUPLO_API_KEY_SERVICE_BUCKET_NAME`: Use the bucket name for the API Key Service in the Preview environment you got from the previous step
+- `ZUPLO_API_KEY_SERVICE_BUCKET_NAME`: Use the bucket name for the API Key Service from the Preview environment that you obtained in the previous step
 
 ## Running the example
 With the configuration complete, it's time to run the example and test it out.
@@ -116,7 +116,7 @@ The server side aspect of this is contained in two files in the example:
 
 `api-key.oas.json` is an OpenAPI document that defines a new endpoint `/v1/developer/api-key` that is called from the client side code of the Developer Portal.
 
-`api-keys.ts` is a custom function that runs a a result of calling that API endpoint. This function calls the Zuplo API Keys API endpoint to create the API key for the user that is logged in.
+`api-keys.ts` is a custom function that runs as a result of calling that API endpoint. This function calls the Zuplo API Keys endpoint to create the API key for the user that is logged in.
 
 ### Client side
 The connection between the Developer Portal and the API for creating API keys is configured in the `docs/zudoku.config.tsx` file.
@@ -149,7 +149,7 @@ createKey: async ({ apiKey, context, auth }) => {
 
   if (!createApiKey.ok) {
     throw new Error("Could not create API Key");
-  } 
+  }
 
   return true;
 },
@@ -157,12 +157,12 @@ createKey: async ({ apiKey, context, auth }) => {
 
 This function executes when the _Generate Key_ button in the API Key creation UI is clicked.
 
-It makes a signed request to the proxy API on the gateway exposed by `api-key.oas.json` with the nececssary body content such as `email`, `userId` and `name` if they are available.
+It makes a signed request to the proxy API on the gateway exposed by `api-key.oas.json` with the necessary body content such as `email`, `userId` and `name` if they are available.
 
 All requests must be signed as the authenticated user for security reasons. Request signing is implemented using the [`OpenIdJwtInboundPolicy`](https://zuplo.com/docs/policies/open-id-jwt-auth-inbound) specified in `policies.json`.
 
 :::note
 
-In this example, that policy is set up to work with Auth0, which is also the default demo authentication provider. To use this with your own auth provider, you will need to change the configuration for these.
+In this example, that policy is set up to work with Auth0, which is also the default demo authentication provider. To use this with your own auth provider, you will need to change the configuration for these policies.
 
 :::

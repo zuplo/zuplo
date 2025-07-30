@@ -1,0 +1,33 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+      "title": "My Zuplo API",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/v1/developer/api-key": {
+        "x-zuplo-path": {
+          "pathMode": "open-api"
+        },
+        "post": {
+          "summary": "Create API Key",
+          "description": "",
+          "x-zuplo-route": {
+            "corsPolicy": "anything-goes",
+            "handler": {
+              "export": "default",
+              "module": "$import(./modules/api-keys)",
+              "options": {}
+            },
+            "policies": {
+              "inbound": [
+                "open-id-jwt-auth-inbound"
+              ]
+            }
+          },
+          "operationId": "ebb70a71-c223-4980-a261-f51f21233224",
+          "x-internal": true
+        }
+      }
+    }
+  }

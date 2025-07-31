@@ -1,0 +1,28 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "MockApiInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {}
+      },
+      "name": "mock-api-inbound",
+      "policyType": "mock-api-inbound"
+    },
+    {
+      "handler": {
+        "export": "Auth0JwtInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "allowUnauthenticatedRequests": false,
+          "audience": "<YOUR_AUDIENCE>",
+          "auth0Domain": "<YOUR_AUTH0_DOMAIN>",
+          "clientId": "<YOUR_CLIENT_ID>",
+          "oAuthResourceMetadataEnabled": true
+        }
+      },
+      "name": "auth0-jwt-auth-inbound",
+      "policyType": "auth0-jwt-auth-inbound"
+    }
+  ]
+}

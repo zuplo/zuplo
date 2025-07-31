@@ -52,6 +52,14 @@
   ],
   "examples": [
     {
+      "title": "Remote MCP Server with OAuth",
+      "slug": "remote-mcp-server-with-oauth",
+      "description": "A remote MCP Server that shows how to setup OAuth authentication with Auth0",
+      "categories": ["mcp"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2025-07-31"
+    },
+    {
       "title": "Dev Portal with API Keys",
       "slug": "dev-portal-with-api-keys",
       "description": "An example of a Zuplo Dev Portal with support for self-serve API key creation.",

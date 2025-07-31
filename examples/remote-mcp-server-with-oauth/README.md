@@ -1,29 +1,132 @@
-## Zuplo API
+# Remote MCP Server with OAuth
 
-This is a Zuplo API that was created with
-[`create-zuplo-api`](https://zuplo.com/docs).
+This example demonstrates how to create a remote MCP Server that supports OAuth authentication via Auth0.
 
-## Getting Started
+Many MCP consumers, such as Claude Desktop, require remote MCP Servers be able to authenticate users via OAuth, so it's important to understand how to implement this in your MCP setup in Zuplo.
 
-First, run the development server:
+Fortunately, Zuplo's support for MCP keeps this simple, as you'll see in this example.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+## Prerequisites
+
+- A Zuplo account. You can [sign up for free](https://portal.zuplo.com/signup).
+- An Auth0 account. You can also [sign up for free](https://auth0.com/signup).
+
+*This example uses Auth0 as the identity provider, but other OAuth providers such as Okta, Clerk, Supabase, AWS Cognito and more can also be used.*
+
+## Working with this example
+
+
+### Locally
+Working locally is the best way to explore and understand the code for this example. You can get a local version by using the Zuplo CLI:
+
+```
+npx create-zuplo-api@latest --example remote-mcp-server-with-oauth
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the
-result.
+### Deploy to Zuplo
+It is also possible to deploy this example directly to your Zuplo account and work with it via the Zuplo Portal. You can do this by clicking the **Deploy to Zuplo** button anywhere on this page.
 
-You can start editing the API by modifying `config/routes.oas.json`. The dev
-server will automatically reload the API with your changes.
+## Configuring Auth0
+If you already have Auth0, or other IDP, in place then you can use the current configuration you have to set up this example.
 
-## Learn More
+If you don't, please follow our [Setting up Auth0 as an Authentication Server for MCP OAuth](https://zuplo.com/docs/articles/configuring-auth0-for-mcp-auth) guide to make sure your account is ready for the next steps.
 
-To learn more about Zuplo, you can visit the
-[Zuplo documentation](https://zuplo.com/docs).
+With your identity provider set up, let's configure the MCP Server.
 
-To connect with the community join [Discord](https://discord.zuplo.com).
+## Configure the MCP Server
+In order to enable OAuth authentication we use the [Auth0 JWT Auth Policy](https://zuplo.com/docs/policies/auth0-jwt-auth-inbound) on the `/mcp` route.
+
+You need to modify `config/policies.json` to reflect the settings for your own Auth0 account:
+
+```config/policies.json
+{
+  "handler": {
+    "export": "Auth0JwtInboundPolicy",
+    "module": "$import(@zuplo/runtime)",
+    "options": {
+      "allowUnauthenticatedRequests": false,
+      "audience": "<YOUR_AUDIENCE>",
+      "auth0Domain": "<YOUR_AUTH0_DOMAIN>",
+      "clientId": "<YOUR_CLIENT_ID>",
+      "oAuthResourceMetadataEnabled": true
+    }
+  },
+  "name": "auth0-jwt-auth-inbound",
+  "policyType": "auth0-jwt-auth-inbound"
+}
+```
+
+*It is important that you set `oAuthResourceMetadataEnabled` to `true` so that the client MCP consumer can discover the oAuth resource metadata it requires to start and complete the authentication flow.*
+
+## Running the example
+
+Start the API Gateway by running:
+
+```
+npm run dev
+```
+
+The server will start on `https://localhost:9000` and the MCP server will be available on `https://localhost:9000/mcp`.
+
+## Testing with MCP Inspector
+
+To test that the OAuth policy is set up correctly you can use the [Model Context Protocol Inspector](https://modelcontextprotocol.io/legacy/tools/inspector) to run through the flow step by step.
+
+```
+npx @modelcontextprotocol/inspector
+```
+
+Load the inspector (`https://localhost:6274`) in your browser, then:
+
+- Set the _Transport Type_ to _Streamable HTTP_
+- Set the _URL_ to _http://localhost:9000/mcp_
+
+Next, click on the OAuth Settings button and choose the _Guided Flow_. This will run through all the steps of authenticating with OAuth one by one, so you can see where any errors occur.
+
+Once the OAuth flow is complete, you can click on _Connect_ and an authenticated connection to the server will be established.
+
+Click on _List Tools_ to see the available MCP tools. This example includes a set of tools for working with a Todo List.
+
+## Using other Identity Providers
+
+To configure this example (or your own MCP server hosted with Zuplo) to use a different Identity Provider you need to swap the policy the `/mcp` route uses for authentication for the policy of your chosen provider.
+
+You can see a full list of _JWT Inbound Policies_ in the _Authentication_ section of [Zuplo's Policy Catalog](https://zuplo.com/docs/policies/overview), or by searching for your chosen provider by name.
+
+Here's the policy in this example:
+
+```
+{
+  "name": "my-auth0-jwt-auth-inbound-policy",
+  "policyType": "auth0-jwt-auth-inbound",
+  "handler": {
+    "export": "Auth0JwtInboundPolicy",
+    "module": "$import(@zuplo/runtime)",
+    "options": {
+      "allowUnauthenticatedRequests": false,
+      "audience": "https://api.example.com/",
+      "auth0Domain": "my-company.auth0.com",
+      "oAuthResourceMetadataEnabled": false
+    }
+  }
+}
+```
+
+To switch the identity provider to Okta, you would replace this with the [Okta JWT Auth Policy](https://zuplo.com/docs/policies/okta-jwt-auth-inbound), like this:
+
+```
+{
+  "name": "my-okta-jwt-auth-inbound-policy",
+  "policyType": "okta-jwt-auth-inbound",
+  "handler": {
+    "export": "OktaJwtInboundPolicy",
+    "module": "$import(@zuplo/runtime)",
+    "options": {
+      "allowUnauthenticatedRequests": false,
+      "audience": "api://my-api",
+      "issuerUrl": "https://dev-12345.okta.com/oauth2/abc",
+      "oAuthResourceMetadataEnabled": false
+    }
+  }
+}
+```

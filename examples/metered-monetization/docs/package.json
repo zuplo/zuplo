@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@mdx-js/react": "3.0.1",
-    "@openmeter/sdk": "^1.0.0-beta.214",
     "react": "^19",
     "react-dom": "^19",
     "zudoku": "^0.55"

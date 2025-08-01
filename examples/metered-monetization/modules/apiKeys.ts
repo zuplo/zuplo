@@ -24,15 +24,35 @@
  */
 
 import { ZuploContext, ZuploRequest, environment } from "@zuplo/runtime";
-import { OpenMeter } from '@openmeter/sdk'
 
-const openmeter = new OpenMeter({
-  baseUrl: 'https://openmeter.cloud',
-  apiKey: environment.OPENMETER_API_KEY,
-})
+// OpenMeter API helper function
+async function openMeterApiCall(endpoint: string, options: RequestInit = {}) {
+  const baseUrl = 'https://openmeter.cloud';
+  const url = `${baseUrl}${endpoint}`;
+  
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${environment.OPENMETER_API_KEY}`,
+      ...options.headers,
+    },
+  });
 
-const accountName = environment.ZUPLO_ACCOUNT_NAME;
-const bucketName = environment.ZUPLO_API_KEY_SERVICE_BUCKET_NAME;
+  if (!response.ok) {
+    throw new Error(`OpenMeter API error: ${response.status} ${response.statusText}`);
+  }
+
+  // Handle different response types
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return response.json();
+  }
+  return response.text();
+}
+
+const accountName = environment.ZP_ACCOUNT_NAME;
+const bucketName = environment.ZP_API_KEY_SERVICE_BUCKET_NAME;
 
 export default async function (request: ZuploRequest, context: ZuploContext) {
   const sub = request.user?.sub;
@@ -49,7 +69,7 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${environment.ZUPLO_DEVELOPER_API_KEY}`,
+        Authorization: `Bearer ${environment.ZP_DEVELOPER_API_KEY}`,
       },
       body: JSON.stringify({
         name: crypto.randomUUID(),
@@ -73,7 +93,9 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
   // Check if subject already exists
   let subjectExists = false;
   try {
-    await openmeter.subjects.get(sub);
+    await openMeterApiCall(`/api/v1/subjects/${encodeURIComponent(sub)}`, {
+      method: 'GET'
+    });
     subjectExists = true;
   } catch (error) {
     // Subject doesn't exist, we'll create it
@@ -84,39 +106,51 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
 
   if (!subjectExists) {
     // Only run setup if subject doesn't exist
-    const subjectPromise = openmeter.subjects.upsert({ key: sub });
-    const createEntitlementForSubject = openmeter.entitlements.create(sub, {
-      type: "metered",
-      featureKey: "api_requests",
-      issueAfterReset: 10,
-      usagePeriod: {
-        interval: "MONTH"
-      },
-      isSoftLimit: false
+    const subjectPromise = openMeterApiCall('/api/v1/subjects', {
+      method: 'POST',
+      body: JSON.stringify({ key: sub })
+    });
+    const createEntitlementForSubject = openMeterApiCall(`/api/v1/subjects/${encodeURIComponent(sub)}/entitlements`, {
+      method: 'POST',
+      body: JSON.stringify({
+        type: "metered",
+        featureKey: "api_requests",
+        issueAfterReset: 10,
+        usagePeriod: {
+          interval: "MONTH"
+        },
+        isSoftLimit: false
+      })
     });
 
     // Create customer
-    const createCustomerPromise = openmeter.customers.create({
-      name: body.metadata?.email ?? "Customer",
-      key: sub,
-      description: `Customer for ${body.metadata?.email ?? sub}`,
-      usageAttribution: {
-        subjectKeys: [sub]
-      },
-      metadata: {
-        email: body.metadata?.email,
-        sub: sub
-      }
+    const createCustomerPromise = openMeterApiCall('/api/v1/customers', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: body.metadata?.email ?? "Customer",
+        key: sub,
+        description: `Customer for ${body.metadata?.email ?? sub}`,
+        usageAttribution: {
+          subjectKeys: [sub]
+        },
+        metadata: {
+          email: body.metadata?.email,
+          sub: sub
+        }
+      })
     });
 
     // Create subscription for the customer
     const createSubscriptionPromise = createCustomerPromise.then(async (customer) => {
-      return openmeter.subscriptions.create({
-        customerId: customer.id,
-        timing: "immediate",
-        plan: {
-          key: "free" // Default plan, can be configured
-        }
+      return openMeterApiCall('/api/v1/subscriptions', {
+        method: 'POST',
+        body: JSON.stringify({
+          customerId: customer.id,
+          timing: "immediate",
+          plan: {
+            key: "free" // Default plan, can be configured
+          }
+        })
       });
     });
 

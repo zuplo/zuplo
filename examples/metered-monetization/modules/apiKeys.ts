@@ -110,7 +110,7 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
       method: 'POST',
       body: JSON.stringify({ key: sub })
     });
-    const createEntitlementForSubject = openMeterApiCall(`/api/v1/subjects/${sub}/entitlements`, {
+    const createEntitlementForSubject = openMeterApiCall(`/api/v1/subjects/${encodeURIComponent(sub)}/entitlements`, {
       method: 'POST',
       body: JSON.stringify({
         type: "metered",

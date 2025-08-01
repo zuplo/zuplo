@@ -93,7 +93,7 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
   // Check if subject already exists
   let subjectExists = false;
   try {
-    await openMeterApiCall(`/api/v1/subjects/${sub}`, {
+    await openMeterApiCall(`/api/v1/subjects/${encodeURIComponent(sub)}`, {
       method: 'GET'
     });
     subjectExists = true;

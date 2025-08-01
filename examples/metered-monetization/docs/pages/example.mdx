@@ -78,9 +78,9 @@ running this script. Please refer to the OpenMeter documentation for
 
 Once your OpenMeter instance is set up to work with this example, configure the rest of the required environment variables with information from your Zuplo account.
 
-- `ZUPLO_API_KEY_SERVICE_BUCKET_NAME`: For storing API key data. You can get the Bucket Name from the Services section of your Zuplo project
-- `ZUPLO_DEVELOPER_API_KEY`: An [API key for working with your Zuplo account](http://localhost:3000/docs/articles/api-key-administration)
-- `ZUPLO_ACCOUNT_NAME`: The account name for your Zuplo account (eg. `significant-lemon`)
+- `ZP_API_KEY_SERVICE_BUCKET_NAME`: For storing API key data. You can get the Bucket Name from the Services section of your Zuplo project
+- `ZP_DEVELOPER_API_KEY`: An [API key for working with your Zuplo account](http://localhost:3000/docs/articles/api-key-administration)
+- `ZP_ACCOUNT_NAME`: The account name for your Zuplo account (eg. `significant-lemon`)
 
 ## Example Project Overview
 

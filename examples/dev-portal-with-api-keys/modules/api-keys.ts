@@ -1,7 +1,7 @@
 import { ZuploContext, ZuploRequest, environment } from "@zuplo/runtime";
 
-const accountName = environment.ZUPLO_ACCOUNT_NAME;
-const bucketName = environment.ZUPLO_API_KEY_SERVICE_BUCKET_NAME;
+const accountName = environment.ZP_ACCOUNT_NAME;
+const bucketName = environment.ZP_API_KEY_SERVICE_BUCKET_NAME;
 
 export default async function (request: ZuploRequest, context: ZuploContext) {
   const sub = request.user?.sub;
@@ -14,7 +14,7 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${environment.ZUPLO_API_KEY}`,
+        Authorization: `Bearer ${environment.ZP_DEVELOPER_API_KEY}`,
       },
       body: JSON.stringify({
         name: crypto.randomUUID(),

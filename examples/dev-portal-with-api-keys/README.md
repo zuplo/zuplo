@@ -46,9 +46,9 @@ cp env.example .env
 
 Now add the required environment variables:
 
-- `ZUPLO_API_KEY`: You will need to create an account level API for working with Zuplo's API. You can do this by following the [Zuplo API Keys](https://zuplo.com/docs/articles/accounts/zuplo-api-keys) guide
-- `ZUPLO_ACCOUNT_NAME`: This is the name on your account, for example `plum_giant_llama`
-- `ZUPLO_API_KEY_SERVICE_BUCKET_NAME`: Use the bucket name for the API Key Service in the Preview environment you got from the previous step
+- `ZP_DEVELOPER_API_KEY`: You will need to create an account level API for working with Zuplo's API. You can do this by following the [Zuplo API Keys](https://zuplo.com/docs/articles/accounts/zuplo-api-keys) guide
+- `ZP_ACCOUNT_NAME`: This is the name on your account, for example `plum_giant_llama`
+- `ZP_API_KEY_SERVICE_BUCKET_NAME`: Use the bucket name for the API Key Service in the Preview environment you got from the previous step
 
 ## Running the example
 With the configuration complete, it's time to run the example and test it out.

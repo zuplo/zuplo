@@ -35,7 +35,7 @@
         "options": {
           "allowUnauthenticatedRequests": false,
           "cacheTtlSeconds": 60,
-          "bucketName": "$env(API_KEY_SERVICE_BUCKET_NAME)"
+          "bucketName": "$env(ZP_API_KEY_SERVICE_BUCKET_NAME)"
         }
       },
       "name": "api-key-inbound",

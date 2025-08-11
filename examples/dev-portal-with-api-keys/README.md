@@ -140,6 +140,8 @@ createKey: async ({ apiKey, context, auth }) => {
 },
 ```
 
+_Note: When working locally, `process.env.ZUPLO_PUBLIC_SERVER_URL` is required, however once you deploy the code to Zuplo, the deployed enviroment will use `import.meta.env.ZUPLO_SERVER_URL` instead. This is set automatically on the enviroment for you, so you do not need to create an enviroment variable for it in the Zuplo Portal._
+
 This function executes when the _Generate Key_ button in the API Key creation UI is clicked.
 
 It makes a signed request to the proxy API on the gateway exposed by `api-key.oas.json` with the necessary body content such as `email`, `userId` and `name` if they are available.

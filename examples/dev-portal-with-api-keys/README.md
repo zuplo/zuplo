@@ -140,7 +140,7 @@ createKey: async ({ apiKey, context, auth }) => {
 },
 ```
 
-_Note: When working locally, `process.env.ZUPLO_PUBLIC_SERVER_URL` is required, however once you deploy the code to Zuplo, the deployed enviroment will use `import.meta.env.ZUPLO_SERVER_URL` instead. This is set automatically on the enviroment for you, so you do not need to create an enviroment variable for it in the Zuplo Portal._
+_Note: When working locally, `process.env.ZUPLO_PUBLIC_SERVER_URL` should be set in your `.env` file. However, the deployed environment will use `import.meta.env.ZUPLO_SERVER_URL` instead. This is set automatically on the environment for you. You do not need to create an environment variable for `ZUPLO_SERVER_URL` in the Zuplo Portal._
 
 This function executes when the _Generate Key_ button in the API Key creation UI is clicked.
 

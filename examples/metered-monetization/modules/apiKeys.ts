@@ -12,7 +12,6 @@
  * 
  * REQUIRED ENVIRONMENT VARIABLES:
  * - OPENMETER_API_KEY: Your OpenMeter API key for authenticating with OpenMeter Cloud
- * - ZP_ACCOUNT_NAME: Your Zuplo account name (found in your Zuplo dashboard)
  * - ZP_API_KEY_SERVICE_BUCKET_NAME: The name of your Zuplo API key bucket
  * - ZP_DEVELOPER_API_KEY: Your Zuplo developer API key for managing resources
  * 

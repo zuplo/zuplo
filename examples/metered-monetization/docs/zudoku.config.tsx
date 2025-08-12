@@ -79,7 +79,7 @@ const config: ZudokuConfig = {
   },
   apiKeys: {
     enabled: true,
-    deploymentName: process.env.ZUPLO_PUBLIC_DEPLOYMENT_NAME, // TODO: Not needed when zuplo link command works
+    deploymentName: process.env.ZUPLO_PUBLIC_DEPLOYMENT_NAME, // Note: Set this in /docs/.env.local
     createKey: async ({ apiKey, context, auth }) => {
       const serverUrl = process.env.ZUPLO_PUBLIC_SERVER_URL || import.meta.env.ZUPLO_SERVER_URL;
       const createApiKeyRequest = new Request(serverUrl + "/v1/developer/api-key", {

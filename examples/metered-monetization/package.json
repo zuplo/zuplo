@@ -11,7 +11,6 @@
     "setup": "node setup.js"
   },
   "dependencies": {
-    "@openmeter/sdk": "^1.0.0-beta.214",
     "dotenv": "^16.4.5",
     "zuplo": "^6.58.4"
   },

@@ -51,8 +51,8 @@ async function openMeterApiCall(endpoint: string, options: RequestInit = {}) {
   return response.text();
 }
 
-const accountName = environment.ZP_ACCOUNT_NAME;
-const bucketName = environment.ZP_API_KEY_SERVICE_BUCKET_NAME;
+const accountName = environment.ZUPLO_ACCOUNT_NAME; //Automatically set by running `zuplo link`
+const bucketName = environment.ZP_API_KEY_SERVICE_BUCKET_NAME; //Set in .env
 
 export default async function (request: ZuploRequest, context: ZuploContext) {
   const sub = request.user?.sub;

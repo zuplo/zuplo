@@ -21,36 +21,71 @@ This example demonstrates using our OpenMeter policy to:
 
 ## Get the example code
 
-We recommend that you work with this example locally to give you the most flexibility. You can use the Zuplo CLI to set up a local copy using this example as a template:
+We recommend that you work with this example locally to give you the most flexibility and visibility into how all the pieces fit together. You can use the Zuplo CLI to set up a local copy using this example as a template:
 
 ```bash
 npx create-zuplo-api@latest --example metered-monetization
 ```
 
-## Setting up OpenMeter
+The above command will create a copy of the project on your local machine and install all the dependencies.
 
-The fastest way to run this project is to use the setup script to configure your OpenMeter instance with the expected features. Before you do that, you need to set up a few environment varialbles.
+## Running the example
 
-### 1. Copy the `env.example` file to create your `.env` file:
+### 1. Create a matching Zuplo project
+The example requires some configuration from your Zuplo account as well, so [create a new empty project in the Zuplo portal](https://portal.zuplo.com) (e.g. `metered-monetization`).
+
+### 2. Create a new branch
+In your local example directory, create a new `preview` branch to work with:
+
+```bash
+git checkout -b preview
+```
+
+### 3. Connect your local and remote projects
+Deploy your local preview branch to Zuplo:
+
+```bash
+zuplo deploy # CLI will ask you which project to deploy to. Choose the project you created in step 1.
+```
+
+Now link the local and remote project settings:
+
+```bash
+zuplo link
+```
+
+This will create an `.env.zuplo` file in your working directory that contains some additional environment variables needed to run this example. You do not need to edit this file.
+
+### 4. Setup Gateway environment variables
+Next, copy the `env.example` file and start setting up the additional required variables:
 
 ```bash
 cp env.example .env
 ```
 
-Then edit the `.env` file and set your OpenMeter API key. You can find this in the _[Integrations > API](https://openmeter.cloud/rest-api)_ section of your OpenMeter dashboard:
+Here you need to add values for three variables:
+
+- `OPENMETER_API_KEY`: You can find this in the _[Integrations > API](https://openmeter.cloud/rest-api)_ section of your OpenMeter dashboard
+- `ZP_DEVELOPER_API_KEY`: An
+  [API key for working with your Zuplo account](https://zuplo.com/docs/articles/api-key-administration)
+- `ZP_API_KEY_SERVICE_BUCKET_NAME`: For storing API key data. You can get the Bucket Name from the _Services_ section of your Zuplo project. Select the _Preview_ environment. The bucket name will look something like this: `zprj-t36863ssgvefw0gjgfamb9z4-preview`
+
+### 5. Setup the Dev Portal environment variables
+Next, copy and configure the environment variables required to use the Developer Portal locally:
 
 ```bash
-OPENMETER_API_KEY=your_actual_openmeter_api_key_here
-OPENMETER_URL=https://openmeter.cloud  # or your self-hosted URL
+cp docs/env.local.example docs/.env.local
 ```
 
-### 2. Install Dependencies
+Here you need to add the `ZUPLO_PUBLIC_DEPLOYMENT_NAME` value. You can find the deployment name in your Zuplo Portal by clicking on _Environments_ and copying the _Gateway_ address for the _Preview_ environment.
 
-```bash
-npm install
-```
+It will look like this: `https://metered-monetization-preview-efef9b3.zuplo.app`
 
-### 3. Run the Setup Script
+Add only the name of the deployment to `.env.local`, e.g. `ZUPLO_PUBLIC_DEPLOYMENT_NAME=metered-monetization-preview-efef9b3`
+
+### 6. Configure OpenMeter
+
+The fastest way to run this project is to use the setup script to configure your OpenMeter instance with the expected features. We added a script that uses your `OPENMETER_API_KEY` to do this quickly:
 
 ```bash
 npm run setup
@@ -67,47 +102,32 @@ The script is idempotent, so you can run it multiple times safely. If the meter
 already exists, it will skip creation and notify you.
 
 If you would prefer to set this up manually in OpenMeter, you can do so and skip
-running this script. Please refer to the OpenMeter documentation for
+running this script.
+
+Please refer to the OpenMeter documentation for
 [Creating Meters](https://openmeter.io/docs/metering/guides/creating-meters),
 [Subjects](https://openmeter.io/docs/metering/subjects),
 [Entitlements](https://openmeter.io/docs/billing/entitlements/entitlement),
 [Plans](https://openmeter.io/docs/billing/product-catalog/plan), and
 [Subscriptions](https://openmeter.io/docs/billing/subscription/overview).
 
-## Deploy the project
-Next, deploy the project to Zuplo so you can set up the API Key Service and get a deployment name for the next steps. To do this run:
+### 7. Run the project
 
-```
-zuplo deploy
-```
+With everything configured, you can now run the example and test it out. First start the API Gateway:
 
-## Setup Environment Variables
-
-Once your OpenMeter instance is set up to work with this example, configure the
-rest of the required environment variables with information from your Zuplo
-account.
-
-- `ZP_API_KEY_SERVICE_BUCKET_NAME`: For storing API key data. You can get the
-  Bucket Name from the Services section of your Zuplo project
-- `ZP_DEVELOPER_API_KEY`: An
-  [API key for working with your Zuplo account](https://zuplo.com/docs/articles/api-key-administration)
-- `ZP_ACCOUNT_NAME`: The account name for your Zuplo account (eg.
-  `significant-lemon`)
-
-Additionally, there are two client side environment variables that are also required. Copy the example from `docs/env.local.example`:
-
-```
-cp docs/env.local.example docs/.env.local
+```bash
+npm run dev
 ```
 
-Then add the deployment name for the project you just deployed to Zuplo. You will find this in the Zuplo Portal under _Environments_. Choose the Preview environment and copy the _Gateway_ URL.
+Then start the developer portal:
 
-Add it to the `docs/.env.local` file like so:
+```bash
+npm run docs
+```
 
-```
-ZUPLO_PUBLIC_SERVER_URL="http://localhost:9000"
-ZUPLO_PUBLIC_DEPLOYMENT_NAME="metered-monetization-main-445ef4" # Replace this with your deployment name
-```
+Now the project is up and running in a default state you can open the Developer Portal at `http://localhost:3000`.
+
+Next, read the overview for the next steps and explanations of creating users, and API Keys that will be limited by OpenMeter.
 
 ## Example Project Overview
 
@@ -141,7 +161,7 @@ The policy will check if a user has access and/or balance left on their plan by 
 the OpenMeter API, and if they do it will allow the request and meter the event
 in OpenMeter.
 
-You can see the configuration for the OpenMeter Policy in `config/policies.json`:
+You can see the configuration for the OpenMeter Policy in `config/policies.json`.:
 
 ```json
 {
@@ -180,21 +200,17 @@ If the user creates multiple API keys, they will all have the same `subjectId` a
 
 :::info
 
-This implementation is just an example to help you understand the concepts of working with Zuplo and OpenMeter. There are multiple places that the `subjectId` could be stored and retrieved depending on your IDP and use cases.
+This implementation is just an example to help you understand the concepts of working with Zuplo and OpenMeter. There are multiple places that the `subjectId` could be stored and retrieved depending on your IDP and use cases._
 
 :::
 
-## Running Locally
+## Testing as an unregistered user
 
-All the setup steps are complete! Now it's time to run the example locally.
+You can now test out the experience for unregistered users.
 
-1. Start the servers for the API gateway by running `npm run dev`
-2. Next, start the developer portal server by running `npm run docs`
-3. Test that everything is set up correctly by loading the developer portal an
-   opening [http://localhost:3000](http://localhost:3000) in your browser. It
-   will load the API reference for the Todo API.
-4. Use the API playground to test the _Get all todos_ route. It should
-   return `401 Unauthorized`.
+Use the API playground to test the _Get all todos_ route. It should return `401 Unauthorized`.
+
+This is because there are no users registered right now, and no API key is provided for the _Get all todos_ route.
 
 ## Creating a user
 
@@ -208,7 +224,7 @@ default.
 3. Register an account (Google Single Sign-On is fastest for testing)
 4. Once registered you will be logged in and returned to the API Reference
 
-### Create an API Key
+### Create an API Key for a user
 
 The Zuplo Developer Portal supports the creation and management of API keys
 directly from within the portal itself.
@@ -242,11 +258,13 @@ linked together.
 You can see the full source code for this in `modules/apiKeys.ts`.
 
 :::info
+
 OpenMeter is incredibly flexible, as is the Zuplo Developer Portal, so
 there are many ways that a similar flow could be created for your users at
 various times in their lifecycle, as well as from other places such as your own
 website. This example serves as a guide to the steps that need to be taken, and
 you can adapt them for your own use case.
+
 :::
 
 ## Test As a Registered User
@@ -265,7 +283,7 @@ the available quota on your free plan.
 3. Select your API key and make the request again, you should see a list of todos returned and get a `200 OK` response.
 
 Once you use all your available quota (10 requests), you will no longer be able to make
-request and the API will begin returning `429 Too Many Requests` responses.
+requests and the API will begin returning `429 Too Many Requests` responses.
 
 ## Adding Billing & Payment
 

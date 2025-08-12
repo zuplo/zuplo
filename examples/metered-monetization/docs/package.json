@@ -12,7 +12,7 @@
     "@mdx-js/react": "3.0.1",
     "react": "^19",
     "react-dom": "^19",
-    "zudoku": "^0.55"
+    "zudoku": "0.60.0"
   },
   "devDependencies": {
     "@types/node": "^22",

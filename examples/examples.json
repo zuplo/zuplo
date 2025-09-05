@@ -25,10 +25,6 @@
       "title": "Logging"
     },
     {
-      "slug": "monetization",
-      "title": "Monetization"
-    },
-    {
       "slug": "mcp",
       "title": "Model Context Protocol (MCP)"
     },
@@ -74,14 +70,6 @@
       "categories": ["mcp"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2025-06-26"
-    },
-    {
-      "title": "Metering with OpenMeter",
-      "slug": "metered-monetization",
-      "description": "Meter requests, enforce plan limits and monetize your API by integrating Zuplo with OpenMeter.",
-      "categories": ["monetization"],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2025-07-24"
     },
     {
       "title": "API Linting",

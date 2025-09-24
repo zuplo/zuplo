@@ -1,0 +1,8 @@
+{
+  "name": "Request Handler",
+  "description": "Create a new request handler function",
+  "version": "1.0.0",
+  "author": "Zuplo",
+  "path": "modules/{{name}}.ts",
+  "arguments": []
+}

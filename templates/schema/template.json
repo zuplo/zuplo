@@ -1,0 +1,15 @@
+{
+  "name": "JSON Schema",
+  "description": "Create a new JSON Schema definition",
+  "version": "1.0.0",
+  "author": "Zuplo",
+  "path": "config/schemas/{{name}}.json",
+  "arguments": [
+    {
+      "name": "title",
+      "description": "Schema title",
+      "required": false,
+      "default": "{{name}}"
+    }
+  ]
+}

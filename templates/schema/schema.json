@@ -1,0 +1,23 @@
+{
+  "title": "{{title}}",
+  "type": "object",
+  "properties": {
+    "firstName": {
+      "type": "string",
+      "description": "The person's first name."
+    },
+    "lastName": {
+      "type": "string",
+      "description": "The person's last name."
+    },
+    "favoriteColors": {
+      "description": "The person's favorite colors",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": ["firstName", "lastName"]
+}

@@ -1,0 +1,8 @@
+{
+  "description": "Test for {{pathname}}",
+  "pathname": "{{pathname}}",
+  "method": "{{method}}",
+  "headers": {
+    "content-type": "application/json"
+  }
+}

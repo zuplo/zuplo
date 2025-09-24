@@ -1,0 +1,15 @@
+{
+  "name": "Response Policy",
+  "description": "Create a new outbound response policy",
+  "version": "1.0.0",
+  "author": "Zuplo",
+  "path": "modules/{{name}}.ts",
+  "arguments": [
+    {
+      "name": "policyName",
+      "description": "Policy name",
+      "required": false,
+      "default": "{{name}}"
+    }
+  ]
+}

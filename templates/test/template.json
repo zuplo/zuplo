@@ -1,0 +1,21 @@
+{
+  "name": "API Test",
+  "description": "Create a new API test definition",
+  "version": "1.0.0",
+  "author": "Zuplo",
+  "path": "tests/{{name}}.test.json",
+  "arguments": [
+    {
+      "name": "pathname",
+      "description": "API endpoint path",
+      "required": false,
+      "default": "/"
+    },
+    {
+      "name": "method",
+      "description": "HTTP method",
+      "required": false,
+      "default": "GET"
+    }
+  ]
+}

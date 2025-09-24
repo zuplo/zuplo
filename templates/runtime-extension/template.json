@@ -1,0 +1,8 @@
+{
+  "name": "Runtime Extension",
+  "description": "Create a runtime extension module",
+  "version": "1.0.0",
+  "author": "Zuplo",
+  "path": "modules/zuplo.runtime.ts",
+  "arguments": []
+}

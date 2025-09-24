@@ -1,0 +1,21 @@
+{
+  "name": "OpenAPI Specification",
+  "description": "Create a new OpenAPI specification file",
+  "version": "1.0.0",
+  "author": "Zuplo",
+  "path": "config/{{name}}.oas.json",
+  "arguments": [
+    {
+      "name": "title",
+      "description": "API title",
+      "required": false,
+      "default": "My Zuplo API"
+    },
+    {
+      "name": "version",
+      "description": "API version",
+      "required": false,
+      "default": "1.0.0"
+    }
+  ]
+}

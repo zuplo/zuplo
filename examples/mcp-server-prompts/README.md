@@ -1,8 +1,8 @@
-# MCP Bookmark Manager Example
+# MCP Server Prompts
 
 This is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server built with [Zuplo](https://zuplo.com) that demonstrates how to implement MCP tools and prompts using an OpenAPI-defined API.
 
-## What This Example Includes
+## About this example
 
 This project implements a **Bookmark Manager** with MCP integration that showcases:
 
@@ -16,20 +16,22 @@ This project implements a **Bookmark Manager** with MCP integration that showcas
 
 ### Key Components
 - **OpenAPI-based Routes** (`config/routes.oas.json`) - API routes with MCP annotations
-- **Bookmark Handlers** (`modules/bookmarks.ts`) - CRUD operations with cache-based storage, for demo purposes this is the "database".
 - **Research Prompt** (`modules/research-roundup-prompt.ts`) - Custom MCP prompt implementation
+
+## Prerequisites
+
+- A Zuplo account. You can [sign up for free](https://portal.zuplo.com/signup).
 
 ## Getting Started
 
-### Installation
+### Locally
+Working locally is the best way to explore and understand the code for this example. You can get a local version by using the Zuplo CLI:
 
-```bash
-npm install
+```
+npx create-zuplo-api@latest --example mcp-server-prompts
 ```
 
-### Running Locally
-
-Start the development server:
+Once you have the code on your local machine, start the development server:
 
 ```bash
 npm run dev
@@ -78,9 +80,23 @@ zuplo deploy
 
 ## Using the MCP Server
 
-Once deployed, you can connect to your MCP server using any MCP client (like Claude Desktop). Configure your MCP client to point to:
+Once deployed, you can connect to your MCP server using any MCP testing tool:
 
-### Local Dev
+### Model Context Protocol Inspector
+
+```
+npx @modelcontextprotocol/inspector
+```
+
+### MCPJam
+
+```
+npx @mcpjam/inspector@latest
+```
+
+You can then test the MCP server locally, or point your inspector at a deployed version.
+
+### Local MCP Server
 
 ```
 http://localhost:9000/mcp

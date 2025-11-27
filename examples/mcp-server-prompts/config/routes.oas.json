@@ -1,0 +1,171 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Bookmark Manager MCP",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/bookmarks": {
+      "get": {
+        "operationId": "list-bookmarks",
+        "summary": "List saved bookmarks",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by tag"
+          }
+        ],
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "listBookmarks",
+            "module": "$import(./modules/bookmarks)"
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      },
+      "post": {
+        "operationId": "save-bookmark",
+        "summary": "Save a new bookmark",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "url",
+                  "title"
+                ]
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "saveBookmark",
+            "module": "$import(./modules/bookmarks)"
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      }
+    },
+    "/bookmarks/{id}": {
+      "delete": {
+        "operationId": "delete-bookmark",
+        "summary": "Delete a bookmark",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "deleteBookmark",
+            "module": "$import(./modules/bookmarks)"
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      }
+    },
+    "/prompts/research-roundup": {
+      "post": {
+        "operationId": "research-roundup",
+        "summary": "Summarize recent research based on saved bookmarks",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "days": {
+                    "type": "string",
+                    "description": "How many days back to look (default: 7)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/research-roundup-prompt)"
+          },
+          "mcp": {
+            "type": "prompt",
+            "name": "research_roundup",
+            "description": "Get a summary of what you've been researching based on recent bookmarks"
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp-handler",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "bookmark-manager",
+              "version": "1.0.0",
+              "operations": [
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list-bookmarks"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "save-bookmark"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "delete-bookmark"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "research-roundup"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

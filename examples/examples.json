@@ -48,6 +48,14 @@
   ],
   "examples": [
     {
+      "title": "MCP Server Prompts",
+      "slug": "mcp-server-prompts",
+      "description": "An example MCP Server with additional MCP Prompts to enhance the end user experience.",
+      "categories": ["mcp"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2025-11-27"
+    },
+    {
       "title": "Remote MCP Server with OAuth",
       "slug": "remote-mcp-server-with-oauth",
       "description": "A remote MCP Server that shows how to setup OAuth authentication with Auth0",

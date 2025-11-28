@@ -49,7 +49,7 @@
   "examples": [
     {
       "title": "MCP Custom Tools",
-      "slug": "mcp-custom-tools",
+      "slug": "mcp-server-custom-tools",
       "description": "MCP Server with a custom tool that orchestrates multiple API calls.",
       "categories": ["mcp"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",

@@ -1,0 +1,288 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Travel Advisor API",
+    "version": "1.0.0",
+    "description": "MCP custom tools demo - a travel planning assistant that aggregates weather, activities, and packing data"
+  },
+  "paths": {
+    "/weather/{city}": {
+      "get": {
+        "operationId": "get-weather",
+        "summary": "Get weather forecast for a city",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "${env.BASE_URL}/weather/${params.city}"
+            }
+          },
+          "policies": {
+            "inbound": [
+              "rate-limit-inbound"
+            ]
+          }
+        },
+        "parameters": [
+          {
+            "name": "city",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Weather forecast"
+          }
+        },
+        "description": ""
+      }
+    },
+    "/activities/{city}": {
+      "get": {
+        "operationId": "get-activities",
+        "summary": "Get recommended activities for a city",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "${env.BASE_URL}/activities/${params.city}"
+            }
+          },
+          "policies": {
+            "inbound": [
+              "rate-limit-inbound"
+            ]
+          }
+        },
+        "parameters": [
+          {
+            "name": "city",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity recommendations"
+          }
+        }
+      }
+    },
+    "/packing/{climate}": {
+      "get": {
+        "operationId": "get-packing-list",
+        "summary": "Get packing suggestions for a climate type",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "${env.BASE_URL}/packing/${params.climate}"
+            }
+          },
+          "policies": {
+            "inbound": [
+              "rate-limit-inbound"
+            ]
+          }
+        },
+        "parameters": [
+          {
+            "name": "climate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Packing suggestions"
+          }
+        },
+        "description": ""
+      }
+    },
+    "/plan-trip": {
+      "post": {
+        "operationId": "plan-trip",
+        "summary": "Plan a trip to a destination",
+        "description": "Aggregates weather forecasts, activity recommendations, and packing suggestions into a comprehensive travel brief. Use this when someone asks about traveling to a specific destination.",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/plan-trip)"
+          },
+          "mcp": {
+            "type": "tool"
+          },
+          "policies": {
+            "inbound": []
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "destination"
+                ],
+                "properties": {
+                  "destination": {
+                    "type": "string",
+                    "description": "The city or destination to plan a trip to (e.g., 'Tokyo', 'Miami', 'London')"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Travel brief with weather, activities, and packing suggestions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "destination": {
+                      "type": "string"
+                    },
+                    "climate": {
+                      "type": "string"
+                    },
+                    "weather_summary": {
+                      "type": "object",
+                      "properties": {
+                        "forecast_days": {
+                          "type": "integer"
+                        },
+                        "temperature_range": {
+                          "type": "object",
+                          "properties": {
+                            "high": {
+                              "type": "number"
+                            },
+                            "low": {
+                              "type": "number"
+                            }
+                          }
+                        },
+                        "rainy_days": {
+                          "type": "integer"
+                        },
+                        "rain_warning": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "activities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "typical_duration_hours": {
+                            "type": "number"
+                          },
+                          "weather_suitable": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "packing": {
+                      "type": "object",
+                      "properties": {
+                        "climate": {
+                          "type": "string"
+                        },
+                        "essentials": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "recommended": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "optional": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "rain_gear_priority": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcpServer",
+        "summary": "Travel Advisor MCP",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "Travel Advisor",
+              "version": "1.0.0",
+              "operations": [
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "plan-trip"
+                }
+              ]
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "MCP response"
+          }
+        },
+        "description": "Assists with planning what items to pack for a trip based on destination. Includes climate and weather related suggestions."
+      }
+    }
+  }
+}

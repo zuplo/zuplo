@@ -48,6 +48,14 @@
   ],
   "examples": [
     {
+      "title": "MCP Custom Tools",
+      "slug": "mcp-custom-tools",
+      "description": "MCP Server with a custom tool that orchestrates multiple API calls.",
+      "categories": ["mcp"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2025-11-28"
+    },
+    {
       "title": "MCP Server Prompts",
       "slug": "mcp-server-prompts",
       "description": "An example MCP Server with additional MCP Prompts to enhance the end user experience.",

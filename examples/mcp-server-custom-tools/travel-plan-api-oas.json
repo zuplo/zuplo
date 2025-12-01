@@ -1,0 +1,295 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Travel Data API",
+    "version": "1.0.0",
+    "description": "Mock API providing weather, activities, and packing suggestions for travel planning"
+  },
+  "paths": {
+    "/weather/{city}": {
+      "get": {
+        "operationId": "getWeather",
+        "summary": "Get weather forecast for a city",
+        "parameters": [
+          {
+            "name": "city",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Weather forecast",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeatherForecast"
+                },
+                "example": {
+                  "city": "Tokyo",
+                  "forecast": [
+                    {
+                      "date": "2025-01-15",
+                      "high_celsius": 12,
+                      "low_celsius": 4,
+                      "conditions": "partly_cloudy",
+                      "precipitation_chance": 20
+                    },
+                    {
+                      "date": "2025-01-16",
+                      "high_celsius": 10,
+                      "low_celsius": 3,
+                      "conditions": "rainy",
+                      "precipitation_chance": 80
+                    },
+                    {
+                      "date": "2025-01-17",
+                      "high_celsius": 14,
+                      "low_celsius": 6,
+                      "conditions": "sunny",
+                      "precipitation_chance": 5
+                    },
+                    {
+                      "date": "2025-01-18",
+                      "high_celsius": 13,
+                      "low_celsius": 5,
+                      "conditions": "partly_cloudy",
+                      "precipitation_chance": 15
+                    },
+                    {
+                      "date": "2025-01-19",
+                      "high_celsius": 11,
+                      "low_celsius": 4,
+                      "conditions": "cloudy",
+                      "precipitation_chance": 40
+                    }
+                  ],
+                  "climate_type": "temperate_cool"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{city}": {
+      "get": {
+        "operationId": "getActivities",
+        "summary": "Get recommended activities for a city",
+        "parameters": [
+          {
+            "name": "city",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity recommendations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Activities"
+                },
+                "example": {
+                  "city": "Tokyo",
+                  "activities": [
+                    {
+                      "name": "Senso-ji Temple",
+                      "type": "outdoor",
+                      "description": "Historic Buddhist temple in Asakusa",
+                      "typical_duration_hours": 2
+                    },
+                    {
+                      "name": "TeamLab Borderless",
+                      "type": "indoor",
+                      "description": "Immersive digital art museum",
+                      "typical_duration_hours": 3
+                    },
+                    {
+                      "name": "Tsukiji Outer Market",
+                      "type": "outdoor",
+                      "description": "Famous fish market with street food",
+                      "typical_duration_hours": 2
+                    },
+                    {
+                      "name": "Shibuya Sky",
+                      "type": "indoor",
+                      "description": "Observation deck with panoramic city views",
+                      "typical_duration_hours": 1.5
+                    },
+                    {
+                      "name": "Meiji Shrine",
+                      "type": "outdoor",
+                      "description": "Serene Shinto shrine in forested grounds",
+                      "typical_duration_hours": 1.5
+                    },
+                    {
+                      "name": "Akihabara Electronics District",
+                      "type": "indoor",
+                      "description": "Tech and anime shopping district",
+                      "typical_duration_hours": 3
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/packing/{climate}": {
+      "get": {
+        "operationId": "getPackingList",
+        "summary": "Get packing suggestions for a climate type",
+        "parameters": [
+          {
+            "name": "climate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["tropical", "temperate_warm", "temperate_cool", "cold", "desert"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Packing suggestions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackingList"
+                },
+                "example": {
+                  "climate": "temperate_cool",
+                  "essentials": [
+                    "Light jacket or sweater",
+                    "Long pants",
+                    "Comfortable walking shoes",
+                    "Layers for temperature changes"
+                  ],
+                  "recommended": [
+                    "Compact umbrella",
+                    "Light scarf",
+                    "Sunglasses",
+                    "Reusable water bottle"
+                  ],
+                  "optional": [
+                    "Light gloves",
+                    "Beanie or warm hat",
+                    "Packable rain jacket"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "WeatherForecast": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "forecast": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "high_celsius": {
+                  "type": "number"
+                },
+                "low_celsius": {
+                  "type": "number"
+                },
+                "conditions": {
+                  "type": "string",
+                  "enum": ["sunny", "partly_cloudy", "cloudy", "rainy", "stormy", "snowy"]
+                },
+                "precipitation_chance": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                }
+              }
+            }
+          },
+          "climate_type": {
+            "type": "string",
+            "enum": ["tropical", "temperate_warm", "temperate_cool", "cold", "desert"]
+          }
+        }
+      },
+      "Activities": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "activities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["indoor", "outdoor"]
+                },
+                "description": {
+                  "type": "string"
+                },
+                "typical_duration_hours": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      },
+      "PackingList": {
+        "type": "object",
+        "properties": {
+          "climate": {
+            "type": "string"
+          },
+          "essentials": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recommended": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "optional": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -64,14 +64,6 @@ npm install -g zuplo
 zuplo login
 ```
 
-### Create a New Project
-
-```bash
-zuplo init
-```
-
-Follow the prompts to create a new project in your Zuplo account.
-
 ### Deploy to Zuplo
 
 Deploy to a working copy environment:

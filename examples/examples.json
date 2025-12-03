@@ -55,6 +55,13 @@
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2025-12-03"
     },
+      "title": "MCP Custom Tools",
+      "slug": "mcp-server-custom-tools",
+      "description": "MCP Server with a custom tool that orchestrates multiple API calls.",
+      "categories": ["mcp"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2025-11-28"
+    },
     {
       "title": "MCP Server Prompts",
       "slug": "mcp-server-prompts",

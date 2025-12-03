@@ -10,7 +10,7 @@
         "pathMode": "open-api"
       },
       "post": {
-        "summary": "GraphLQ",
+        "summary": "GraphQL",
         "description": "",
         "x-zuplo-route": {
           "corsPolicy": "none",

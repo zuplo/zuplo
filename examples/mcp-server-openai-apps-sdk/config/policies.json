@@ -1,0 +1,17 @@
+{
+  "policies": [
+    {
+      "name": "anything-goes",
+      "policyType": "cors-inbound-policy",
+      "handler": {
+        "export": "default",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "allowOrigin": "*",
+          "allowMethods": ["GET", "POST", "OPTIONS"],
+          "allowHeaders": ["Content-Type", "Authorization"]
+        }
+      }
+    }
+  ]
+}

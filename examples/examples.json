@@ -48,6 +48,14 @@
   ],
   "examples": [
     {
+      "title": "OpenAI App",
+      "slug": "mcp-server-openai-apps-sdk",
+      "description": "Example ChatGPT App using an MCP Server and the OpenAI Apps SDK.",
+      "categories": ["mcp"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2025-12-05"
+    },
+    {
       "title": "GraphQL MCP Server",
       "slug": "mcp-server-graphql",
       "description": "Exposing GraphQL APIs as an MCP Server with built-in introspection.",

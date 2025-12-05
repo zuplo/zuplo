@@ -1,0 +1,190 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "GitHub Stats MCP Server"
+  },
+  "paths": {
+    "/mcp/resources/widget/github-stats": {
+      "get": {
+        "operationId": "github_stats_widget_resource",
+        "summary": "GitHub Stats Widget UI Template",
+        "description": "MCP resource that serves the GitHub Stats widget HTML for rendering in ChatGPT",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/widget-resource)"
+          },
+          "mcp": {
+            "type": "resource",
+            "uri": "resource://widget/github-stats",
+            "name": "GitHub Stats Widget",
+            "description": "Interactive widget displaying GitHub profile statistics",
+            "mimeType": "text/html+skybridge"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Widget HTML template",
+            "content": {
+              "text/html+skybridge": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/github-stats": {
+      "post": {
+        "operationId": "get_github_stats",
+        "summary": "Retrieve and visualize GitHub profile statistics for any user",
+        "description": "Fetches GitHub profile data for any username including repositories, programming languages, stars, followers, and activity. Returns an interactive visual dashboard. Examples: 'Show me stats for torvalds', 'What languages does sindresorhus use?'",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/github-stats)"
+          },
+          "mcp": {
+            "type": "tool",
+            "_meta": {
+              "openai/outputTemplate": "resource://widget/github-stats",
+              "openai/widgetAccessible": true,
+              "openai/toolInvocation/invoking": "Fetching GitHub stats...",
+              "openai/toolInvocation/invoked": "GitHub stats loaded"
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "GitHub username to fetch stats for (e.g., 'octocat', 'torvalds', 'sindresorhus')"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "GitHub statistics with visualization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitHubStatsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "MCP Server",
+        "description": "Default MCP Server",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "operations": [
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "get_github_stats"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "github_stats_widget_resource"
+                }
+              ],
+              "name": "Github Stats"
+            }
+          },
+          "policies": {
+            "inbound": []
+          }
+        },
+        "operationId": "d2037f9b-2c6f-4742-aa7d-55a55e071af3"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "GitHubStatsResponse": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "login": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "bio": {
+                "type": "string"
+              },
+              "publicRepos": {
+                "type": "integer"
+              },
+              "followers": {
+                "type": "integer"
+              },
+              "following": {
+                "type": "integer"
+              }
+            }
+          },
+          "topRepos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "stars": {
+                  "type": "integer"
+                },
+                "forks": {
+                  "type": "integer"
+                },
+                "language": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "languages": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    }
+  }
+}

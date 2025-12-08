@@ -6,13 +6,10 @@
   "scripts": {
     "dev": "zup dev",
     "test": "zup test",
-    "bundle": "node ./bundle.mjs"
+    "bundle": "npx tsdown ./node_modules/openai --format esm --platform browser --out-dir ./modules/third-party/openai"
   },
   "dependencies": {
     "openai": "^4.29.1",
     "zuplo": "latest"
-  },
-  "devDependencies": {
-    "esbuild": "^0.20.2"
   }
 }

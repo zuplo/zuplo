@@ -1,0 +1,19 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "SemanticCacheInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "cacheBy": "propertyPath",
+          "cacheByPropertyPath": ".question",
+          "expirationSecondsTtl": 300,
+          "semanticTolerance": 0.3,
+          "returnCacheStatusHeader": true
+        }
+      },
+      "name": "semantic-cache-inbound",
+      "policyType": "semantic-cache-inbound"
+    }
+  ]
+}

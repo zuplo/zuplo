@@ -1,0 +1,30 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Semantic Cache Demo",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/ask": {
+      "post": {
+        "operationId": "ask-question",
+        "summary": "Ask a question (with semantic caching)",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "policies": {
+            "inbound": [
+              "semantic-cache-inbound"
+            ]
+          },
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/question-handler)"
+          }
+        }
+      },
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      }
+    }
+  }
+}

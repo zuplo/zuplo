@@ -54,7 +54,7 @@
     {
       "title": "Idempotency Keys",
       "slug": "idempotency-keys",
-      "description": "Use Zuplo's idempotency keys policy to prevent duplicate requests and cache responses.",
+      "description": "Idempotency keys prevent duplicate requests and cache responses.",
       "categories": ["programmability", "caching"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2026-01-16"
@@ -62,7 +62,7 @@
     {
       "title": "Semantic Caching",
       "slug": "semantic-caching",
-      "description": "Use Zuplo's semantic caching policy to cache responses based on semantic similarity rather than exact matches.",
+      "description": "Semantic caching caches responses based on semantic similarity rather than exact matches.",
       "categories": ["caching"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2026-01-14"

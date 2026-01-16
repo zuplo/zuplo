@@ -1,0 +1,23 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/idempotency-inbound)",
+        "options": {
+          "ttlSeconds": 86400
+        }
+      },
+      "name": "idempotency-inbound",
+      "policyType": "custom-code-inbound"
+    },
+    {
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/idempotency-outbound)"
+      },
+      "name": "idempotency-outbound",
+      "policyType": "custom-code-outbound"
+    }
+  ]
+}

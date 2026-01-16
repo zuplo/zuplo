@@ -1,0 +1,54 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Idempotency Demo API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/payments": {
+      "post": {
+        "operationId": "create-payment",
+        "summary": "Create a payment",
+        "x-zuplo-route": {
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "https://echo.zuplo.io"
+            }
+          },
+          "policies": {
+            "inbound": [
+              "idempotency-inbound"
+            ],
+            "outbound": [
+              "idempotency-outbound"
+            ]
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number"
+                  },
+                  "currency": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Payment created"
+          }
+        }
+      }
+    }
+  }
+}

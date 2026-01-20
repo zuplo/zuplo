@@ -38,7 +38,7 @@ In order to enable OAuth authentication we use the [Auth0 JWT Auth Policy](https
 
 You need to modify `config/policies.json` to reflect the settings for your own Auth0 account:
 
-```config/policies.json
+```json title="config/policies.json"
 {
   "handler": {
     "export": "Auth0JwtInboundPolicy",
@@ -95,7 +95,7 @@ You can see a full list of _JWT Inbound Policies_ in the _Authentication_ sectio
 
 Here's the policy in this example:
 
-```
+```json
 {
   "name": "my-auth0-jwt-auth-inbound-policy",
   "policyType": "auth0-jwt-auth-inbound",
@@ -114,7 +114,7 @@ Here's the policy in this example:
 
 To switch the identity provider to Okta, you would replace this with the [Okta JWT Auth Policy](https://zuplo.com/docs/policies/okta-jwt-auth-inbound), like this:
 
-```
+```json
 {
   "name": "my-okta-jwt-auth-inbound-policy",
   "policyType": "okta-jwt-auth-inbound",

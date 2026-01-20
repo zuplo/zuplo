@@ -1,5 +1,11 @@
 /**
- * Script to generate CLAUDE.md files for each Zuplo example.
+ * Script to generate LLM instruction files for each Zuplo example.
+ *
+ * Generates the following files for each example:
+ * - CLAUDE.md - Claude Code instructions (generated from example metadata)
+ * - AGENTS.md - Same as CLAUDE.md (for Goose and other tools)
+ * - .cursorrules - Cursor IDE rules (shared content)
+ * - .github/copilot-instructions.md - GitHub Copilot instructions (shared content)
  *
  * Run with: npx tsx scripts/generate-llm-docs.ts
  *
@@ -13,6 +19,101 @@ import * as path from "path";
 
 const EXAMPLES_DIR = path.join(__dirname, "..");
 const EXAMPLES_JSON_PATH = path.join(EXAMPLES_DIR, "examples.json");
+
+// Shared content for .cursorrules (applies to all examples)
+const CURSORRULES_CONTENT = `# Zuplo API Gateway Examples
+
+You are working in a Zuplo API Gateway examples repository.
+
+## Project Structure
+- config/routes.oas.json - OpenAPI routes with x-zuplo-route extensions
+- config/policies.json - Policy configurations
+- modules/*.ts - Custom handlers and policies
+- Tests: npm run test
+
+## Code Conventions
+- TypeScript with @zuplo/runtime imports
+- Handlers: export default async function(request: ZuploRequest, context: ZuploContext)
+- Policies: export default async function(request, context, options, policyName)
+- Return Response objects from handlers
+- Return request (continue) or Response (short-circuit) from policies
+
+## Common Patterns
+- context.log.info() for logging
+- context.custom for passing data between policies
+- ZoneCache for distributed caching
+- environment.VAR_NAME for env vars
+
+## When Modifying Routes
+- Edit config/routes.oas.json
+- Add handler reference in x-zuplo-route.handler
+- Add policies in x-zuplo-route.policies.inbound/outbound
+
+## Local Development
+- npm run dev starts server on https://localhost:9000
+- Hot reload is automatic
+`;
+
+// Shared content for .github/copilot-instructions.md
+const COPILOT_INSTRUCTIONS_CONTENT = `# GitHub Copilot Instructions for Zuplo Examples
+
+This repository contains example API gateway projects built with Zuplo.
+
+## Project Structure
+
+Each example follows this structure:
+- \`config/routes.oas.json\` - OpenAPI route definitions with \`x-zuplo-route\` extensions
+- \`config/policies.json\` - Policy configurations for rate limiting, auth, caching, etc.
+- \`modules/*.ts\` - Custom TypeScript handlers and policies
+- \`package.json\` - Dependencies (always includes \`zuplo\` package)
+
+## Code Patterns
+
+### Handlers
+\`\`\`typescript
+import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
+
+export default async function (
+  request: ZuploRequest,
+  context: ZuploContext
+): Promise<Response> {
+  return new Response(JSON.stringify({ data: "value" }), {
+    headers: { "content-type": "application/json" }
+  });
+}
+\`\`\`
+
+### Custom Policies
+\`\`\`typescript
+import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
+
+export default async function (
+  request: ZuploRequest,
+  context: ZuploContext,
+  options: PolicyOptions,
+  policyName: string
+): Promise<ZuploRequest | Response> {
+  // Return request to continue, or Response to short-circuit
+  return request;
+}
+\`\`\`
+
+## Key Imports
+- \`ZuploContext\`, \`ZuploRequest\` - Core types from @zuplo/runtime
+- \`ZoneCache\` - Distributed caching
+- \`environment\` - Environment variables
+
+## Common Operations
+- Logging: \`context.log.info()\`, \`.warn()\`, \`.error()\`
+- Pass data between policies: \`context.custom\`
+- Access route metadata: \`context.route\`
+- Authenticated user: \`request.user\`
+
+## Commands
+- \`npm run dev\` - Start local dev server
+- \`npm run test\` - Run tests
+- \`zuplo deploy\` - Deploy to Zuplo cloud
+`;
 
 // Skip these directories (already have hand-crafted CLAUDE.md or are special)
 const SKIP_EXAMPLES = ["semantic-caching", "idempotency-keys"];
@@ -356,6 +457,12 @@ function generateClaudeMd(analysis: ExampleAnalysis, slug: string): string {
   return content;
 }
 
+function ensureDir(dirPath: string): void {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+}
+
 function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
@@ -378,37 +485,135 @@ function main() {
 
   console.log(`Found ${exampleDirs.length} examples, processing ${toProcess.length}`);
   if (SKIP_EXAMPLES.length > 0) {
-    console.log(`Skipping (already have CLAUDE.md): ${SKIP_EXAMPLES.join(", ")}`);
+    console.log(`Skipping CLAUDE.md/AGENTS.md generation for: ${SKIP_EXAMPLES.join(", ")}`);
   }
 
-  let generated = 0;
+  let generatedClaudeMd = 0;
+  let generatedAgentsMd = 0;
+  let generatedCursorRules = 0;
+  let generatedCopilotInstructions = 0;
   let skipped = 0;
 
   for (const slug of toProcess) {
+    const exampleDir = path.join(EXAMPLES_DIR, slug);
     const metadata = metadataMap.get(slug);
     const analysis = analyzeExample(slug, metadata);
 
-    // Check if CLAUDE.md already exists (and not in dry run)
-    const claudeMdPath = path.join(EXAMPLES_DIR, slug, "CLAUDE.md");
+    // Generate CLAUDE.md
+    const claudeMdPath = path.join(exampleDir, "CLAUDE.md");
     if (fs.existsSync(claudeMdPath) && !specificExample) {
-      console.log(`  Skipping ${slug} (CLAUDE.md exists)`);
+      console.log(`  Skipping ${slug}/CLAUDE.md (exists)`);
       skipped++;
-      continue;
-    }
-
-    const content = generateClaudeMd(analysis, slug);
-
-    if (dryRun) {
-      console.log(`\n--- ${slug}/CLAUDE.md ---`);
-      console.log(content.slice(0, 500) + "...");
     } else {
-      fs.writeFileSync(claudeMdPath, content);
-      console.log(`  Generated ${slug}/CLAUDE.md`);
+      const content = generateClaudeMd(analysis, slug);
+      if (dryRun) {
+        console.log(`\n--- ${slug}/CLAUDE.md ---`);
+        console.log(content.slice(0, 500) + "...");
+      } else {
+        fs.writeFileSync(claudeMdPath, content);
+        console.log(`  Generated ${slug}/CLAUDE.md`);
+      }
+      generatedClaudeMd++;
     }
-    generated++;
+
+    // Generate AGENTS.md (same content as CLAUDE.md)
+    const agentsMdPath = path.join(exampleDir, "AGENTS.md");
+    if (fs.existsSync(agentsMdPath) && !specificExample) {
+      console.log(`  Skipping ${slug}/AGENTS.md (exists)`);
+    } else {
+      const content = generateClaudeMd(analysis, slug);
+      if (dryRun) {
+        console.log(`  Would generate ${slug}/AGENTS.md (same as CLAUDE.md)`);
+      } else {
+        fs.writeFileSync(agentsMdPath, content);
+        console.log(`  Generated ${slug}/AGENTS.md`);
+      }
+      generatedAgentsMd++;
+    }
+
+    // Generate .cursorrules
+    const cursorRulesPath = path.join(exampleDir, ".cursorrules");
+    if (fs.existsSync(cursorRulesPath) && !specificExample) {
+      console.log(`  Skipping ${slug}/.cursorrules (exists)`);
+    } else {
+      if (dryRun) {
+        console.log(`  Would generate ${slug}/.cursorrules`);
+      } else {
+        fs.writeFileSync(cursorRulesPath, CURSORRULES_CONTENT);
+        console.log(`  Generated ${slug}/.cursorrules`);
+      }
+      generatedCursorRules++;
+    }
+
+    // Generate .github/copilot-instructions.md
+    const githubDir = path.join(exampleDir, ".github");
+    const copilotPath = path.join(githubDir, "copilot-instructions.md");
+    if (fs.existsSync(copilotPath) && !specificExample) {
+      console.log(`  Skipping ${slug}/.github/copilot-instructions.md (exists)`);
+    } else {
+      if (dryRun) {
+        console.log(`  Would generate ${slug}/.github/copilot-instructions.md`);
+      } else {
+        ensureDir(githubDir);
+        fs.writeFileSync(copilotPath, COPILOT_INSTRUCTIONS_CONTENT);
+        console.log(`  Generated ${slug}/.github/copilot-instructions.md`);
+      }
+      generatedCopilotInstructions++;
+    }
   }
 
-  console.log(`\nDone: ${generated} generated, ${skipped} skipped`);
+  // Also generate shared files for the hand-crafted examples (SKIP_EXAMPLES)
+  // These have custom CLAUDE.md but still need .cursorrules and copilot-instructions
+  for (const slug of SKIP_EXAMPLES) {
+    const exampleDir = path.join(EXAMPLES_DIR, slug);
+    if (!fs.existsSync(exampleDir)) continue;
+
+    // Generate AGENTS.md (copy of existing CLAUDE.md)
+    const claudeMdPath = path.join(exampleDir, "CLAUDE.md");
+    const agentsMdPath = path.join(exampleDir, "AGENTS.md");
+    if (fs.existsSync(claudeMdPath) && (!fs.existsSync(agentsMdPath) || specificExample)) {
+      if (dryRun) {
+        console.log(`  Would copy ${slug}/CLAUDE.md to AGENTS.md`);
+      } else {
+        const content = fs.readFileSync(claudeMdPath, "utf-8");
+        fs.writeFileSync(agentsMdPath, content);
+        console.log(`  Generated ${slug}/AGENTS.md (from CLAUDE.md)`);
+      }
+      generatedAgentsMd++;
+    }
+
+    // Generate .cursorrules
+    const cursorRulesPath = path.join(exampleDir, ".cursorrules");
+    if (!fs.existsSync(cursorRulesPath) || specificExample) {
+      if (dryRun) {
+        console.log(`  Would generate ${slug}/.cursorrules`);
+      } else {
+        fs.writeFileSync(cursorRulesPath, CURSORRULES_CONTENT);
+        console.log(`  Generated ${slug}/.cursorrules`);
+      }
+      generatedCursorRules++;
+    }
+
+    // Generate .github/copilot-instructions.md
+    const githubDir = path.join(exampleDir, ".github");
+    const copilotPath = path.join(githubDir, "copilot-instructions.md");
+    if (!fs.existsSync(copilotPath) || specificExample) {
+      if (dryRun) {
+        console.log(`  Would generate ${slug}/.github/copilot-instructions.md`);
+      } else {
+        ensureDir(githubDir);
+        fs.writeFileSync(copilotPath, COPILOT_INSTRUCTIONS_CONTENT);
+        console.log(`  Generated ${slug}/.github/copilot-instructions.md`);
+      }
+      generatedCopilotInstructions++;
+    }
+  }
+
+  console.log(`\nDone:`);
+  console.log(`  - CLAUDE.md: ${generatedClaudeMd} generated, ${skipped} skipped`);
+  console.log(`  - AGENTS.md: ${generatedAgentsMd} generated`);
+  console.log(`  - .cursorrules: ${generatedCursorRules} generated`);
+  console.log(`  - .github/copilot-instructions.md: ${generatedCopilotInstructions} generated`);
 }
 
 main();

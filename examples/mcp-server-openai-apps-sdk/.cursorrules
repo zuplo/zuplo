@@ -1,0 +1,31 @@
+# Zuplo API Gateway Examples
+
+You are working in a Zuplo API Gateway examples repository.
+
+## Project Structure
+- config/routes.oas.json - OpenAPI routes with x-zuplo-route extensions
+- config/policies.json - Policy configurations
+- modules/*.ts - Custom handlers and policies
+- Tests: npm run test
+
+## Code Conventions
+- TypeScript with @zuplo/runtime imports
+- Handlers: export default async function(request: ZuploRequest, context: ZuploContext)
+- Policies: export default async function(request, context, options, policyName)
+- Return Response objects from handlers
+- Return request (continue) or Response (short-circuit) from policies
+
+## Common Patterns
+- context.log.info() for logging
+- context.custom for passing data between policies
+- ZoneCache for distributed caching
+- environment.VAR_NAME for env vars
+
+## When Modifying Routes
+- Edit config/routes.oas.json
+- Add handler reference in x-zuplo-route.handler
+- Add policies in x-zuplo-route.policies.inbound/outbound
+
+## Local Development
+- npm run dev starts server on https://localhost:9000
+- Hot reload is automatic

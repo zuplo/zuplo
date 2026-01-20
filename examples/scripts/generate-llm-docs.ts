@@ -164,6 +164,59 @@ function loadExamplesJson(): ExamplesJson {
   return JSON.parse(content);
 }
 
+/**
+ * Checks if a path exists (file or directory).
+ * Note: Only use for read-only checks where race conditions are acceptable.
+ */
+function pathExists(filePath: string): boolean {
+  try {
+    fs.accessSync(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reads a file if it exists, returns undefined otherwise.
+ * Handles the file-not-found case gracefully.
+ */
+function readFileIfExists(filePath: string): string | undefined {
+  try {
+    return fs.readFileSync(filePath, "utf-8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      return undefined;
+    }
+    throw err;
+  }
+}
+
+/**
+ * Creates a directory if it doesn't exist.
+ * Uses recursive option which is idempotent - safe to call even if dir exists.
+ */
+function ensureDir(dirPath: string): void {
+  fs.mkdirSync(dirPath, { recursive: true });
+}
+
+/**
+ * Attempts to write a file only if it doesn't exist (atomic operation).
+ * Uses O_CREAT | O_EXCL flags via 'wx' mode to avoid TOCTOU race conditions.
+ * Returns true if file was written, false if it already existed.
+ */
+function writeFileIfNotExists(filePath: string, content: string): boolean {
+  try {
+    fs.writeFileSync(filePath, content, { flag: "wx" });
+    return true;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+      return false;
+    }
+    throw err;
+  }
+}
+
 function getExampleDirs(): string[] {
   const entries = fs.readdirSync(EXAMPLES_DIR, { withFileTypes: true });
   return entries
@@ -171,14 +224,14 @@ function getExampleDirs(): string[] {
       if (!entry.isDirectory()) return false;
       if (entry.name.startsWith(".")) return false;
       if (entry.name === "scripts") return false;
-      // Check if it has config/routes.oas.json
+      // Check if it has config/routes.oas.json (read-only check, race condition acceptable)
       const routesPath = path.join(
         EXAMPLES_DIR,
         entry.name,
         "config",
         "routes.oas.json"
       );
-      return fs.existsSync(routesPath);
+      return pathExists(routesPath);
     })
     .map((entry) => entry.name);
 }
@@ -196,22 +249,23 @@ function analyzeExample(slug: string, metadata?: ExampleMetadata): ExampleAnalys
     hasDocs: false,
   };
 
-  // Check for README.md
+  // Check for README.md - use try/catch to handle missing file
   const readmePath = path.join(exampleDir, "README.md");
-  if (fs.existsSync(readmePath)) {
+  const readmeContent = readFileIfExists(readmePath);
+  if (readmeContent) {
     analysis.hasReadme = true;
-    analysis.readmeContent = fs.readFileSync(readmePath, "utf-8");
+    analysis.readmeContent = readmeContent;
   }
 
-  // Check for docs directory
+  // Check for docs directory (read-only check, race condition acceptable)
   const docsPath = path.join(exampleDir, "docs");
-  analysis.hasDocs = fs.existsSync(docsPath);
+  analysis.hasDocs = pathExists(docsPath);
 
-  // Check for env.example
+  // Check for env.example - use try/catch to handle missing file
   const envExamplePath = path.join(exampleDir, "env.example");
-  if (fs.existsSync(envExamplePath)) {
+  const envContent = readFileIfExists(envExamplePath);
+  if (envContent) {
     analysis.hasEnvExample = true;
-    const envContent = fs.readFileSync(envExamplePath, "utf-8");
     analysis.envVars = envContent
       .split("\n")
       .filter((line) => line.includes("="))
@@ -219,11 +273,11 @@ function analyzeExample(slug: string, metadata?: ExampleMetadata): ExampleAnalys
       .filter((v) => v.length > 0 && !v.startsWith("#"));
   }
 
-  // Parse routes.oas.json
+  // Parse routes.oas.json - use try/catch for missing file and parse errors
   const routesPath = path.join(exampleDir, "config", "routes.oas.json");
-  if (fs.existsSync(routesPath)) {
+  const routesContent = readFileIfExists(routesPath);
+  if (routesContent) {
     try {
-      const routesContent = fs.readFileSync(routesPath, "utf-8");
       const routesJson = JSON.parse(routesContent);
       if (routesJson.paths) {
         for (const [routePath, methods] of Object.entries(routesJson.paths)) {
@@ -263,11 +317,11 @@ function analyzeExample(slug: string, metadata?: ExampleMetadata): ExampleAnalys
     }
   }
 
-  // Parse policies.json
+  // Parse policies.json - use try/catch for missing file and parse errors
   const policiesPath = path.join(exampleDir, "config", "policies.json");
-  if (fs.existsSync(policiesPath)) {
+  const policiesContent = readFileIfExists(policiesPath);
+  if (policiesContent) {
     try {
-      const policiesContent = fs.readFileSync(policiesPath, "utf-8");
       const policiesJson = JSON.parse(policiesContent);
       if (policiesJson.policies) {
         for (const policy of policiesJson.policies) {
@@ -287,13 +341,15 @@ function analyzeExample(slug: string, metadata?: ExampleMetadata): ExampleAnalys
     }
   }
 
-  // List modules
+  // List modules - use try/catch for missing directory
   const modulesDir = path.join(exampleDir, "modules");
-  if (fs.existsSync(modulesDir)) {
+  try {
     const moduleFiles = fs.readdirSync(modulesDir);
     analysis.modules = moduleFiles
       .filter((f) => f.endsWith(".ts"))
       .map((f) => f.replace(".ts", ""));
+  } catch {
+    // Directory doesn't exist, leave modules empty
   }
 
   return analysis;
@@ -457,12 +513,6 @@ function generateClaudeMd(analysis: ExampleAnalysis, slug: string): string {
   return content;
 }
 
-function ensureDir(dirPath: string): void {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-}
-
 function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
@@ -498,67 +548,85 @@ function main() {
     const exampleDir = path.join(EXAMPLES_DIR, slug);
     const metadata = metadataMap.get(slug);
     const analysis = analyzeExample(slug, metadata);
+    const content = generateClaudeMd(analysis, slug);
 
     // Generate CLAUDE.md
     const claudeMdPath = path.join(exampleDir, "CLAUDE.md");
-    if (fs.existsSync(claudeMdPath) && !specificExample) {
-      console.log(`  Skipping ${slug}/CLAUDE.md (exists)`);
-      skipped++;
-    } else {
-      const content = generateClaudeMd(analysis, slug);
-      if (dryRun) {
-        console.log(`\n--- ${slug}/CLAUDE.md ---`);
-        console.log(content.slice(0, 500) + "...");
-      } else {
-        fs.writeFileSync(claudeMdPath, content);
-        console.log(`  Generated ${slug}/CLAUDE.md`);
-      }
+    if (dryRun) {
+      console.log(`\n--- ${slug}/CLAUDE.md ---`);
+      console.log(content.slice(0, 500) + "...");
       generatedClaudeMd++;
+    } else if (specificExample) {
+      // Force overwrite when specific example requested
+      fs.writeFileSync(claudeMdPath, content);
+      console.log(`  Generated ${slug}/CLAUDE.md`);
+      generatedClaudeMd++;
+    } else {
+      // Atomic write - only creates if file doesn't exist
+      if (writeFileIfNotExists(claudeMdPath, content)) {
+        console.log(`  Generated ${slug}/CLAUDE.md`);
+        generatedClaudeMd++;
+      } else {
+        console.log(`  Skipping ${slug}/CLAUDE.md (exists)`);
+        skipped++;
+      }
     }
 
     // Generate AGENTS.md (same content as CLAUDE.md)
     const agentsMdPath = path.join(exampleDir, "AGENTS.md");
-    if (fs.existsSync(agentsMdPath) && !specificExample) {
-      console.log(`  Skipping ${slug}/AGENTS.md (exists)`);
-    } else {
-      const content = generateClaudeMd(analysis, slug);
-      if (dryRun) {
-        console.log(`  Would generate ${slug}/AGENTS.md (same as CLAUDE.md)`);
-      } else {
-        fs.writeFileSync(agentsMdPath, content);
-        console.log(`  Generated ${slug}/AGENTS.md`);
-      }
+    if (dryRun) {
+      console.log(`  Would generate ${slug}/AGENTS.md (same as CLAUDE.md)`);
       generatedAgentsMd++;
+    } else if (specificExample) {
+      fs.writeFileSync(agentsMdPath, content);
+      console.log(`  Generated ${slug}/AGENTS.md`);
+      generatedAgentsMd++;
+    } else {
+      if (writeFileIfNotExists(agentsMdPath, content)) {
+        console.log(`  Generated ${slug}/AGENTS.md`);
+        generatedAgentsMd++;
+      } else {
+        console.log(`  Skipping ${slug}/AGENTS.md (exists)`);
+      }
     }
 
     // Generate .cursorrules
     const cursorRulesPath = path.join(exampleDir, ".cursorrules");
-    if (fs.existsSync(cursorRulesPath) && !specificExample) {
-      console.log(`  Skipping ${slug}/.cursorrules (exists)`);
-    } else {
-      if (dryRun) {
-        console.log(`  Would generate ${slug}/.cursorrules`);
-      } else {
-        fs.writeFileSync(cursorRulesPath, CURSORRULES_CONTENT);
-        console.log(`  Generated ${slug}/.cursorrules`);
-      }
+    if (dryRun) {
+      console.log(`  Would generate ${slug}/.cursorrules`);
       generatedCursorRules++;
+    } else if (specificExample) {
+      fs.writeFileSync(cursorRulesPath, CURSORRULES_CONTENT);
+      console.log(`  Generated ${slug}/.cursorrules`);
+      generatedCursorRules++;
+    } else {
+      if (writeFileIfNotExists(cursorRulesPath, CURSORRULES_CONTENT)) {
+        console.log(`  Generated ${slug}/.cursorrules`);
+        generatedCursorRules++;
+      } else {
+        console.log(`  Skipping ${slug}/.cursorrules (exists)`);
+      }
     }
 
     // Generate .github/copilot-instructions.md
     const githubDir = path.join(exampleDir, ".github");
     const copilotPath = path.join(githubDir, "copilot-instructions.md");
-    if (fs.existsSync(copilotPath) && !specificExample) {
-      console.log(`  Skipping ${slug}/.github/copilot-instructions.md (exists)`);
-    } else {
-      if (dryRun) {
-        console.log(`  Would generate ${slug}/.github/copilot-instructions.md`);
-      } else {
-        ensureDir(githubDir);
-        fs.writeFileSync(copilotPath, COPILOT_INSTRUCTIONS_CONTENT);
-        console.log(`  Generated ${slug}/.github/copilot-instructions.md`);
-      }
+    if (dryRun) {
+      console.log(`  Would generate ${slug}/.github/copilot-instructions.md`);
       generatedCopilotInstructions++;
+    } else if (specificExample) {
+      ensureDir(githubDir);
+      fs.writeFileSync(copilotPath, COPILOT_INSTRUCTIONS_CONTENT);
+      console.log(`  Generated ${slug}/.github/copilot-instructions.md`);
+      generatedCopilotInstructions++;
+    } else {
+      ensureDir(githubDir);
+      if (writeFileIfNotExists(copilotPath, COPILOT_INSTRUCTIONS_CONTENT)) {
+        console.log(`  Generated ${slug}/.github/copilot-instructions.md`);
+        generatedCopilotInstructions++;
+      } else {
+        console.log(`  Skipping ${slug}/.github/copilot-instructions.md (exists)`);
+      }
     }
   }
 
@@ -566,46 +634,67 @@ function main() {
   // These have custom CLAUDE.md but still need .cursorrules and copilot-instructions
   for (const slug of SKIP_EXAMPLES) {
     const exampleDir = path.join(EXAMPLES_DIR, slug);
-    if (!fs.existsSync(exampleDir)) continue;
+    if (!pathExists(exampleDir)) continue;
 
     // Generate AGENTS.md (copy of existing CLAUDE.md)
     const claudeMdPath = path.join(exampleDir, "CLAUDE.md");
     const agentsMdPath = path.join(exampleDir, "AGENTS.md");
-    if (fs.existsSync(claudeMdPath) && (!fs.existsSync(agentsMdPath) || specificExample)) {
+    const claudeContent = readFileIfExists(claudeMdPath);
+    if (claudeContent) {
       if (dryRun) {
         console.log(`  Would copy ${slug}/CLAUDE.md to AGENTS.md`);
-      } else {
-        const content = fs.readFileSync(claudeMdPath, "utf-8");
-        fs.writeFileSync(agentsMdPath, content);
+        generatedAgentsMd++;
+      } else if (specificExample) {
+        fs.writeFileSync(agentsMdPath, claudeContent);
         console.log(`  Generated ${slug}/AGENTS.md (from CLAUDE.md)`);
+        generatedAgentsMd++;
+      } else {
+        if (writeFileIfNotExists(agentsMdPath, claudeContent)) {
+          console.log(`  Generated ${slug}/AGENTS.md (from CLAUDE.md)`);
+          generatedAgentsMd++;
+        } else {
+          console.log(`  Skipping ${slug}/AGENTS.md (exists)`);
+        }
       }
-      generatedAgentsMd++;
     }
 
     // Generate .cursorrules
     const cursorRulesPath = path.join(exampleDir, ".cursorrules");
-    if (!fs.existsSync(cursorRulesPath) || specificExample) {
-      if (dryRun) {
-        console.log(`  Would generate ${slug}/.cursorrules`);
-      } else {
-        fs.writeFileSync(cursorRulesPath, CURSORRULES_CONTENT);
-        console.log(`  Generated ${slug}/.cursorrules`);
-      }
+    if (dryRun) {
+      console.log(`  Would generate ${slug}/.cursorrules`);
       generatedCursorRules++;
+    } else if (specificExample) {
+      fs.writeFileSync(cursorRulesPath, CURSORRULES_CONTENT);
+      console.log(`  Generated ${slug}/.cursorrules`);
+      generatedCursorRules++;
+    } else {
+      if (writeFileIfNotExists(cursorRulesPath, CURSORRULES_CONTENT)) {
+        console.log(`  Generated ${slug}/.cursorrules`);
+        generatedCursorRules++;
+      } else {
+        console.log(`  Skipping ${slug}/.cursorrules (exists)`);
+      }
     }
 
     // Generate .github/copilot-instructions.md
     const githubDir = path.join(exampleDir, ".github");
     const copilotPath = path.join(githubDir, "copilot-instructions.md");
-    if (!fs.existsSync(copilotPath) || specificExample) {
-      if (dryRun) {
-        console.log(`  Would generate ${slug}/.github/copilot-instructions.md`);
-      } else {
-        ensureDir(githubDir);
-        fs.writeFileSync(copilotPath, COPILOT_INSTRUCTIONS_CONTENT);
-        console.log(`  Generated ${slug}/.github/copilot-instructions.md`);
-      }
+    if (dryRun) {
+      console.log(`  Would generate ${slug}/.github/copilot-instructions.md`);
       generatedCopilotInstructions++;
+    } else if (specificExample) {
+      ensureDir(githubDir);
+      fs.writeFileSync(copilotPath, COPILOT_INSTRUCTIONS_CONTENT);
+      console.log(`  Generated ${slug}/.github/copilot-instructions.md`);
+      generatedCopilotInstructions++;
+    } else {
+      ensureDir(githubDir);
+      if (writeFileIfNotExists(copilotPath, COPILOT_INSTRUCTIONS_CONTENT)) {
+        console.log(`  Generated ${slug}/.github/copilot-instructions.md`);
+        generatedCopilotInstructions++;
+      } else {
+        console.log(`  Skipping ${slug}/.github/copilot-instructions.md (exists)`);
+      }
     }
   }
 

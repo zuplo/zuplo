@@ -1,0 +1,68 @@
+# Zuplo Examples
+
+> API gateway examples demonstrating Zuplo features including rate limiting, caching, authentication, MCP servers, and custom policies.
+
+## Quick Start
+
+Each example can be run locally:
+```bash
+cd {example-name}
+npm install
+npm run dev
+```
+
+Or create a fresh copy:
+```bash
+npx create-zuplo-api@latest --example {example-name}
+```
+
+## Documentation
+
+- [Zuplo Docs](https://zuplo.com/docs): Official documentation
+- [Policies Reference](https://zuplo.com/docs/policies): All available policies
+- [MCP Server Docs](https://zuplo.com/docs/mcp-server/introduction): Model Context Protocol
+
+## Examples by Category
+
+### MCP Servers
+- [mcp-server-custom-tools](./mcp-server-custom-tools/): MCP Server with custom tools orchestrating multiple API calls
+- [mcp-server-graphql](./mcp-server-graphql/): Expose GraphQL APIs as an MCP Server with introspection
+- [mcp-server-openai-apps-sdk](./mcp-server-openai-apps-sdk/): ChatGPT App using MCP Server and OpenAI Apps SDK
+- [mcp-server-prompts](./mcp-server-prompts/): MCP Server with additional prompts for enhanced UX
+- [remote-mcp-server](./remote-mcp-server/): Remote MCP server with authentication and security policies
+- [remote-mcp-server-with-oauth](./remote-mcp-server-with-oauth/): Remote MCP Server with OAuth authentication via Auth0
+
+### Caching
+- [semantic-caching](./semantic-caching/): Cache responses based on semantic similarity
+- [idempotency-keys](./idempotency-keys/): Prevent duplicate requests with idempotency keys
+
+### Authentication & Authorization
+- [bff-auth](./bff-auth/): Backend-for-frontend authentication pattern
+- [dev-portal-with-api-keys](./dev-portal-with-api-keys/): Self-serve API key portal for developers
+- [openfga](./openfga/): OpenFGA fine-grained authorization
+- [upstream-jwt-auth](./upstream-jwt-auth/): JWT authentication for upstream services
+
+### Rate Limiting
+- [custom-429-response](./custom-429-response/): Customize rate limit responses
+- [dynamic-rate-limits](./dynamic-rate-limits/): Customer-tier based dynamic rate limits
+
+### Programmability
+- [custom-module](./custom-module/): Bundle custom node modules in your Zuplo project
+- [log-request-response](./log-request-response/): Capture full request and response for logging
+- [rewrite-request-body](./rewrite-request-body/): Modify request body with custom policies
+- [route-custom-data](./route-custom-data/): Use custom OpenAPI data in policies and handlers
+- [oas-base-path](./oas-base-path/): Custom base path and forwarding server configuration
+
+### Validation & Governance
+- [api-linting](./api-linting/): Enforce API consistency with linting rules
+- [schema-validation-file-ref](./schema-validation-file-ref/): Request validation with external schema files
+
+### Testing
+- [test-mocks](./test-mocks/): Unit testing with mocked Zuplo objects
+
+### Other Examples
+- [ab-test-backend](./ab-test-backend/): A/B testing backend implementation
+- [api-key-creation](./api-key-creation/): Programmatic API key creation
+- [metered-monetization](./metered-monetization/): Usage-based API monetization
+- [proxy-firestore-admin](./proxy-firestore-admin/): Proxy to Firestore with admin credentials
+- [proxy-firestore-user](./proxy-firestore-user/): Proxy to Firestore with user credentials

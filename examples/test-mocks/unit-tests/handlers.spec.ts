@@ -63,7 +63,7 @@ describe("Handler test", function () {
     });
 
     // Use undici to mock the fetch that happens in the handler
-    // See: https://github.com/nodejs/undici/blob/main/docs/api/MockAgent.md
+    // See: https://undici.nodejs.org/#/docs/api/MockAgent
     const mockPool = mockAgent.get(`https://echo.zuplo.io`);
     mockPool
       .intercept({ path: `/${param1}` })

@@ -150,5 +150,4 @@ This returns a 400 error with validation details:
 ## Learn More
 
 - [Request Validation Policy](https://zuplo.com/docs/policies/request-validation-inbound)
-- [OpenAPI Schema Validation](https://zuplo.com/docs/articles/open-api-validation)
 - [JSON Schema Reference](https://json-schema.org/understanding-json-schema/)

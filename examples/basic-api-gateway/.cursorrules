@@ -1,0 +1,102 @@
+# Zuplo Basic API Gateway
+
+You are working on a Zuplo API Gateway project that proxies requests to a backend Todo API with authentication, rate limiting, request validation, and size limits.
+
+## Project Structure
+
+- `config/routes.oas.json` - OpenAPI 3.1 spec with route definitions and `x-zuplo-route` extensions
+- `config/policies.json` - Policy configurations (auth, rate limiting, validation, size limits)
+- `modules/*.ts` - Custom TypeScript handlers and policies
+- `docs/` - Developer portal (Zudoku)
+- `zuplo.jsonc` - Zuplo project config
+
+## Key Concepts
+
+### Routes
+Routes are defined in OpenAPI format. The `x-zuplo-route` extension specifies:
+- `handler` - How to handle the request (built-in or custom module)
+- `policies.inbound` - Array of policy names to apply before the handler
+
+### Handlers
+Use `urlForwardHandler` from `@zuplo/runtime` to proxy requests:
+```json
+{
+  "handler": {
+    "export": "urlForwardHandler",
+    "module": "$import(@zuplo/runtime)",
+    "options": { "baseUrl": "https://todo.zuplo.io" }
+  }
+}
+```
+
+For custom handlers, reference modules:
+```json
+{
+  "handler": {
+    "export": "default",
+    "module": "$import(./modules/my-handler)"
+  }
+}
+```
+
+### Custom Handler Pattern
+```typescript
+import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
+
+export default async function (
+  request: ZuploRequest,
+  context: ZuploContext
+): Promise<Response> {
+  context.log.info("Processing request");
+  return new Response(JSON.stringify({ data: "value" }), {
+    headers: { "content-type": "application/json" }
+  });
+}
+```
+
+### Policies
+Policies are configured in `policies.json` and referenced by name in routes:
+
+- `api-key-inbound` - Validates API key in Authorization header
+- `rate-limit-inbound` - Limits requests per user/IP/function
+- `request-validation-inbound` - Validates against JSON schemas
+- `request-size-limit-inbound` - Limits request body size
+
+## API Endpoints
+
+| Method | Path | Policies |
+|--------|------|----------|
+| GET | `/todos` | api-key, rate-limit |
+| POST | `/todos` | api-key, rate-limit, validation, size-limit |
+| PUT | `/todos/{id}` | api-key, rate-limit, validation, size-limit |
+| DELETE | `/todos/{id}` | api-key, rate-limit |
+
+## Commands
+
+```bash
+npm run dev    # Start local server (http://localhost:9000)
+npm run test   # Run tests
+zuplo deploy   # Deploy to Zuplo cloud
+```
+
+## When Writing Code
+
+1. Always import from `@zuplo/runtime`:
+   ```typescript
+   import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
+   ```
+
+2. Handlers must return `Response` or `Promise<Response>`
+
+3. Use `context.log` for logging: `context.log.info()`, `.warn()`, `.error()`
+
+4. Access route metadata via `context.route`
+
+5. Access authenticated user via `request.user` (after auth policy)
+
+## When Modifying Config
+
+1. Routes go in `config/routes.oas.json` following OpenAPI 3.1 format
+2. Policies go in `config/policies.json`
+3. Schemas for request validation go in `components/schemas` in routes.oas.json
+4. Policy order in `inbound` array matters - they execute sequentially

@@ -52,6 +52,14 @@
   ],
   "examples": [
     {
+      "title": "Basic API Gateway",
+      "slug": "basic-api-gateway",
+      "description": "A production-ready API gateway with authentication, rate limiting, request validation, and size limits.",
+      "categories": ["authentication", "rate-limiting", "validation"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2026-01-22"
+    },
+    {
       "title": "Idempotency Keys",
       "slug": "idempotency-keys",
       "description": "Idempotency keys prevent duplicate requests and cache responses.",

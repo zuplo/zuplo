@@ -94,7 +94,7 @@ it("Calls the handler and validates the result", async function () {
 
 ### Mocking External API Calls
 
-Use [undici's MockAgent](https://github.com/nodejs/undici/blob/main/docs/api/MockAgent.md) to mock fetch calls your handlers make:
+Use [undici's MockAgent](https://zuplo.link/undici-mock) to mock fetch calls your handlers make:
 
 ```typescript
 import { MockAgent, setGlobalDispatcher } from "undici";

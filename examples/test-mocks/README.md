@@ -177,4 +177,4 @@ it("Verifies logging was called", async function () {
 - [Testing in Zuplo](https://zuplo.com/docs/articles/testing)
 - [Mocha Documentation](https://mochajs.org/)
 - [Sinon Documentation](https://sinonjs.org/)
-- [Undici MockAgent](https://github.com/nodejs/undici/blob/main/docs/api/MockAgent.md)
+- [Undici MockAgent](https://zuplo.link/undici-mock)

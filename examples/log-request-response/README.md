@@ -143,4 +143,4 @@ For production, consider using Zuplo's built-in [log plugins](https://zuplo.com/
 
 - [Runtime Extensions](https://zuplo.com/docs/articles/runtime-extensions)
 - [Log Plugins](https://zuplo.com/docs/articles/log-plugins)
-- [Context Logging](https://zuplo.com/docs/articles/context-logging)
+- [Custom Context Logging](https://zuplo.com/docs/articles/logging#custom-log-properties)

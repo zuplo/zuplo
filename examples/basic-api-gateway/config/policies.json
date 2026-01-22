@@ -1,0 +1,56 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "RateLimitInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "rateLimitBy": "user",
+          "requestsAllowed": 2,
+          "timeWindowMinutes": 1
+        }
+      },
+      "name": "rate-limit-inbound",
+      "policyType": "rate-limit-inbound"
+    },
+    {
+      "handler": {
+        "export": "ApiKeyInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "allowUnauthenticatedRequests": false,
+          "cacheTtlSeconds": 60
+        }
+      },
+      "name": "api-key-inbound",
+      "policyType": "api-key-inbound"
+    },
+    {
+      "handler": {
+        "export": "RequestValidationInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "includeRequestInLogs": false,
+          "logLevel": "info",
+          "validateBody": "reject-and-log",
+          "validateHeaders": "none",
+          "validatePathParameters": "log-only",
+          "validateQueryParameters": "log-only"
+        }
+      },
+      "name": "request-validation-inbound",
+      "policyType": "request-validation-inbound"
+    },
+    {
+      "handler": {
+        "export": "RequestSizeLimitInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "maxSizeInBytes": 1000
+        }
+      },
+      "name": "request-size-limit-inbound",
+      "policyType": "request-size-limit-inbound"
+    }
+  ]
+}

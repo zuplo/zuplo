@@ -54,7 +54,7 @@
     {
       "title": "Basic API Gateway",
       "slug": "basic-api-gateway",
-      "description": "A production-ready API gateway with authentication, rate limiting, request validation, and size limits.",
+      "description": "Protect your backend API with authentication, rate limiting, and request validation.",
       "categories": ["authentication", "rate-limiting", "validation"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2026-01-22",
@@ -63,7 +63,7 @@
     {
       "title": "Idempotency Keys",
       "slug": "idempotency-keys",
-      "description": "Idempotency keys prevent duplicate requests and cache responses.",
+      "description": "Prevent duplicate API requests and ensure safe retries for payments and critical operations.",
       "categories": ["programmability", "caching"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2026-01-16"
@@ -71,7 +71,7 @@
     {
       "title": "Semantic Caching",
       "slug": "semantic-caching",
-      "description": "Semantic caching caches responses based on semantic similarity rather than exact matches.",
+      "description": "Reduce AI API costs by caching responses for semantically similar queries.",
       "categories": ["caching"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2026-01-14"
@@ -79,7 +79,7 @@
     {
       "title": "OpenAI App",
       "slug": "mcp-server-openai-apps-sdk",
-      "description": "Example ChatGPT App using an MCP Server and the OpenAI Apps SDK.",
+      "description": "Build a ChatGPT App that connects to your API using MCP.",
       "categories": ["mcp"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2025-12-05"
@@ -87,7 +87,7 @@
     {
       "title": "GraphQL MCP Server",
       "slug": "mcp-server-graphql",
-      "description": "Exposing GraphQL APIs as an MCP Server with built-in introspection.",
+      "description": "Make your GraphQL API available to AI assistants like Claude and ChatGPT.",
       "categories": ["mcp"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2025-12-03"
@@ -95,7 +95,7 @@
     {
       "title": "MCP Custom Tools",
       "slug": "mcp-server-custom-tools",
-      "description": "MCP Server with a custom tool that orchestrates multiple API calls.",
+      "description": "Create AI tools that combine multiple API calls into a single action.",
       "categories": ["mcp"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2025-11-28"
@@ -103,7 +103,7 @@
     {
       "title": "MCP Server Prompts",
       "slug": "mcp-server-prompts",
-      "description": "An example MCP Server with additional MCP Prompts to enhance the end user experience.",
+      "description": "Improve AI assistant interactions by adding guided prompts to your MCP Server.",
       "categories": ["mcp"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2025-11-27"
@@ -111,7 +111,7 @@
     {
       "title": "Remote MCP Server with OAuth",
       "slug": "remote-mcp-server-with-oauth",
-      "description": "A remote MCP Server that shows how to setup OAuth authentication with Auth0",
+      "description": "Secure your MCP Server with OAuth authentication using Auth0.",
       "categories": ["mcp"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2025-07-31",
@@ -120,7 +120,7 @@
     {
       "title": "Dev Portal with API Keys",
       "slug": "dev-portal-with-api-keys",
-      "description": "An example of a Zuplo Dev Portal with support for self-serve API key creation.",
+      "description": "Let developers sign up and create their own API keys through a self-serve portal.",
       "categories": ["authentication"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2025-07-30",
@@ -129,7 +129,7 @@
     {
       "title": "Remote MCP Server",
       "slug": "remote-mcp-server",
-      "description": "Create a remote MCP server for an API with authentication and additional security policies.",
+      "description": "Expose your API to AI assistants like Claude and ChatGPT with built-in security.",
       "categories": ["mcp"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2025-06-26"
@@ -137,7 +137,7 @@
     {
       "title": "API Linting",
       "slug": "api-linting",
-      "description": "See how to use API linting to enforce api consistency and require Zuplo features like policies.",
+      "description": "Enforce API design standards and consistency across your team with automated linting.",
       "categories": ["governance", "git-ops"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-07"
@@ -145,7 +145,7 @@
     {
       "title": "Backend for Frontend (BFF) Auth",
       "slug": "bff-auth",
-      "description": "Optimize UX and security in web applications with this approach.",
+      "description": "Secure your web app by handling authentication server-side without exposing tokens to the browser.",
       "categories": ["authentication", "bff"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-07"
@@ -153,7 +153,7 @@
     {
       "title": "Custom Rate Limiting",
       "slug": "custom-429-response",
-      "description": "Invoke the Rate Limit policy programatically and then modify the 429 response.",
+      "description": "Customize the error response users see when they hit your API rate limits.",
       "categories": ["programmability", "rate-limiting"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-07"
@@ -161,7 +161,7 @@
     {
       "title": "Custom Modules",
       "slug": "custom-module",
-      "description": "How to bundle custom node modules to use in your Zuplo project.",
+      "description": "Use npm packages and third-party libraries in your Zuplo handlers and policies.",
       "categories": ["programmability", "customization"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-07"
@@ -169,7 +169,7 @@
     {
       "title": "Dynamic Rate Limits",
       "slug": "dynamic-rate-limits",
-      "description": "See how to create dynamic rate limits with the Rick & Morty API sample.",
+      "description": "Set different rate limits based on user subscription tier or API key metadata.",
       "categories": ["programmability", "rate-limiting"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-07"
@@ -177,7 +177,7 @@
     {
       "title": "Log Request & Response",
       "slug": "log-request-response",
-      "description": "Capture the full request and response to send to your log provider.",
+      "description": "Debug API issues by capturing full request and response bodies in your logs.",
       "categories": ["programmability", "logging"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-07"
@@ -185,7 +185,7 @@
     {
       "title": "Route Custom Data",
       "slug": "route-custom-data",
-      "description": "Use custom data from OpenAPI documents in policies and handlers.",
+      "description": "Add custom metadata to routes and use it in your policies and handlers.",
       "categories": ["programmability"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-29"
@@ -193,7 +193,7 @@
     {
       "title": "Rewrite Request Body",
       "slug": "rewrite-request-body",
-      "description": "Use a custom policy to rewrite the body of a Request",
+      "description": "Transform request bodies before forwarding to your backend API.",
       "categories": ["programmability"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-29"
@@ -201,7 +201,7 @@
     {
       "title": "Custom Base Path",
       "slug": "oas-base-path",
-      "description": "Use custom properties in OpenAPI documents to remove a base path and set the forwarding server.",
+      "description": "Remove or rewrite URL paths when forwarding requests to your backend.",
       "categories": ["programmability"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-29"
@@ -209,7 +209,7 @@
     {
       "title": "OpenFGA Authorization",
       "slug": "openfga",
-      "description": "Use OpenFGA from a custom policy to authorize access to a resource.",
+      "description": "Implement fine-grained authorization with relationship-based access control.",
       "categories": ["programmability", "authorization"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-11-29"
@@ -217,7 +217,7 @@
     {
       "title": "Mocking & Unit Test",
       "slug": "test-mocks",
-      "description": "Create unit tests by mocking Zuplo objects.",
+      "description": "Test your Zuplo handlers and policies with mocked request and context objects.",
       "categories": ["testing"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-12-21"
@@ -225,7 +225,7 @@
     {
       "title": "Schema Validation with File Refs",
       "slug": "schema-validation-file-ref",
-      "description": "Use the Request Validation policy with OpenAPI that references external files.",
+      "description": "Validate requests against JSON schemas stored in separate files.",
       "categories": ["validation", "programmability"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2022-12-22"

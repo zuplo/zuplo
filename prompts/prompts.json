@@ -7,18 +7,6 @@
     {
       "slug": "authentication",
       "title": "Authentication"
-    },
-    {
-      "slug": "developer-portal",
-      "title": "Developer Portal"
-    },
-    {
-      "slug": "mcp",
-      "title": "Model Context Protocol (MCP)"
-    },
-    {
-      "slug": "monetization",
-      "title": "API Monetization"
     }
   ],
   "prompts": [
@@ -27,8 +15,8 @@
       "slug": "api-gateway-from-oas",
       "description": "Deploy a production-ready API Gateway with authentication, rate limiting, and request validation from your OpenAPI specification.",
       "categories": ["api-gateway", "authentication"],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-01-29"
+      "date": "2026-01-29",
+      "isStarter": true
     }
   ]
 }

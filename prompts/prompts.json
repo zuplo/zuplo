@@ -5,8 +5,8 @@
       "title": "API Gateway"
     },
     {
-      "slug": "authentication",
-      "title": "Authentication"
+      "slug": "openapi",
+      "title": "OpenAPI"
     }
   ],
   "prompts": [
@@ -14,7 +14,7 @@
       "title": "API Gateway from OpenAPI Spec",
       "slug": "api-gateway-from-oas",
       "description": "Deploy a production-ready API Gateway with authentication, rate limiting, and request validation from your OpenAPI specification.",
-      "categories": ["api-gateway", "authentication"],
+      "categories": ["api-gateway", "openapi"],
       "date": "2026-01-29",
       "isStarter": true
     }

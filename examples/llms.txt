@@ -22,47 +22,50 @@ npx create-zuplo-api@latest --example {example-name}
 - [Policies Reference](https://zuplo.com/docs/policies): All available policies
 - [MCP Server Docs](https://zuplo.com/docs/mcp-server/introduction): Model Context Protocol
 
+## Starter Examples
+
+These examples are great starting points for new projects:
+- [basic-api-gateway](./basic-api-gateway/): Protect your backend API with authentication, rate limiting, and request validation
+- [dev-portal-with-api-keys](./dev-portal-with-api-keys/): Let developers sign up and create their own API keys through a self-serve portal
+- [remote-mcp-server-with-oauth](./remote-mcp-server-with-oauth/): Secure your MCP Server with OAuth authentication using Auth0
+
 ## Examples by Category
 
 ### MCP Servers
-- [mcp-server-custom-tools](./mcp-server-custom-tools/): MCP Server with custom tools orchestrating multiple API calls
-- [mcp-server-graphql](./mcp-server-graphql/): Expose GraphQL APIs as an MCP Server with introspection
-- [mcp-server-openai-apps-sdk](./mcp-server-openai-apps-sdk/): ChatGPT App using MCP Server and OpenAI Apps SDK
-- [mcp-server-prompts](./mcp-server-prompts/): MCP Server with additional prompts for enhanced UX
-- [remote-mcp-server](./remote-mcp-server/): Remote MCP server with authentication and security policies
-- [remote-mcp-server-with-oauth](./remote-mcp-server-with-oauth/): Remote MCP Server with OAuth authentication via Auth0
+- [mcp-server-custom-tools](./mcp-server-custom-tools/): Create AI tools that combine multiple API calls into a single action
+- [mcp-server-graphql](./mcp-server-graphql/): Make your GraphQL API available to AI assistants like Claude and ChatGPT
+- [mcp-server-openai-apps-sdk](./mcp-server-openai-apps-sdk/): Build a ChatGPT App that connects to your API using MCP
+- [mcp-server-prompts](./mcp-server-prompts/): Improve AI assistant interactions by adding guided prompts to your MCP Server
+- [remote-mcp-server](./remote-mcp-server/): Expose your API to AI assistants like Claude and ChatGPT with built-in security
+- [remote-mcp-server-with-oauth](./remote-mcp-server-with-oauth/): Secure your MCP Server with OAuth authentication using Auth0
 
 ### Caching
-- [semantic-caching](./semantic-caching/): Cache responses based on semantic similarity
-- [idempotency-keys](./idempotency-keys/): Prevent duplicate requests with idempotency keys
+- [semantic-caching](./semantic-caching/): Reduce AI API costs by caching responses for semantically similar queries
+- [idempotency-keys](./idempotency-keys/): Prevent duplicate API requests and ensure safe retries for payments and critical operations
 
 ### Authentication & Authorization
-- [bff-auth](./bff-auth/): Backend-for-frontend authentication pattern
-- [dev-portal-with-api-keys](./dev-portal-with-api-keys/): Self-serve API key portal for developers
-- [openfga](./openfga/): OpenFGA fine-grained authorization
-- [upstream-jwt-auth](./upstream-jwt-auth/): JWT authentication for upstream services
+- [bff-auth](./bff-auth/): Secure your web app by handling authentication server-side without exposing tokens to the browser
+- [dev-portal-with-api-keys](./dev-portal-with-api-keys/): Let developers sign up and create their own API keys through a self-serve portal
+- [openfga](./openfga/): Implement fine-grained authorization with relationship-based access control
+
+### Routing
+- [environment-routing](./environment-routing/): Route requests to sandbox or production backends based on API key metadata, like Stripe
+- [basic-api-gateway](./basic-api-gateway/): Protect your backend API with authentication, rate limiting, and request validation
 
 ### Rate Limiting
-- [custom-429-response](./custom-429-response/): Customize rate limit responses
-- [dynamic-rate-limits](./dynamic-rate-limits/): Customer-tier based dynamic rate limits
+- [custom-429-response](./custom-429-response/): Customize the error response users see when they hit your API rate limits
+- [dynamic-rate-limits](./dynamic-rate-limits/): Set different rate limits based on user subscription tier or API key metadata
 
 ### Programmability
-- [custom-module](./custom-module/): Bundle custom node modules in your Zuplo project
-- [log-request-response](./log-request-response/): Capture full request and response for logging
-- [rewrite-request-body](./rewrite-request-body/): Modify request body with custom policies
-- [route-custom-data](./route-custom-data/): Use custom OpenAPI data in policies and handlers
-- [oas-base-path](./oas-base-path/): Custom base path and forwarding server configuration
+- [custom-module](./custom-module/): Use npm packages and third-party libraries in your Zuplo handlers and policies
+- [log-request-response](./log-request-response/): Debug API issues by capturing full request and response bodies in your logs
+- [rewrite-request-body](./rewrite-request-body/): Transform request bodies before forwarding to your backend API
+- [route-custom-data](./route-custom-data/): Add custom metadata to routes and use it in your policies and handlers
+- [oas-base-path](./oas-base-path/): Remove or rewrite URL paths when forwarding requests to your backend
 
 ### Validation & Governance
-- [api-linting](./api-linting/): Enforce API consistency with linting rules
-- [schema-validation-file-ref](./schema-validation-file-ref/): Request validation with external schema files
+- [api-linting](./api-linting/): Enforce API design standards and consistency across your team with automated linting
+- [schema-validation-file-ref](./schema-validation-file-ref/): Validate requests against JSON schemas stored in separate files
 
 ### Testing
-- [test-mocks](./test-mocks/): Unit testing with mocked Zuplo objects
-
-### Other Examples
-- [ab-test-backend](./ab-test-backend/): A/B testing backend implementation
-- [api-key-creation](./api-key-creation/): Programmatic API key creation
-- [metered-monetization](./metered-monetization/): Usage-based API monetization
-- [proxy-firestore-admin](./proxy-firestore-admin/): Proxy to Firestore with admin credentials
-- [proxy-firestore-user](./proxy-firestore-user/): Proxy to Firestore with user credentials
+- [test-mocks](./test-mocks/): Test your Zuplo handlers and policies with mocked request and context objects

@@ -1,0 +1,144 @@
+# Cursor Rules: Environment-Based Routing Example
+
+## Project Context
+
+This is a Zuplo API Gateway example demonstrating Stripe-style environment routing. Requests route to sandbox or production backends based on API key metadata.
+
+## Key Files
+
+- `modules/environment-routing.ts` - Custom policy that reads `request.user.data.environment` and sets `context.custom.backendUrl`
+- `config/routes.oas.json` - OpenAPI routes using `${context.custom.backendUrl}` for dynamic backend selection
+- `config/policies.json` - Defines `api-key-auth` and `environment-routing` policies
+
+## Human vs Agent Tasks
+
+### Requires Human (Cannot Automate)
+
+- Creating Zuplo account/project
+- Configuring API Key Service in portal
+- Creating API key consumers with metadata
+- Running `npx zuplo link` (interactive authentication)
+- Setting environment variables in Zuplo Portal (for deployed projects)
+
+### Agent Can Automate
+
+- `npm install` - Install dependencies
+- `cp env.example .env` - Create environment file
+- `npm run dev` - Start development server
+- `zuplo deploy` - Deploy to Zuplo (after setup complete)
+- Editing any code files
+- Testing with curl commands (once user provides API keys)
+
+## Code Conventions
+
+### Route Definition Pattern
+
+```json
+"/v1/endpoint": {
+  "get": {
+    "operationId": "descriptive-operation-name",
+    "x-zuplo-route": {
+      "handler": {
+        "export": "urlRewriteHandler",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "rewritePattern": "${context.custom.backendUrl}/v1/endpoint"
+        }
+      },
+      "policies": {
+        "inbound": ["api-key-auth", "environment-routing"]
+      }
+    }
+  }
+}
+```
+
+### Policy Pattern
+
+```typescript
+import { ZuploContext, ZuploRequest, environment } from "@zuplo/runtime";
+
+export default async function policy(
+  request: ZuploRequest,
+  context: ZuploContext,
+) {
+  // Access user data from API key authentication
+  const userData = request.user?.data;
+  
+  // Set custom context for downstream handlers
+  context.custom.someValue = "value";
+  
+  // Return request to continue, or Response to short-circuit
+  return request;
+}
+```
+
+### Environment Variable Access
+
+```typescript
+import { environment } from "@zuplo/runtime";
+
+// Access environment variables
+const backendUrl = environment.SANDBOX_BACKEND_URL;
+```
+
+## When User Asks to Set Up
+
+1. Run `npm install`
+2. Run `cp env.example .env`
+3. **Inform user** they must complete portal setup:
+   - Configure API Key Service
+   - Create API keys with `{"environment": "sandbox"}` and `{"environment": "production"}` metadata
+   - Run `npx zuplo link` interactively
+4. After user confirms setup, run `npm run dev`
+5. Test with user-provided API keys
+
+## Adding New Functionality
+
+### New Route
+
+1. Add path object to `config/routes.oas.json` under `paths`
+2. Use `urlRewriteHandler` with `${context.custom.backendUrl}` prefix
+3. Include `["api-key-auth", "environment-routing"]` in inbound policies
+
+### New Environment
+
+1. Add environment variable to `.env` (e.g., `STAGING_BACKEND_URL=...`)
+2. Add condition to `modules/environment-routing.ts`
+3. Inform user to create API key with matching metadata in portal
+
+### New Policy
+
+1. Create file in `modules/` directory
+2. Add policy definition to `config/policies.json`
+3. Reference policy name in route's `policies.inbound` array
+
+## Testing
+
+Dev server runs on `http://localhost:9000`. Test commands:
+
+```bash
+# Balance endpoint
+curl http://localhost:9000/v1/balance -H "Authorization: Bearer <KEY>"
+
+# Create charge
+curl -X POST http://localhost:9000/v1/charges \
+  -H "Authorization: Bearer <KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 2000, "currency": "usd"}'
+```
+
+## Error Handling
+
+| Error | Meaning |
+|-------|---------|
+| 401 | Invalid or missing API key |
+| 403 with "invalid_api_key" | API key missing environment metadata |
+| "not defined" errors | Missing environment variable in .env |
+
+## Do Not
+
+- Commit `.env` or `.env.zuplo` files
+- Modify `zuplo.jsonc` without clear reason
+- Skip the `api-key-auth` policy on routes that need environment routing
+- Use hardcoded backend URLs instead of environment variables

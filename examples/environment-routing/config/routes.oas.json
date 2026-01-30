@@ -1,0 +1,124 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Payments API",
+    "description": "A payments API that routes to sandbox or production backends based on API key metadata.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/v1/balance": {
+      "get": {
+        "operationId": "get-balance",
+        "summary": "Get account balance",
+        "description": "Retrieves the current balance for your account. Returns sandbox or production data depending on your API key.",
+        "x-zuplo-route": {
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "${context.custom.backendUrl}/v1/balance"
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-auth", "environment-routing"]
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account balance retrieved successfully"
+          }
+        }
+      }
+    },
+    "/v1/charges": {
+      "post": {
+        "operationId": "create-charge",
+        "summary": "Create a charge",
+        "description": "Creates a new charge to bill a payment method.",
+        "x-zuplo-route": {
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "${context.custom.backendUrl}/v1/charges"
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-auth", "environment-routing"]
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "currency"],
+                "properties": {
+                  "amount": {
+                    "type": "integer",
+                    "description": "Amount in cents"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "description": "Three-letter ISO currency code"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Description of the charge"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Charge created successfully"
+          }
+        }
+      }
+    },
+    "/v1/charges/{chargeId}": {
+      "get": {
+        "operationId": "get-charge",
+        "summary": "Retrieve a charge",
+        "description": "Retrieves the details of a charge that has previously been created.",
+        "x-zuplo-route": {
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "${context.custom.backendUrl}/v1/charges/${params.chargeId}"
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-auth", "environment-routing"]
+          }
+        },
+        "parameters": [
+          {
+            "name": "chargeId",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the charge to retrieve",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Charge retrieved successfully"
+          }
+        }
+      }
+    }
+  }
+}

@@ -41,6 +41,10 @@
       "title": "Rate Limiting"
     },
     {
+      "slug": "routing",
+      "title": "Routing"
+    },
+    {
       "slug": "testing",
       "title": "Testing"
     },
@@ -51,6 +55,14 @@
 
   ],
   "examples": [
+    {
+      "title": "Environment-Based Routing",
+      "slug": "environment-routing",
+      "description": "Route requests to sandbox or production backends based on API key metadata, like Stripe.",
+      "categories": ["routing", "authentication"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2026-01-30"
+    },
     {
       "title": "Basic API Gateway",
       "slug": "basic-api-gateway",

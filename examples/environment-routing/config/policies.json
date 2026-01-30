@@ -1,0 +1,21 @@
+{
+  "policies": [
+    {
+      "name": "environment-routing",
+      "policyType": "custom-code-inbound",
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/environment-routing)"
+      }
+    },
+    {
+      "name": "api-key-auth",
+      "policyType": "api-key-inbound",
+      "handler": {
+        "export": "ApiKeyInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {}
+      }
+    }
+  ]
+}

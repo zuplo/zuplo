@@ -283,7 +283,7 @@ If requests aren't routing correctly or you're getting errors, work through this
 
 ## Learn More
 
-- [Route to Backends Based on User Identity](https://zuplo.com/docs/articles/route-based-on-user-identity)
+- [Route to Backends Based on User Identity](https://zuplo.com/docs/guides/user-based-backend-routing)
 - [API Key Authentication](https://zuplo.com/docs/policies/api-key-inbound)
 - [Custom Code Inbound Policy](https://zuplo.com/docs/policies/custom-code-inbound)
 - [URL Rewrite Handler](https://zuplo.com/docs/handlers/url-rewrite)

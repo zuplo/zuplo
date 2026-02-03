@@ -4,15 +4,16 @@
   "compilerOptions": {
     "module": "ESNext",
     "target": "ES2022",
-    "moduleResolution": "Bundler",
     "lib": ["ESNext", "WebWorker", "Webworker.Iterable"],
     "preserveConstEnums": true,
+    "moduleResolution": "Bundler",
     "useUnknownInCatchVariables": false,
     "forceConsistentCasingInFileNames": true,
     "importHelpers": true,
     "removeComments": true,
     "esModuleInterop": true,
+    "noEmit": true,
     "strictNullChecks": true,
-    "noEmit": true
+    "experimentalDecorators": true
   }
 }

@@ -1,13 +1,21 @@
 {
-  "name": "dynamic-rate-limitse",
-  "version": "1.0.0",
-  "author": "",
-  "copyright": "",
+  "name": "dynamic-rate-limits",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
   "scripts": {
-    "dev": "zup dev",
-    "test": "zup test"
+    "dev": "zuplo dev",
+    "test": "zuplo test",
+    "docs": "zuplo docs"
   },
   "dependencies": {
-    "zuplo": "latest"
-  }
+    "zuplo": "^6"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5"
+  },
+  "workspaces": [
+    "docs"
+  ]
 }

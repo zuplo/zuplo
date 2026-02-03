@@ -1,31 +1,188 @@
-# Zuplo API Gateway Examples
+# Cursor Rules: Dynamic Rate Limiting Example
 
-You are working in a Zuplo API Gateway examples repository.
+## Project Context
 
-## Project Structure
-- config/routes.oas.json - OpenAPI routes with x-zuplo-route extensions
-- config/policies.json - Policy configurations
-- modules/*.ts - Custom handlers and policies
-- Tests: npm run test
+This is a Zuplo API Gateway example demonstrating tiered rate limiting. Different rate limits are applied to the same endpoints based on API key metadata (`customerType`).
+
+## Key Files
+
+- `modules/dynamic-rate-limiter.ts` - Custom function that reads `request.user.data.customerType` and returns rate limit configuration
+- `config/routes.oas.json` - OpenAPI routes using API key auth and rate limiting policies
+- `config/policies.json` - Defines `api-key-inbound` and `rate-limit-inbound` policies
+
+## Rate Limit Tiers
+
+| Customer Type | Requests | Window |
+|---------------|----------|--------|
+| `premium` | 1000 | 1 minute |
+| `free` | 5 | 1 minute |
+| (default) | 30 | 1 minute |
+
+## Human vs Agent Tasks
+
+### Requires Human (Cannot Automate)
+
+- Creating Zuplo account/project
+- Configuring API Key Service in portal
+- Creating API key consumers with metadata
+- Running `npx zuplo link` (interactive authentication)
+
+### Agent Can Automate
+
+- `npm install` - Install dependencies
+- `npm run dev` - Start development server
+- `zuplo deploy` - Deploy to Zuplo (after setup complete)
+- Editing any code files
+- Testing with curl commands (once user provides API keys)
 
 ## Code Conventions
-- TypeScript with @zuplo/runtime imports
-- Handlers: export default async function(request: ZuploRequest, context: ZuploContext)
-- Policies: export default async function(request, context, options, policyName)
-- Return Response objects from handlers
-- Return request (continue) or Response (short-circuit) from policies
 
-## Common Patterns
-- context.log.info() for logging
-- context.custom for passing data between policies
-- ZoneCache for distributed caching
-- environment.VAR_NAME for env vars
+### Route Definition Pattern
 
-## When Modifying Routes
-- Edit config/routes.oas.json
-- Add handler reference in x-zuplo-route.handler
-- Add policies in x-zuplo-route.policies.inbound/outbound
+```json
+"/endpoint": {
+  "get": {
+    "operationId": "descriptive-operation-name",
+    "x-zuplo-route": {
+      "handler": {
+        "export": "urlForwardHandler",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "baseUrl": "https://backend.example.com"
+        }
+      },
+      "policies": {
+        "inbound": ["api-key-inbound", "rate-limit-inbound"]
+      }
+    }
+  }
+}
+```
 
-## Local Development
-- npm run dev starts server on https://localhost:9000
-- Hot reload is automatic
+### Rate Limit Function Pattern
+
+```typescript
+import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
+
+export function rateLimit(request: ZuploRequest, context: ZuploContext) {
+  const user = request.user;
+
+  if (user.data.customerType === "premium") {
+    return {
+      key: user.sub,
+      requestsAllowed: 1000,
+      timeWindowMinutes: 1,
+    };
+  }
+
+  // Default case
+  return {
+    key: user.sub,
+    requestsAllowed: 30,
+    timeWindowMinutes: 1,
+  };
+}
+```
+
+### Policy Configuration for Dynamic Rate Limiting
+
+```json
+{
+  "handler": {
+    "export": "RateLimitInboundPolicy",
+    "module": "$import(@zuplo/runtime)",
+    "options": {
+      "rateLimitBy": "function",
+      "identifier": {
+        "export": "rateLimit",
+        "module": "$import(./modules/dynamic-rate-limiter)"
+      }
+    }
+  },
+  "name": "rate-limit-inbound",
+  "policyType": "rate-limit-inbound"
+}
+```
+
+## When User Asks to Set Up
+
+1. Run `npm install`
+2. **Inform user** they must complete portal setup:
+   - Configure API Key Service
+   - Create API keys with `{"customerType": "premium"}` and `{"customerType": "free"}` metadata
+   - Run `npx zuplo link` interactively
+3. After user confirms setup, run `npm run dev`
+4. Test with user-provided API keys
+
+## Adding New Functionality
+
+### New Rate Limit Tier
+
+1. Add condition to `modules/dynamic-rate-limiter.ts`:
+   ```typescript
+   if (user.data.customerType === "enterprise") {
+     return {
+       key: user.sub,
+       requestsAllowed: 10000,
+       timeWindowMinutes: 1,
+     };
+   }
+   ```
+2. Inform user to create API key with metadata `{"customerType": "enterprise"}` in portal
+
+### New Route
+
+1. Add path object to `config/routes.oas.json` under `paths`
+2. Include `["api-key-inbound", "rate-limit-inbound"]` in inbound policies
+
+### New Policy
+
+1. Create file in `modules/` directory
+2. Add policy definition to `config/policies.json`
+3. Reference policy name in route's `policies.inbound` array
+
+## Testing
+
+Dev server runs on `http://localhost:9000`. Test commands:
+
+```bash
+# Get todos (check rate limit headers)
+curl -i http://localhost:9000/todos -H "Authorization: Bearer <KEY>"
+
+# Create todo
+curl -i -X POST http://localhost:9000/todos \
+  -H "Authorization: Bearer <KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Test", "userId": 1}'
+
+# Exhaust free tier limit
+for i in {1..6}; do
+  curl -s -o /dev/null -w "%{http_code}\n" http://localhost:9000/todos \
+    -H "Authorization: Bearer <FREE_KEY>"
+done
+```
+
+## Response Headers
+
+Rate limit info is included in response headers:
+
+```
+ratelimit-limit: 1000
+ratelimit-remaining: 999
+ratelimit-reset: 60
+```
+
+## Error Handling
+
+| Error | Meaning |
+|-------|---------|
+| 401 | Invalid or missing API key |
+| 429 | Rate limit exceeded |
+| Wrong limit in headers | API key missing customerType metadata |
+
+## Do Not
+
+- Commit `.env` or `.env.zuplo` files
+- Modify `zuplo.jsonc` without clear reason
+- Skip the `api-key-inbound` policy on routes that need rate limiting (user data is required)
+- Hardcode rate limits in the policy config when dynamic limits are needed

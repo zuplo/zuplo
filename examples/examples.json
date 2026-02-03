@@ -184,7 +184,7 @@
       "description": "Set different rate limits based on user subscription tier or API key metadata.",
       "categories": ["programmability", "rate-limiting"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2022-11-07"
+      "date": "2026-02-03"
     },
     {
       "title": "Log Request & Response",

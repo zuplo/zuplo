@@ -56,6 +56,14 @@
   ],
   "examples": [
     {
+      "title": "Canary Routing",
+      "slug": "canary-routing",
+      "description": "Implement percentage-based canary deployments with user allow-lists and header overrides.",
+      "categories": ["routing", "authentication"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2026-02-04"
+    },
+    {
       "title": "Environment-Based Routing",
       "slug": "environment-routing",
       "description": "Route requests to sandbox or production backends based on API key metadata, like Stripe.",

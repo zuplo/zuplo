@@ -1,0 +1,76 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Payments API with Canary Routing",
+    "description": "A sample payments API demonstrating percentage-based canary routing",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/v1/balance": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "${context.custom.backendUrl}/v1/balance"
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-auth", "canary-routing"]
+          }
+        },
+        "operationId": "get-balance",
+        "summary": "Get account balance"
+      }
+    },
+    "/v1/charges": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "${context.custom.backendUrl}/v1/charges"
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-auth", "canary-routing"]
+          }
+        },
+        "operationId": "create-charge",
+        "summary": "Create a charge"
+      }
+    },
+    "/v1/charges/{chargeId}": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlRewriteHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "rewritePattern": "${context.custom.backendUrl}/v1/charges/${params.chargeId}"
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-auth", "canary-routing"]
+          }
+        },
+        "operationId": "get-charge",
+        "summary": "Retrieve a charge"
+      }
+    }
+  }
+}

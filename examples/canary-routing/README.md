@@ -109,10 +109,10 @@ Create API key consumers for testing. You'll need at least one API key to make a
 
 To always route specific users to the canary backend, add their consumer names to the `CANARY_USERS` environment variable. The canary routing policy checks if `request.user.sub` (which contains the consumer name) matches any entry in this list.
 
-For example, if you create consumers named `beta-tester-alice` and `beta-tester-bob` and want them to always hit canary:
+For example, if you create consumers named `beta-tester-alice@company.xyz` and `beta-tester-bob@company.xyz` and want them to always hit canary:
 
 ```
-CANARY_USERS=beta-tester-alice,beta-tester-bob
+CANARY_USERS=beta-tester-alice@company.xyz,beta-tester-bob@company.xyz
 ```
 
 When these users make requests with their API keys, they will always be routed to the canary backend, regardless of the percentage setting.

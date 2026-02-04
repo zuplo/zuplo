@@ -58,7 +58,7 @@
     {
       "title": "Canary Routing",
       "slug": "canary-routing",
-      "description": "Implement percentage-based canary deployments with user allow-lists and header overrides.",
+      "description": "Gradually roll out new backend versions by routing a percentage of traffic to canary before full deployment.",
       "categories": ["routing", "authentication"],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
       "date": "2026-02-04"

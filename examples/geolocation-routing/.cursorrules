@@ -1,0 +1,205 @@
+# Cursor Rules: Geolocation Routing Example
+
+## Project Context
+
+This is a Zuplo API Gateway example demonstrating geographic-based request routing. Requests are routed to different regional backends based on the user's country, detected from their IP address at the edge. Useful for data residency compliance, latency optimization, and regional feature rollouts.
+
+## Key Files
+
+- `modules/geolocation-routing.ts` - Custom policy that reads `context.incomingRequestProperties.country` and sets `context.custom.backendUrl`
+- `config/routes.oas.json` - Wildcard routes using `${context.custom.backendUrl}` for dynamic backend selection
+- `config/policies.json` - Defines the `geolocation-routing` policy
+
+## Region Configuration
+
+| Region | Countries | Environment Variable |
+|--------|-----------|---------------------|
+| Americas | US, CA, MX | `API_URL_AMERICAS` |
+| Europe | GB, FR, DE, IT, ES, NL, BE, AT, CH, PL, SE, NO, DK, FI, IE, PT, CZ, SK, HU, RO, BG, GR, HR, SI, LT, LV, EE | `API_URL_EUROPE` |
+| APAC | JP, KR, AU, NZ, SG, IN, HK, TW, TH, MY, ID, PH, VN | `API_URL_APAC` |
+| Global | All others (fallback) | `API_URL_DEFAULT` |
+
+All default to `https://echo.zuplo.io` (an echo service returning request details as JSON) if environment variables not set.
+
+## Human vs Agent Tasks
+
+### Requires Human (Cannot Automate)
+
+- Creating Zuplo account/project
+- Running `npx zuplo link` (interactive authentication)
+- Setting environment variables in Zuplo Portal (for deployed projects)
+
+### Agent Can Automate
+
+- `npm install` - Install dependencies
+- `cp env.example .env` - Create environment file
+- `npm run dev` - Start development server
+- `zuplo deploy` - Deploy to Zuplo (after setup complete)
+- Editing any code files
+- Testing with curl using `_testCountry` query parameter
+
+## Code Conventions
+
+### Route Definition Pattern
+
+```json
+"/v1/{path}": {
+  "get": {
+    "operationId": "descriptive-operation-name",
+    "x-zuplo-route": {
+      "handler": {
+        "export": "urlForwardHandler",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "baseUrl": "${context.custom.backendUrl}"
+        }
+      },
+      "policies": {
+        "inbound": ["geolocation-routing"]
+      }
+    }
+  }
+}
+```
+
+### Policy Pattern
+
+```typescript
+import { ZuploContext, ZuploRequest, environment } from "@zuplo/runtime";
+
+export default async function policy(
+  request: ZuploRequest,
+  context: ZuploContext,
+) {
+  // Get country from edge detection or test param
+  const country = context.incomingRequestProperties.country ?? "DEFAULT";
+  
+  // Set custom context for downstream handlers
+  context.custom.backendUrl = getBackendUrl(region);
+  
+  // Add headers and return modified request
+  const newRequest = new ZuploRequest(request);
+  newRequest.headers.set("X-Custom-Header", "value");
+  return newRequest;
+}
+```
+
+### Test Mode Pattern
+
+```typescript
+// Check for test parameter to simulate locations
+const url = new URL(request.url);
+const testCountry = url.searchParams.get("_testCountry");
+
+const country = testCountry 
+  ? testCountry.toUpperCase() 
+  : context.incomingRequestProperties.country ?? "DEFAULT";
+```
+
+## When User Asks to Set Up
+
+1. Run `npm install`
+2. Run `cp env.example .env`
+3. Run `npm run dev`
+4. Test immediately with: `curl -i "http://localhost:9000/v1/anything?_testCountry=DE"`
+5. **If deploying**, inform user to:
+   - Create project in Zuplo Portal
+   - Run `npx zuplo link` interactively
+   - Optionally set backend environment variables
+   - Run `zuplo deploy`
+
+## Adding New Functionality
+
+### New Country
+
+Add to `ROUTING_CONFIG` in `modules/geolocation-routing.ts`:
+
+```typescript
+ZA: "europe",  // South Africa routes to Europe
+```
+
+### New Region
+
+1. Add countries to `ROUTING_CONFIG`:
+   ```typescript
+   BR: "latam",
+   AR: "latam",
+   ```
+
+2. Add case to `getBackendUrl()`:
+   ```typescript
+   case "latam":
+     return environment.API_URL_LATAM ?? "https://echo.zuplo.io";
+   ```
+
+3. Add environment variable to `.env` (local) or Zuplo Portal (deployed)
+
+### New Route
+
+Add to `config/routes.oas.json` under `paths`:
+
+```json
+"/v1/new-endpoint": {
+  "get": {
+    "operationId": "new-endpoint",
+    "x-zuplo-route": {
+      "corsPolicy": "none",
+      "policies": {
+        "inbound": ["geolocation-routing"]
+      },
+      "handler": {
+        "export": "urlForwardHandler",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "baseUrl": "${context.custom.backendUrl}"
+        }
+      }
+    }
+  }
+}
+```
+
+### Add Authentication
+
+1. Add `api-key-auth` policy to `config/policies.json`
+2. Update route policies to `["api-key-auth", "geolocation-routing"]`
+3. Inform user to configure API Key Service in portal
+
+## Testing
+
+Dev server runs on `http://localhost:9000`. Real geolocation only works when deployed; locally use `_testCountry` to simulate.
+
+Use `-i` flag to see headers. The `echo.zuplo.io` backend returns request details as JSON.
+
+```bash
+# Americas
+curl -i "http://localhost:9000/v1/anything?_testCountry=US"
+
+# Europe
+curl -i "http://localhost:9000/v1/anything?_testCountry=DE"
+
+# APAC
+curl -i "http://localhost:9000/v1/anything?_testCountry=JP"
+
+# Global fallback
+curl -i "http://localhost:9000/v1/anything?_testCountry=XX"
+```
+
+Check `X-Routed-Region` and `X-Detected-Country` headers in response.
+
+## Error Handling
+
+| Error | Meaning |
+|-------|---------|
+| Routes to global unexpectedly | Country code not in `ROUTING_CONFIG` |
+| `_testCountry` ignored | Query parameter name is case-sensitive |
+| Headers missing | Policy not in route's inbound array |
+| Connection refused | Dev server not running |
+
+## Do Not
+
+- Commit `.env` or `.env.zuplo` files
+- Modify `zuplo.jsonc` without clear reason
+- Hardcode backend URLs instead of using environment variables
+- Remove the `_testCountry` test mode (needed for local development)
+- Assume real geolocation works locally (only works at edge when deployed)

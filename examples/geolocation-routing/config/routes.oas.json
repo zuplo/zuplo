@@ -1,0 +1,73 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Geolocation Routing Example",
+    "version": "1.0.0",
+    "description": "Demonstrates routing API requests to different backends based on user geographic location"
+  },
+  "paths": {
+    "/v1/{path}": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "operationId": "get-with-geolocation",
+        "summary": "GET request with geolocation routing",
+        "description": "Routes to regional backend based on user location. Use X-Test-Country header to simulate different locations in non-production environments.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "policies": {
+            "inbound": ["geolocation-routing"]
+          },
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "${context.custom.backendUrl}"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Wildcard path forwarded to the backend"
+          }
+        ]
+      },
+      "post": {
+        "operationId": "post-with-geolocation",
+        "summary": "POST request with geolocation routing",
+        "description": "Routes to regional backend based on user location. Use X-Test-Country header to simulate different locations in non-production environments.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "policies": {
+            "inbound": ["geolocation-routing"]
+          },
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "${context.custom.backendUrl}"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Wildcard path forwarded to the backend"
+          }
+        ]
+      }
+    }
+  }
+}

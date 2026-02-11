@@ -80,13 +80,13 @@ All regions default to `https://echo.zuplo.io` — an echo service that returns 
 
 ## Testing
 
-> **Note**: Real geolocation detection only works when deployed to Zuplo's edge. Locally, use the `_testCountry` query parameter to simulate different locations.
+> **Note**: Real geolocation detection only works when deployed to Zuplo's edge. Locally, use the `X-Test-Country` header to simulate different locations.
 
 Use the `-i` flag with curl to see response headers:
 
 ```bash
 # Simulate a request from Germany (routes to Europe)
-curl -i "http://localhost:9000/v1/anything?_testCountry=DE"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: DE"
 ```
 
 You'll see headers showing the routing decision:
@@ -101,13 +101,13 @@ X-Detected-Country: DE
 
 ```bash
 # Route to Americas (United States)
-curl -i "http://localhost:9000/v1/anything?_testCountry=US"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: US"
 
 # Route to APAC (Japan)
-curl -i "http://localhost:9000/v1/anything?_testCountry=JP"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: JP"
 
 # Route to global fallback (unknown country)
-curl -i "http://localhost:9000/v1/anything?_testCountry=XX"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: XX"
 ```
 
 The response body from `echo.zuplo.io` shows your forwarded request details as JSON.
@@ -139,7 +139,7 @@ To route to real regional backends, set these environment variables:
 | Issue | Cause | Solution |
 |-------|-------|----------|
 | Always routes to global | Country not in `ROUTING_CONFIG` | Add country code to the appropriate region |
-| `_testCountry` not working | Query param name typo | Use exactly `_testCountry` (case-sensitive) |
+| `X-Test-Country` header not working | Header not being sent | Verify with `curl -v` that header appears in request |
 | Wrong region in logs | Country mapped incorrectly | Check `ROUTING_CONFIG` in `geolocation-routing.ts` |
 | Backend URL undefined | Environment variable not set | Defaults to echo.zuplo.io; set env var for real backend |
 

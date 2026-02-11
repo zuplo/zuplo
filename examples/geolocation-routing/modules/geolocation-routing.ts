@@ -73,11 +73,9 @@ export default async function policy(
   request: ZuploRequest,
   context: ZuploContext,
 ) {
-  // Check for test parameter to simulate different locations
-  // Use query param since custom headers may be stripped at edge
-  const url = new URL(request.url);
-  const testCountry = url.searchParams.get("_testCountry");
-
+  // Check for test header to simulate different locations
+  // In production, you may want to disable this or use a query parameter
+  const testCountry = request.headers.get("X-Test-Country");
   let country: string;
   let isTestMode = false;
 
@@ -97,8 +95,8 @@ export default async function policy(
 
   // Log the routing decision
   context.log.info("Geolocation routing decision", {
-    country: country,
-    region: region,
+    country,
+    region,
     backend: backendUrl,
     testMode: isTestMode,
   });

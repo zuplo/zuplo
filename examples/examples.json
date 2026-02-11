@@ -72,6 +72,14 @@
       "date": "2026-01-30"
     },
     {
+      "title": "Geolocation Routing",
+      "slug": "geolocation-routing",
+      "description": "Route requests to regional backends based on user location for data residency and latency optimization.",
+      "categories": ["routing"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2026-02-11"
+    },
+    {
       "title": "Basic API Gateway",
       "slug": "basic-api-gateway",
       "description": "Protect your backend API with authentication, rate limiting, and request validation.",

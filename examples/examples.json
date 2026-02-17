@@ -80,6 +80,14 @@
       "date": "2026-02-11"
     },
     {
+      "title": "HTTP Deprecation",
+      "slug": "http-deprecation",
+      "description": "Signal deprecated endpoints and sunset dates to API clients with standards-based Deprecation, Sunset, and Link headers.",
+      "categories": ["governance"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2026-02-17"
+    },
+    {
       "title": "Basic API Gateway",
       "slug": "basic-api-gateway",
       "description": "Protect your backend API with authentication, rate limiting, and request validation.",

@@ -101,7 +101,7 @@ zuplo deploy   # Deploy to Zuplo
 
 ## Testing
 
-Local dev bypasses API key validation:
+Use a real API key from your API Key Service when testing:
 ```bash
-curl http://localhost:9000/todos -H "Authorization: Bearer test-key"
+curl http://localhost:9000/todos -H "Authorization: Bearer YOUR_API_KEY"
 ```

@@ -174,11 +174,11 @@ The server will start on `http://localhost:9000`. You should see output indicati
 
 ## Testing the API
 
-Use curl to test the API. For local testing, you can use any value for the API key. For deployed projects, use a real API key from your API Key Service.
+Use curl to test the API. Both locally and when deployed, you need a real API key from your API Key Service (see [Setting Up API Keys](#setting-up-api-keys) above).
 
 ```bash
 curl http://localhost:9000/todos \
-  -H "Authorization: Bearer test-key"
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 Expected response (200 OK):
@@ -212,11 +212,11 @@ Send more than 2 requests within a minute to see rate limiting in action:
 
 ```bash
 # These should succeed (requests 1 and 2)
-curl http://localhost:9000/todos -H "Authorization: Bearer test-key"
-curl http://localhost:9000/todos -H "Authorization: Bearer test-key"
+curl http://localhost:9000/todos -H "Authorization: Bearer YOUR_API_KEY"
+curl http://localhost:9000/todos -H "Authorization: Bearer YOUR_API_KEY"
 
 # This should return 429 Too Many Requests (request 3)
-curl http://localhost:9000/todos -H "Authorization: Bearer test-key"
+curl http://localhost:9000/todos -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 Expected response on the third request (429 Too Many Requests):
@@ -225,7 +225,7 @@ Expected response on the third request (429 Too Many Requests):
 {"type":"https://httpproblems.com/http-status/429","title":"Too Many Requests","status":429,"detail":"Rate limit exceeded"}
 ```
 
-> **Tip**: Wait 60 seconds for the rate limit to reset, or use a different API key value to test again.
+> **Tip**: Wait 60 seconds for the rate limit to reset, or create a second API key consumer to test again.
 
 ### Request Validation
 
@@ -234,7 +234,7 @@ Send an invalid request body to see validation errors:
 ```bash
 # Missing required field "userId"
 curl -X POST http://localhost:9000/todos \
-  -H "Authorization: Bearer test-key" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"title": "Invalid todo"}'
 ```
@@ -252,7 +252,7 @@ Send a request body larger than 1000 bytes to see the size limit in action:
 ```bash
 # This creates a request body larger than the 1000 byte limit
 curl -X POST http://localhost:9000/todos \
-  -H "Authorization: Bearer test-key" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"title": "This is a very long title that we are using to test the request size limit policy. We need to make this string long enough to exceed 1000 bytes which is the configured limit for this example. Adding more text here to ensure we go over the limit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris. More text to push us over the edge of the limit. This should definitely be enough now to trigger the policy and return an error response to the client.", "userId": 1}'
 ```

@@ -91,9 +91,9 @@ zuplo deploy   # Deploy to Zuplo cloud
 
 ## Testing Locally
 
-When running locally with `npm run dev`, API key validation is bypassed. Use any value:
+When running locally with `npm run dev`, use a real API key from your API Key Service:
 ```bash
-curl http://localhost:9000/todos -H "Authorization: Bearer test-key"
+curl http://localhost:9000/todos -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ## Important Patterns

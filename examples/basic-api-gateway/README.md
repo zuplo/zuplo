@@ -42,11 +42,7 @@ It is also possible to deploy this example directly to your Zuplo account and wo
 
 ### Setting Up API Keys
 
-This example uses API key authentication. When running locally, you can test with any value for the API key (local development doesn't validate keys against a real bucket). However, when testing a deployed project, you'll need a real API key. Follow these steps:
-
-> **Local Testing**: When running locally with `npm run dev`, you can use any string as the API key (e.g., `test-key`). The local environment doesn't connect to the API Key Service.
-
-For deployed projects, create a real API key:
+This example uses API key authentication, for this you'll need to create a real API key:
 
 1. **Create an API Key Bucket** (if you don't have one already)
    - In the Zuplo Portal, navigate to **Services → API Key Service**

@@ -1,0 +1,118 @@
+# Cursor Rules: HTTP Deprecation Example
+
+## Project Context
+
+This is a Zuplo API Gateway example that adds HTTP deprecation and sunset headers to API responses. Requests are forwarded to the Todo API backend; an outbound policy injects `Deprecation`, `Sunset`, and `Link` headers so clients can detect deprecated endpoints and find migration docs. No API keys or environment variables are required for the deprecation feature.
+
+## Key Files
+
+- `config/policies.json` - Defines `http-deprecation-outbound` with options: `deprecation`, `link`, `sunset` (ISO 8601)
+- `config/routes.oas.json` - OpenAPI routes; each `/todos` route uses `urlForwardHandler` and `policies.outbound: ["http-deprecation-outbound"]`
+- `modules/hello-world.ts` - Optional handler; not used by the deprecation demo routes
+
+## Deprecation Policy Options
+
+| Option | Purpose | Example value |
+|--------|---------|----------------|
+| `deprecation` | Add deprecation signal | `true` |
+| `link` | Migration doc URL (used in `Link` header with `rel="deprecation"`) | `"https://example.com/docs/v2-migration"` |
+| `sunset` | Retirement date (ISO 8601); sent as HTTP-date in response | `"2025-06-30T23:59:59Z"` |
+
+## Human vs Agent Tasks
+
+### Requires Human (Cannot Automate)
+
+- Creating Zuplo account/project (only if deploying or using Zuplo services)
+- Running `npx zuplo link` (interactive auth; optional for this example)
+- Setting environment variables in Zuplo Portal (for deployed projects that need them)
+
+### Agent Can Automate
+
+- `npm install` - Install dependencies
+- `npm run dev` - Start development server (no link or .env required for deprecation)
+- `zuplo deploy` - Deploy to Zuplo (after user has project)
+- Editing `config/routes.oas.json` and `config/policies.json`
+- Testing with curl (no API key needed)
+
+## Code Conventions
+
+### Route with deprecation headers
+
+```json
+"x-zuplo-route": {
+  "handler": {
+    "export": "urlForwardHandler",
+    "module": "$import(@zuplo/runtime)",
+    "options": { "baseUrl": "https://todo.zuplo.io" }
+  },
+  "policies": {
+    "outbound": ["http-deprecation-outbound"]
+  }
+}
+```
+
+### Policy definition (config/policies.json)
+
+```json
+{
+  "handler": {
+    "export": "HttpDeprecationOutboundPolicy",
+    "module": "$import(@zuplo/runtime)",
+    "options": {
+      "deprecation": true,
+      "link": "https://example.com/docs/v2-migration",
+      "sunset": "2025-06-30T23:59:59Z"
+    }
+  },
+  "name": "http-deprecation-outbound",
+  "policyType": "http-deprecation-outbound"
+}
+```
+
+Use ISO 8601 for `sunset`; the gateway converts to HTTP-date in the response.
+
+## When User Asks to Set Up
+
+1. Run `npm install`
+2. Run `npm run dev`
+3. Optionally inform user they can run `npx zuplo link` if they want to use Zuplo services or deploy later
+4. Test with `curl -i http://localhost:9000/todos` and confirm deprecation headers are present
+
+## Adding New Functionality
+
+### Add deprecation to another route
+
+Add `"http-deprecation-outbound"` to that route’s `policies.outbound` array in `config/routes.oas.json`. Ensure a policy with that name exists in `config/policies.json`.
+
+### Different deprecation per route
+
+Create additional policies in `config/policies.json` (e.g. different `name`, `link`, or `sunset` in `options`). Reference the appropriate policy name in each route’s `policies.outbound`.
+
+### Change migration link or sunset date
+
+Edit the `options` object of the `http-deprecation-outbound` policy in `config/policies.json`.
+
+## Testing
+
+Dev server: `http://localhost:9000`. No API key required.
+
+```bash
+curl -i http://localhost:9000/todos
+curl -s -D - -o /dev/null http://localhost:9000/todos
+```
+
+Expect headers: `deprecation: true`, `sunset: Mon, 30 Jun 2025 23:59:59 GMT`, `link: <https://example.com/docs/v2-migration>; rel="deprecation"`.
+
+## Error Handling
+
+| Error | Meaning |
+|-------|---------|
+| No deprecation/sunset/link headers | Policy not attached to route or policy name typo in routes vs policies.json |
+| Backend 4xx/5xx | Backend (e.g. todo.zuplo.io) or network issue; deprecation headers still added |
+| Connection refused | Dev server not running; run `npm run dev` |
+
+## Do Not
+
+- Commit `.env` or `.env.zuplo`
+- Use a non-ISO 8601 format for `sunset` in policy options (e.g. use `2025-06-30T23:59:59Z`, not a custom string)
+- Remove the policy name from a route’s `policies.outbound` if the goal is to keep deprecation headers on that route

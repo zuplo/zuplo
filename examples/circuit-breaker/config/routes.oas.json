@@ -1,0 +1,263 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Circuit Breaker Example",
+    "description": "A todo API proxied through Zuplo with a circuit breaker that monitors backend health and stops forwarding traffic when failures exceed a threshold.\n\n## Testing the circuit breaker\n\nSend requests with the `x-simulate-failure: true` header to simulate backend failures. After 5 failures (the default threshold), the circuit opens and all requests return 503 until the 30-second cooldown expires."
+  },
+  "paths": {
+    "/todos": {
+      "get": {
+        "summary": "Get all todos",
+        "description": "Retrieves a complete list of all todo items from the backend. Protected by the circuit breaker.",
+        "responses": {
+          "200": {
+            "description": "A list of todos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Todo"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Circuit breaker is open. The backend is experiencing failures and traffic is being blocked to allow recovery."
+          }
+        },
+        "operationId": "get-all-todos",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/todo-handler)"
+          },
+          "policies": {
+            "inbound": ["circuit-breaker-inbound"],
+            "outbound": ["circuit-breaker-outbound"]
+          }
+        },
+        "tags": ["Todo"]
+      },
+      "post": {
+        "summary": "Create a new todo",
+        "description": "Creates a new todo item. Protected by the circuit breaker.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTodo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Todo created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "503": {
+            "description": "Circuit breaker is open"
+          }
+        },
+        "operationId": "create-todo",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/todo-handler)"
+          },
+          "policies": {
+            "inbound": ["circuit-breaker-inbound"],
+            "outbound": ["circuit-breaker-outbound"]
+          }
+        },
+        "tags": ["Todo"]
+      }
+    },
+    "/todos/{id}": {
+      "put": {
+        "summary": "Update a todo",
+        "description": "Updates an existing todo item by ID. Protected by the circuit breaker.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The todo ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTodo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Todo updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "404": {
+            "description": "Todo not found"
+          },
+          "503": {
+            "description": "Circuit breaker is open"
+          }
+        },
+        "operationId": "update-todo",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/todo-handler)"
+          },
+          "policies": {
+            "inbound": ["circuit-breaker-inbound"],
+            "outbound": ["circuit-breaker-outbound"]
+          }
+        },
+        "tags": ["Todo"]
+      },
+      "delete": {
+        "summary": "Delete a todo",
+        "description": "Permanently removes a todo item by ID. Protected by the circuit breaker.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The todo ID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Todo deleted successfully"
+          },
+          "404": {
+            "description": "Todo not found"
+          },
+          "503": {
+            "description": "Circuit breaker is open"
+          }
+        },
+        "operationId": "delete-todo",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/todo-handler)"
+          },
+          "policies": {
+            "inbound": ["circuit-breaker-inbound"],
+            "outbound": ["circuit-breaker-outbound"]
+          }
+        },
+        "tags": ["Todo"]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Todo",
+      "description": "Endpoints for managing todo items, protected by a circuit breaker that monitors backend health."
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Todo": {
+        "description": "A complete todo item as returned by the API.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The todo ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "The todo title"
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Whether the todo is completed"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "The user ID who owns the todo"
+          }
+        },
+        "required": ["id", "title", "completed", "userId"]
+      },
+      "CreateTodo": {
+        "description": "The request body for creating a new todo.",
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "The todo title"
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Whether the todo is completed",
+            "default": false
+          },
+          "userId": {
+            "type": "integer",
+            "description": "The user ID who owns the todo"
+          }
+        },
+        "required": ["title", "userId"]
+      },
+      "UpdateTodo": {
+        "description": "The request body for updating a todo. All fields are optional.",
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "The todo title"
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Whether the todo is completed"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "The user ID who owns the todo"
+          }
+        }
+      }
+    }
+  }
+}

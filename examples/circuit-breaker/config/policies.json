@@ -1,0 +1,39 @@
+{
+  "policies": [
+    {
+      "handler": {
+        "export": "MockApiInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {}
+      },
+      "name": "mock-api-inbound",
+      "policyType": "mock-api-inbound"
+    },
+    {
+      "name": "circuit-breaker-inbound",
+      "policyType": "custom-code-inbound",
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/circuit-breaker-inbound)",
+        "options": {
+          "failureThreshold": 5,
+          "cooldownSeconds": 30,
+          "backendId": "todo-api"
+        }
+      }
+    },
+    {
+      "name": "circuit-breaker-outbound",
+      "policyType": "custom-code-outbound",
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/circuit-breaker-outbound)",
+        "options": {
+          "failureThreshold": 5,
+          "cooldownSeconds": 30,
+          "backendId": "todo-api"
+        }
+      }
+    }
+  ]
+}

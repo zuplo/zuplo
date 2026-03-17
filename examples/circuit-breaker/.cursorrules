@@ -1,0 +1,137 @@
+# Cursor Rules: Circuit Breaker Example
+
+## Project Context
+
+This Zuplo example implements the circuit breaker pattern using custom inbound and outbound policies. It proxies a real todo API at `https://todo.zuplo.io` and tracks backend failures in ZoneCache. When failures exceed a threshold, the circuit opens and all requests receive a 503 until a cooldown period elapses. No API keys or environment variables are required — just deploy and test.
+
+## Key Files
+
+- `modules/circuit-breaker-inbound.ts` — Reads circuit state from ZoneCache; blocks requests when open; transitions to half-open when cooldown expires
+- `modules/circuit-breaker-outbound.ts` — Inspects responses; increments failure counter; opens circuit at threshold; resets on successful half-open probe
+- `modules/todo-handler.ts` — Proxies to `https://todo.zuplo.io`; returns 500 when `x-simulate-failure: true` header is present
+- `config/policies.json` — Circuit breaker policy options (`failureThreshold`, `cooldownSeconds`, `backendId`)
+- `config/routes.oas.json` — OpenAPI route definitions with circuit breaker policies applied
+
+## Circuit Breaker Configuration
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `failureThreshold` | `5` | Consecutive failures before circuit opens |
+| `cooldownSeconds` | `30` | Wait time before half-open probe |
+| `backendId` | `"todo-api"` | Unique identifier for the protected backend |
+| `stateTtlSeconds` | `300` | ZoneCache TTL for circuit state |
+
+## Circuit States
+
+| State | Behavior |
+|-------|----------|
+| `closed` | Normal operation — all requests pass through |
+| `open` | Circuit tripped — all requests get 503 immediately |
+| `half-open` | Cooldown expired — one probe request allowed through |
+
+## Human vs Agent Tasks
+
+### Human (Portal Access Required)
+
+- Create a Zuplo account at portal.zuplo.com
+- Deploy the example (Deploy to Zuplo button or `zuplo deploy`)
+- Retrieve the gateway URL after deployment
+
+### Agent (Automatable)
+
+- Modify `failureThreshold` and `cooldownSeconds` in `config/policies.json`
+- Add new routes to `config/routes.oas.json` with circuit breaker policies
+- Apply the circuit breaker to additional backends using different `backendId` values
+- Run curl test sequences against the deployed gateway URL
+
+## Code Conventions
+
+### Inbound policy return values
+
+```typescript
+// Block request
+return HttpProblems.serviceUnavailable(request, context, { detail: "..." });
+
+// Allow request through
+return request;
+```
+
+### ZoneCache usage
+
+```typescript
+const cache = new ZoneCache<CircuitState>("circuit-breaker", context);
+const cacheKey = `cb:${options.backendId}`;
+const state = (await cache.get(cacheKey)) ?? { ...DEFAULT_STATE };
+await cache.put(cacheKey, state, options.stateTtlSeconds ?? 300);
+```
+
+### Outbound policy signature
+
+```typescript
+export default async function circuitBreakerOutbound(
+  response: Response,        // Always first parameter for outbound policies
+  request: ZuploRequest,
+  context: ZuploContext,
+  options: CircuitBreakerOptions,
+  policyName: string,
+): Promise<Response> {
+  return response;           // Always return response from outbound policies
+}
+```
+
+## When User Asks to Set Up
+
+1. Confirm they have a Zuplo account (or direct them to sign up)
+2. Deploy the example with `zuplo deploy` or the Deploy to Zuplo button
+3. Get the gateway URL from the Zuplo Portal
+4. Run the test sequence: normal → trip circuit → verify 503 → wait → verify recovery
+
+## Adding New Functionality
+
+### Add circuit breaker to a new backend
+
+1. Add new policy entries in `config/policies.json` with a unique `backendId`
+2. Reference those policies in the route's `x-zuplo-route.policies` in `config/routes.oas.json`
+
+### Change what counts as a failure
+
+In `modules/circuit-breaker-outbound.ts`, modify the failure condition:
+
+```typescript
+// Only count 5xx errors (ignore 4xx client errors)
+if (!response.ok && response.status >= 500) {
+  // increment failure counter
+}
+```
+
+## Testing
+
+```bash
+# Normal flow
+curl -s --http1.1 https://YOUR_GATEWAY_URL/todos
+
+# Simulate failures to trip the circuit
+for i in {1..5}; do
+  curl -s -o /dev/null -w "Request $i: %{http_code}\n" \
+    --http1.1 -H "x-simulate-failure: true" \
+    https://YOUR_GATEWAY_URL/todos
+done
+
+# Verify circuit is open (expect 503)
+curl -s --http1.1 -w "\nHTTP %{http_code}\n" https://YOUR_GATEWAY_URL/todos
+```
+
+## Error Handling
+
+| Error | Meaning |
+|-------|---------|
+| `503 Service Unavailable` | Circuit is open — retry after cooldown |
+| `500 Internal Server Error` | Simulated failure via `x-simulate-failure: true` header |
+| `404 Not Found` | Route not defined or todo ID doesn't exist |
+
+## Do Not
+
+- Add API key authentication — this example intentionally has no auth
+- Reference local development (`npm run dev`) — circuit breaker state requires ZoneCache, which only works when deployed
+- Use different `backendId` values in the inbound and outbound policies for the same route — they must match to share state
+- Commit `zuplo.jsonc` changes unintentionally — this file contains project-specific metadata

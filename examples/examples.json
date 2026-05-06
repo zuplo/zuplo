@@ -56,6 +56,14 @@
   ],
   "examples": [
     {
+      "title": "API Key + JWT Multi-Auth",
+      "slug": "api-key-jwt-multi-auth",
+      "description": "Accept either an API key or a JWT on the same route with a composite inbound policy.",
+      "categories": ["authentication"],
+      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
+      "date": "2026-05-06"
+    },
+    {
       "title": "Circuit Breaker",
       "slug": "circuit-breaker",
       "description": "Protect your backend from cascading failures by automatically blocking traffic when error rates exceed a threshold.",

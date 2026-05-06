@@ -1,0 +1,32 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "My Zuplo API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/me": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Who Am I?",
+        "description": "",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/forward-slash-me)",
+            "options": {}
+          },
+          "policies": {
+            "inbound": [
+              "dual-auth"
+            ]
+          }
+        },
+        "operationId": "who-am-i"
+      }
+    }
+  }
+}

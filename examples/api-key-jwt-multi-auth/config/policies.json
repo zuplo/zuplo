@@ -1,0 +1,53 @@
+{
+  "policies": [
+    {
+      "name": "api-key-auth",
+      "policyType": "api-key-inbound",
+      "handler": {
+        "export": "ApiKeyInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "allowUnauthenticatedRequests": true,
+          "cacheTtlSeconds": 60
+        }
+      }
+    },
+    {
+      "name": "jwt-auth",
+      "policyType": "open-id-jwt-auth-inbound",
+      "handler": {
+        "export": "OpenIdJwtInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "allowUnauthenticatedRequests": true,
+          "issuer": "$env(JWT_ISSUER)",
+          "audience": "$env(JWT_AUDIENCE)",
+          "jwkUrl": "$env(JWT_JWKS_URL)"
+        }
+      }
+    },
+    {
+      "name": "require-auth",
+      "policyType": "custom-code-inbound",
+      "handler": {
+        "export": "default",
+        "module": "$import(./modules/require-auth)"
+      }
+    },
+    {
+      "name": "dual-auth",
+      "policyType": "composite-inbound",
+      "handler": {
+        "export": "CompositeInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "policies": [
+            "api-key-auth",
+            "jwt-auth",
+            "require-auth"
+          ]
+        }
+      }
+    }
+  ]
+}

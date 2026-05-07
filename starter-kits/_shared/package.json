@@ -14,7 +14,9 @@
     "./adapters/upstash-redis": "./adapters/upstash-redis.ts",
     "./adapters/neon": "./adapters/neon.ts",
     "./auth": "./auth/index.ts",
-    "./mcp": "./mcp/helpers.ts"
+    "./mcp": "./mcp/helpers.ts",
+    "./testing": "./testing/index.ts",
+    "./testing/vitest.config": "./testing/vitest.config.ts"
   },
   "scripts": {
     "test": "vitest run",
@@ -25,6 +27,8 @@
   },
   "devDependencies": {
     "@types/node": "^22",
+    "@types/pg": "^8.11.10",
+    "pg": "^8.13.1",
     "typescript": "^5",
     "vitest": "^2"
   }

@@ -12,10 +12,14 @@ const KITS_DIR = path.join(ROOT, "starter-kits");
 
 const SMOKE_TEST = `import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { runKitSmokeSuite } from "@zuplo/starter-kit-shared/testing";
+import {
+  runKitSmokeSuite,
+  runKitFunctionalSuite,
+} from "@zuplo/starter-kit-shared/testing";
 
 const kitDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 runKitSmokeSuite(kitDir);
+runKitFunctionalSuite(kitDir);
 `;
 
 const VITEST_CONFIG = `export { default } from "@zuplo/starter-kit-shared/testing/vitest.config";

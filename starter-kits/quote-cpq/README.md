@@ -85,5 +85,5 @@ The kit's three orchestrators turn natural-language sales asks into headless CPQ
 
 - **New entity:** add fields to the entity interface in `modules/repositories/`, update the OpenAPI schema in `config/routes.oas.json`.
 - **New endpoint:** create a handler in `modules/handlers/`, add the route to `routes.oas.json` with `mcp: { type: "tool" }` if exposed to MCP, and add the `operationId` to the `/mcp` route's `operations: [...]` array.
-- **New orchestrator MCP tool:** create a handler in `modules/mcp-tools/`, follow the pattern in `build-quote-from-requirements.ts` (use `invokeJson` from `@zuplo/starter-kit-shared/mcp`).
+- **New orchestrator MCP tool:** create a handler in `modules/mcp-tools/`, follow the pattern in `build-quote-from-requirements.ts` (use `invokeJson` from `../_shared/mcp/helpers.ts`).
 - **Switch databases:** change `DB_PROVIDER` in `.env`. The handler code never changes.

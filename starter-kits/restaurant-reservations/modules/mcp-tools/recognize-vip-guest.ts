@@ -1,6 +1,6 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
-import { requireTenant } from "@zuplo/starter-kit-shared/auth";
+import { invokeJson } from "../_shared/mcp/helpers.ts";
+import { requireTenant } from "../_shared/auth/index.ts";
 import type { Reservation } from "../repositories/reservations.ts";
 import { guestRepository } from "../repositories/guests.ts";
 import { guestNoteRepository } from "../repositories/guest-notes.ts";

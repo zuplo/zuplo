@@ -1,8 +1,8 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
+import { invokeJson } from "../_shared/mcp/helpers.ts";
 import type { Application } from "../repositories/applications.ts";
 import { scorecardRepository } from "../repositories/scorecards.ts";
-import { requireTenant } from "@zuplo/starter-kit-shared/auth";
+import { requireTenant } from "../_shared/auth/index.ts";
 
 /**
  * Orchestrator MCP tool: compare_candidates.

@@ -1,5 +1,5 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
+import { invokeJson } from "../_shared/mcp/helpers.ts";
 import type { Payout } from "../repositories/payouts.ts";
 import type { CompPlan } from "../repositories/comp-plans.ts";
 import type { Quota } from "../repositories/quotas.ts";

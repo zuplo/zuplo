@@ -11,7 +11,6 @@
     "deploy": "zuplo deploy"
   },
   "dependencies": {
-    "@zuplo/starter-kit-shared": "*",
     "zuplo": "^6"
   },
   "devDependencies": {

@@ -10,6 +10,7 @@ Every kit in this directory conforms to the same shape. This file is the contrac
 │   ├── routes.oas.json     # OpenAPI + x-zuplo-route + MCP annotations
 │   └── policies.json       # api-key-inbound, rate-limit, prompt-injection-outbound, secret-masking-outbound
 ├── modules/
+│   ├── _shared/            # GENERATED — vendored copy of starter-kits/_shared/. Do not hand-edit.
 │   ├── handlers/           # one file per CRUD endpoint
 │   ├── mcp-tools/          # orchestrator tools — use context.invokeRoute() to call sibling routes
 │   ├── domain/             # pure business logic (no I/O)
@@ -83,16 +84,25 @@ Use the `operations: [{ file, id }]` form — not the legacy `openApiFilePaths` 
 
 The two outbound policies are built-in Zuplo defenses for MCP traffic. Leave them on.
 
+## Vendored shared code
+
+Each kit ships self-contained: it does **not** import a workspace package. Common code lives in `starter-kits/_shared/` and is vendored into every kit at `<kit>/modules/_shared/`. Imports inside a kit use relative paths to that vendored copy (e.g. `../_shared/auth/index.ts`).
+
+- `modules/_shared/` is **generated** — never hand-edit it. Edit the canonical files in `starter-kits/_shared/` instead.
+- After editing `_shared/`, run `node starter-kits/_shared/regenerate-shared.mjs` to re-vendor into every kit.
+- The script also drops `@zuplo/starter-kit-shared` from each kit's `package.json` if it sneaks back in, so a kit's deps stay clean.
+- A new kit copied from `_template` already has `modules/_shared/` populated; running the script keeps it in sync.
+
 ## Auth and multi-tenancy
 
 - API key metadata stores `tenantId`
 - `request.user.data.tenantId` is the tenant for the request
-- Helper: `import { requireTenant } from "@zuplo/starter-kit-shared/auth";`
+- Helper: `import { requireTenant } from "../_shared/auth/index.ts";` (vendored — see "Vendored shared code" below)
 - Every repository call requires a `tenantId` argument — the type system enforces this
 
 ## Database adapters
 
-Every kit picks adapters from `@zuplo/starter-kit-shared/adapters`. Available:
+Every kit picks adapters from `../_shared/adapters/index.ts` (vendored). Available:
 
 - `supabaseRepository` — PostgREST HTTP
 - `firestoreRepository` — Firestore REST

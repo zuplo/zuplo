@@ -1,5 +1,5 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
+import { invokeJson } from "../_shared/mcp/helpers.ts";
 import type { Reservation } from "../repositories/reservations.ts";
 import type { Table } from "../repositories/tables.ts";
 import type { Shift } from "../repositories/shifts.ts";

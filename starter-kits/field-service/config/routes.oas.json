@@ -1,0 +1,633 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Field Service / Inspection API",
+    "version": "1.0.0",
+    "description": "Open-source field service + inspection API + MCP server. Replaces ServiceTitan, Jobber, and Housecall Pro. Manages jobs, customers, technicians, inspections, photos, checklists, and invoices, with orchestrator MCP tools for daily route optimization, recurring failure detection, and inspection-driven estimates."
+  },
+  "paths": {
+    "/jobs": {
+      "get": {
+        "operationId": "list_jobs",
+        "summary": "List jobs in the current tenant",
+        "description": "Returns a paginated list of jobs. Supports filtering by status, technician, customer, kind, and a `from`/`to` window over `scheduledFor`.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of jobs to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "description": "Filter by job status.", "schema": { "type": "string", "enum": ["scheduled", "in_progress", "completed", "canceled"] } },
+          { "name": "technicianEmail", "in": "query", "description": "Filter to one technician.", "schema": { "type": "string" } },
+          { "name": "customerId", "in": "query", "description": "Filter to one customer.", "schema": { "type": "string" } },
+          { "name": "kind", "in": "query", "description": "Filter by work kind.", "schema": { "type": "string", "enum": ["install", "repair", "inspection", "maintenance"] } },
+          { "name": "from", "in": "query", "description": "Inclusive lower bound on `scheduledFor` (ISO-8601).", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "to", "in": "query", "description": "Exclusive upper bound on `scheduledFor` (ISO-8601).", "schema": { "type": "string", "format": "date-time" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of jobs.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JobPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-jobs)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_job",
+        "summary": "Create a job",
+        "description": "Create a new field-service job. Defaults `status` to 'scheduled' and zeroes `paidCents`.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JobCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created job.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-job)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/jobs/{id}": {
+      "get": {
+        "operationId": "get_job",
+        "summary": "Get a job by id",
+        "description": "Fetch a single job from the current tenant by id.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "Job id.", "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "The job.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } } },
+          "404": { "description": "Not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-job)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/jobs/{id}/complete": {
+      "post": {
+        "operationId": "complete_job",
+        "summary": "Mark a job complete",
+        "description": "Mark a job 'completed' and stamp the totals on the job record.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "Job id.", "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "totalCents": { "type": "integer", "minimum": 0, "description": "Final total invoice amount in cents." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The completed job.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } } },
+          "404": { "description": "Not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/complete-job)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/customers": {
+      "get": {
+        "operationId": "list_customers",
+        "summary": "List customers",
+        "description": "Returns a paginated list of customers. Supports a free-text `q` substring on name + email.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of customers to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } },
+          { "name": "q", "in": "query", "description": "Case-insensitive substring match on name or email.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of customers.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CustomerPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-customers)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_customer",
+        "summary": "Create a customer",
+        "description": "Create a new customer profile.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CustomerCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created customer.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Customer" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-customer)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/technicians": {
+      "get": {
+        "operationId": "list_technicians",
+        "summary": "List technicians",
+        "description": "Returns the technician roster for the current tenant.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of technicians to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "description": "Filter by employment status.", "schema": { "type": "string", "enum": ["active", "on_leave"] } }
+        ],
+        "responses": {
+          "200": { "description": "Page of technicians.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TechnicianPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-technicians)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/inspections": {
+      "post": {
+        "operationId": "submit_inspection",
+        "summary": "Submit an inspection",
+        "description": "Submit an inspection report against a job. Findings are an array of `{item, status, notes}` rows.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InspectionCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created inspection.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Inspection" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/submit-inspection)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/photos": {
+      "post": {
+        "operationId": "upload_photo",
+        "summary": "Attach a photo to a job",
+        "description": "Record a photo URL against a job (the file itself is uploaded to object storage out-of-band; this endpoint logs the metadata).",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PhotoCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created photo.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Photo" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/upload-photo)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/checklists": {
+      "post": {
+        "operationId": "submit_checklist",
+        "summary": "Submit a checklist",
+        "description": "Record a completed checklist for a job — the array of `{label, completed, completedAt}` items.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChecklistCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created checklist.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Checklist" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/submit-checklist)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/invoices": {
+      "get": {
+        "operationId": "list_invoices",
+        "summary": "List job invoices",
+        "description": "Returns a paginated list of job invoices.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of invoices to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "description": "Filter by invoice status.", "schema": { "type": "string", "enum": ["draft", "sent", "paid", "overdue"] } },
+          { "name": "jobId", "in": "query", "description": "Filter to a single job.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of invoices.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JobInvoicePage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-invoices)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_invoice",
+        "summary": "Create a job invoice",
+        "description": "Issue an invoice for a completed job. Defaults `status` to 'draft'.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JobInvoiceCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created invoice.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JobInvoice" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-invoice)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/optimize-route-for-day": {
+      "post": {
+        "operationId": "optimize_route_for_day",
+        "summary": "Optimize route for a technician's day (orchestrator)",
+        "description": "Greedy nearest-neighbor route optimizer. Given a technician + day, walks scheduled jobs, sorts by `scheduledFor`, and returns the suggested driving order with a flagged 'gap' between any two adjacent stops longer than `maxGapMinutes`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["technicianEmail", "date"],
+                "properties": {
+                  "technicianEmail": { "type": "string", "description": "Technician to plan for." },
+                  "date": { "type": "string", "format": "date", "description": "ISO date (YYYY-MM-DD) of the day to plan." },
+                  "maxGapMinutes": { "type": "integer", "minimum": 5, "maximum": 480, "description": "Surface gaps longer than this. Defaults to 60." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Ordered job list with gaps flagged.", "content": { "application/json": { "schema": { "type": "object" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/optimize-route-for-day)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/flag-recurring-failures-at-site": {
+      "post": {
+        "operationId": "flag_recurring_failures_at_site",
+        "summary": "Flag recurring inspection failures at a site (orchestrator)",
+        "description": "Scans every inspection at a customer's `siteAddress` (or all of a customer's sites) and surfaces items that fail repeatedly — strong signal that a different repair (or replacement) is needed.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customerId"],
+                "properties": {
+                  "customerId": { "type": "string", "description": "Customer id whose sites to scan." },
+                  "siteAddress": { "type": "string", "description": "Optional. Restrict to a single site address." },
+                  "minFailures": { "type": "integer", "minimum": 2, "maximum": 20, "description": "Minimum repeat-failure count to surface. Defaults to 2." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Recurring failures grouped by item.", "content": { "application/json": { "schema": { "type": "object" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/flag-recurring-failures-at-site)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/draft-estimate-from-inspection": {
+      "post": {
+        "operationId": "draft_estimate_from_inspection",
+        "summary": "Draft an estimate from an inspection (orchestrator)",
+        "description": "Given an inspection id, hydrates the inspection + parent job + customer, and produces a draft estimate ready for the LLM to flesh out: per-finding line items (only fail/warning rows), a customer-facing summary, and a suggested total based on the kit's pricing matrix or the job's existing totalCents.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["inspectionId"],
+                "properties": {
+                  "inspectionId": { "type": "string", "description": "Inspection id to draft an estimate from." },
+                  "perFindingCents": { "type": "integer", "minimum": 0, "description": "Optional. Default per-finding price in cents. Defaults to 25000." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Draft estimate.", "content": { "application/json": { "schema": { "type": "object" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/draft-estimate-from-inspection)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "field-service",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_jobs" },
+                { "file": "./config/routes.oas.json", "id": "create_job" },
+                { "file": "./config/routes.oas.json", "id": "get_job" },
+                { "file": "./config/routes.oas.json", "id": "complete_job" },
+                { "file": "./config/routes.oas.json", "id": "list_customers" },
+                { "file": "./config/routes.oas.json", "id": "create_customer" },
+                { "file": "./config/routes.oas.json", "id": "list_technicians" },
+                { "file": "./config/routes.oas.json", "id": "submit_inspection" },
+                { "file": "./config/routes.oas.json", "id": "upload_photo" },
+                { "file": "./config/routes.oas.json", "id": "submit_checklist" },
+                { "file": "./config/routes.oas.json", "id": "list_invoices" },
+                { "file": "./config/routes.oas.json", "id": "create_invoice" },
+                { "file": "./config/routes.oas.json", "id": "optimize_route_for_day" },
+                { "file": "./config/routes.oas.json", "id": "flag_recurring_failures_at_site" },
+                { "file": "./config/routes.oas.json", "id": "draft_estimate_from_inspection" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Job": {
+        "type": "object",
+        "required": ["id", "tenantId", "customerId", "technicianEmail", "kind", "scheduledFor", "durationMinutes", "status", "siteAddress", "totalCents", "paidCents", "createdAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "customerId": { "type": "string", "description": "Customer the job is for." },
+          "technicianEmail": { "type": "string", "description": "Email of the assigned tech." },
+          "kind": { "type": "string", "enum": ["install", "repair", "inspection", "maintenance"] },
+          "scheduledFor": { "type": "string", "format": "date-time" },
+          "durationMinutes": { "type": "integer", "minimum": 15 },
+          "status": { "type": "string", "enum": ["scheduled", "in_progress", "completed", "canceled"] },
+          "siteAddress": { "type": "string", "description": "Where the work is performed." },
+          "description": { "type": "string", "nullable": true },
+          "totalCents": { "type": "integer", "minimum": 0 },
+          "paidCents": { "type": "integer", "minimum": 0 },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "JobCreate": {
+        "type": "object",
+        "required": ["customerId", "technicianEmail", "kind", "scheduledFor", "siteAddress"],
+        "properties": {
+          "customerId": { "type": "string" },
+          "technicianEmail": { "type": "string" },
+          "kind": { "type": "string", "enum": ["install", "repair", "inspection", "maintenance"] },
+          "scheduledFor": { "type": "string", "format": "date-time" },
+          "durationMinutes": { "type": "integer", "minimum": 15, "description": "Defaults to 60." },
+          "siteAddress": { "type": "string" },
+          "description": { "type": "string" },
+          "totalCents": { "type": "integer", "minimum": 0, "description": "Defaults to 0." }
+        }
+      },
+      "JobPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Job" } },
+          "nextCursor": { "type": "string", "nullable": true }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "required": ["id", "tenantId", "name"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "nullable": true },
+          "phone": { "type": "string", "nullable": true },
+          "billingAddress": { "type": "string", "nullable": true },
+          "sites": { "type": "array", "items": { "type": "string" }, "description": "All known service addresses." }
+        }
+      },
+      "CustomerCreate": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "phone": { "type": "string" },
+          "billingAddress": { "type": "string" },
+          "sites": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "CustomerPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Customer" } },
+          "nextCursor": { "type": "string", "nullable": true }
+        }
+      },
+      "Technician": {
+        "type": "object",
+        "required": ["id", "tenantId", "email", "firstName", "lastName", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "email": { "type": "string" },
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "skills": { "type": "array", "items": { "type": "string" } },
+          "territory": { "type": "string", "nullable": true },
+          "status": { "type": "string", "enum": ["active", "on_leave"] }
+        }
+      },
+      "TechnicianPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Technician" } },
+          "nextCursor": { "type": "string", "nullable": true }
+        }
+      },
+      "Inspection": {
+        "type": "object",
+        "required": ["id", "tenantId", "jobId", "kind", "performedAt", "findings"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "jobId": { "type": "string" },
+          "kind": { "type": "string", "description": "Type of inspection (e.g. 'safety', 'compliance')." },
+          "performedAt": { "type": "string", "format": "date-time" },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["item", "status"],
+              "properties": {
+                "item": { "type": "string" },
+                "status": { "type": "string", "enum": ["pass", "fail", "warning"] },
+                "notes": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "InspectionCreate": {
+        "type": "object",
+        "required": ["jobId", "kind", "findings"],
+        "properties": {
+          "jobId": { "type": "string" },
+          "kind": { "type": "string" },
+          "performedAt": { "type": "string", "format": "date-time", "description": "Defaults to now." },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["item", "status"],
+              "properties": {
+                "item": { "type": "string" },
+                "status": { "type": "string", "enum": ["pass", "fail", "warning"] },
+                "notes": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "Photo": {
+        "type": "object",
+        "required": ["id", "tenantId", "jobId", "url", "takenAt", "takenBy"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "jobId": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "caption": { "type": "string", "nullable": true },
+          "takenAt": { "type": "string", "format": "date-time" },
+          "takenBy": { "type": "string", "description": "Technician email." }
+        }
+      },
+      "PhotoCreate": {
+        "type": "object",
+        "required": ["jobId", "url", "takenBy"],
+        "properties": {
+          "jobId": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "caption": { "type": "string" },
+          "takenAt": { "type": "string", "format": "date-time", "description": "Defaults to now." },
+          "takenBy": { "type": "string" }
+        }
+      },
+      "Checklist": {
+        "type": "object",
+        "required": ["id", "tenantId", "jobId", "items"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "jobId": { "type": "string" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["label", "completed"],
+              "properties": {
+                "label": { "type": "string" },
+                "completed": { "type": "boolean" },
+                "completedAt": { "type": "string", "format": "date-time", "nullable": true }
+              }
+            }
+          }
+        }
+      },
+      "ChecklistCreate": {
+        "type": "object",
+        "required": ["jobId", "items"],
+        "properties": {
+          "jobId": { "type": "string" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["label", "completed"],
+              "properties": {
+                "label": { "type": "string" },
+                "completed": { "type": "boolean" },
+                "completedAt": { "type": "string", "format": "date-time" }
+              }
+            }
+          }
+        }
+      },
+      "JobInvoice": {
+        "type": "object",
+        "required": ["id", "tenantId", "jobId", "totalCents", "status", "createdAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "jobId": { "type": "string" },
+          "totalCents": { "type": "integer", "minimum": 0 },
+          "status": { "type": "string", "enum": ["draft", "sent", "paid", "overdue"] },
+          "sentAt": { "type": "string", "format": "date-time", "nullable": true },
+          "paidAt": { "type": "string", "format": "date-time", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "JobInvoiceCreate": {
+        "type": "object",
+        "required": ["jobId", "totalCents"],
+        "properties": {
+          "jobId": { "type": "string" },
+          "totalCents": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "JobInvoicePage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/JobInvoice" } },
+          "nextCursor": { "type": "string", "nullable": true }
+        }
+      }
+    }
+  }
+}

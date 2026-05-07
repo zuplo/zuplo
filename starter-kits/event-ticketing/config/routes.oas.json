@@ -1,0 +1,699 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Event Ticketing API",
+    "version": "1.0.0",
+    "description": "Headless ticketing API. Replaces Eventbrite / Ticket Tailor. Manages events, ticket types, orders, issued tickets, gate check-ins, and discount codes — exposed as both an HTTP API and an MCP server."
+  },
+  "paths": {
+    "/events": {
+      "get": {
+        "operationId": "list_events",
+        "summary": "List events in the current tenant",
+        "description": "Returns events owned by the authenticated API key's tenant, ordered by `startsAt` ascending.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of events to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of events.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EventPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-events)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_event",
+        "summary": "Create an event",
+        "description": "Create a new event in the draft state. Use `publish_event` to put it on sale.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EventCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created event.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Event" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-event)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/events/{id}": {
+      "get": {
+        "operationId": "get_event",
+        "summary": "Get an event by id",
+        "description": "Fetch a single event from the current tenant.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Event id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The event.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Event" } } } },
+          "404": { "description": "Event not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-event)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/events/{id}/publish": {
+      "patch": {
+        "operationId": "publish_event",
+        "summary": "Publish an event (move to on_sale)",
+        "description": "Transitions a draft event to `on_sale` so tickets can be purchased.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Event id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated event.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Event" } } } },
+          "404": { "description": "Event not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/publish-event)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/events/{id}/cancel": {
+      "post": {
+        "operationId": "cancel_event",
+        "summary": "Cancel an event",
+        "description": "Cancels an event. All future ticket sales are blocked. Existing orders are not auto-refunded - use `triage_refund_requests` to plan that.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Event id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated event.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Event" } } } },
+          "404": { "description": "Event not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/cancel-event)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "destructiveHint": true } }
+        }
+      }
+    },
+    "/ticket-types": {
+      "get": {
+        "operationId": "list_ticket_types",
+        "summary": "List ticket types",
+        "description": "Returns ticket types in the current tenant. Pass `eventId` to scope to a single event.",
+        "parameters": [
+          { "name": "eventId", "in": "query", "description": "Filter by event id.", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "description": "Maximum number to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of ticket types.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TicketTypePage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-ticket-types)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_ticket_type",
+        "summary": "Create a ticket type",
+        "description": "Create a new ticket tier (General, VIP, Early Bird, etc.) under an event.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TicketTypeCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created ticket type.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TicketType" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-ticket-type)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/orders": {
+      "get": {
+        "operationId": "list_orders",
+        "summary": "List ticket orders",
+        "description": "Returns ticket orders, newest first. Filter by `eventId` and/or `status`.",
+        "parameters": [
+          { "name": "eventId", "in": "query", "description": "Filter by event.", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "description": "Filter by status.", "schema": { "type": "string", "enum": ["pending", "paid", "refunded", "canceled"] } },
+          { "name": "limit", "in": "query", "description": "Maximum number to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of orders.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OrderPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-orders)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "place_order",
+        "summary": "Place a ticket order",
+        "description": "Create a new pending order. The order moves to `paid` once payment is captured upstream.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OrderCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created order.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/place-order)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/orders/{id}/refund": {
+      "post": {
+        "operationId": "refund_order",
+        "summary": "Refund an order",
+        "description": "Marks the order as `refunded` and stamps `refundedAt`. Issuing the actual money-movement refund is the upstream payment gateway's job.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Order id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated order.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } } },
+          "404": { "description": "Order not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/refund-order)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "destructiveHint": true } }
+        }
+      }
+    },
+    "/tickets": {
+      "get": {
+        "operationId": "list_tickets",
+        "summary": "List issued tickets",
+        "description": "Returns issued tickets. Pass `orderId` to list a single order's tickets.",
+        "parameters": [
+          { "name": "orderId", "in": "query", "description": "Filter by order id.", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "description": "Maximum number to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of tickets.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TicketPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-tickets)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/tickets/{id}/validate": {
+      "post": {
+        "operationId": "validate_ticket",
+        "summary": "Validate a ticket",
+        "description": "Returns whether a ticket is currently valid (not voided, not already checked in). Read-only - does not mutate the ticket. Use `check_in_ticket` to actually admit the attendee.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Ticket id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Validation result.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidateTicketResponse" } } } },
+          "404": { "description": "Ticket not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/validate-ticket)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/tickets/{id}/check-in": {
+      "post": {
+        "operationId": "check_in_ticket",
+        "summary": "Check a ticket in at the gate",
+        "description": "Marks a ticket as `checked_in` and writes a check-in audit record (gate, scanner). Idempotent in spirit - calling twice returns the existing checked_in state.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Ticket id.", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CheckInRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated ticket.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ticket" } } } },
+          "404": { "description": "Ticket not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/check-in-ticket)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/discounts": {
+      "get": {
+        "operationId": "list_discounts",
+        "summary": "List discount codes",
+        "description": "Returns discount codes in the tenant. Pass `eventId` to scope to a single event.",
+        "parameters": [
+          { "name": "eventId", "in": "query", "description": "Filter by event id.", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "description": "Maximum number to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of discounts.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DiscountPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-discounts)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_discount",
+        "summary": "Create a discount code",
+        "description": "Create a percent or flat discount code for an event with a redemption cap and expiration.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DiscountCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created discount.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Discount" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-discount)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/forecast-attendance": {
+      "post": {
+        "operationId": "forecast_attendance",
+        "summary": "Forecast attendance for an event (orchestrator)",
+        "description": "Reads the event and paid orders so far, computes a daily-velocity, and projects expected paid orders by `startsAt`. Used to decide whether to add inventory or extend marketing.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ForecastAttendanceRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Forecast result.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ForecastAttendanceResponse" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/forecast-attendance)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/issue-discount-for-segment": {
+      "post": {
+        "operationId": "issue_discount_for_segment",
+        "summary": "Mint a segment-tagged discount (orchestrator)",
+        "description": "Creates a percent-off discount tagged with a segment name (alumni, students, press, etc.) and returns the shareable code.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/IssueDiscountRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Created discount.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/IssueDiscountResponse" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/issue-discount-for-segment)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/triage-refund-requests": {
+      "post": {
+        "operationId": "triage_refund_requests",
+        "summary": "List refund-pending orders within window (orchestrator)",
+        "description": "Lists canceled orders that haven't been refunded yet for an event when the event is within `daysBeforeEvent` of starting (default 14). Lets an organizer batch-refund before the cutoff.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TriageRefundsRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Triage result.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TriageRefundsResponse" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/triage-refund-requests)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "event-ticketing",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_events" },
+                { "file": "./config/routes.oas.json", "id": "get_event" },
+                { "file": "./config/routes.oas.json", "id": "create_event" },
+                { "file": "./config/routes.oas.json", "id": "publish_event" },
+                { "file": "./config/routes.oas.json", "id": "cancel_event" },
+                { "file": "./config/routes.oas.json", "id": "list_ticket_types" },
+                { "file": "./config/routes.oas.json", "id": "create_ticket_type" },
+                { "file": "./config/routes.oas.json", "id": "list_orders" },
+                { "file": "./config/routes.oas.json", "id": "place_order" },
+                { "file": "./config/routes.oas.json", "id": "refund_order" },
+                { "file": "./config/routes.oas.json", "id": "list_tickets" },
+                { "file": "./config/routes.oas.json", "id": "validate_ticket" },
+                { "file": "./config/routes.oas.json", "id": "check_in_ticket" },
+                { "file": "./config/routes.oas.json", "id": "list_discounts" },
+                { "file": "./config/routes.oas.json", "id": "create_discount" },
+                { "file": "./config/routes.oas.json", "id": "forecast_attendance" },
+                { "file": "./config/routes.oas.json", "id": "issue_discount_for_segment" },
+                { "file": "./config/routes.oas.json", "id": "triage_refund_requests" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Event": {
+        "type": "object",
+        "description": "An event that tickets are sold for.",
+        "required": ["id", "tenantId", "slug", "name", "venue", "startsAt", "endsAt", "capacity", "ticketsSold", "status"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique event id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the event belongs to. Set automatically from the API key." },
+          "slug": { "type": "string", "description": "URL-friendly slug used in shareable links." },
+          "name": { "type": "string", "description": "Public event name." },
+          "description": { "type": "string", "description": "Marketing description." },
+          "venue": { "type": "string", "description": "Venue name and address." },
+          "startsAt": { "type": "string", "format": "date-time", "description": "ISO-8601 start time." },
+          "endsAt": { "type": "string", "format": "date-time", "description": "ISO-8601 end time." },
+          "capacity": { "type": "integer", "description": "Max attendees the venue holds." },
+          "ticketsSold": { "type": "integer", "description": "Tickets sold across all ticket types." },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "on_sale", "sold_out", "completed", "canceled"],
+            "description": "Event lifecycle state."
+          }
+        }
+      },
+      "EventCreate": {
+        "type": "object",
+        "description": "Payload to create a new event in draft.",
+        "required": ["slug", "name", "venue", "startsAt", "endsAt", "capacity"],
+        "properties": {
+          "slug": { "type": "string", "description": "URL-friendly slug." },
+          "name": { "type": "string", "description": "Public event name." },
+          "description": { "type": "string", "description": "Marketing description." },
+          "venue": { "type": "string", "description": "Venue name and address." },
+          "startsAt": { "type": "string", "format": "date-time", "description": "ISO-8601 start time." },
+          "endsAt": { "type": "string", "format": "date-time", "description": "ISO-8601 end time." },
+          "capacity": { "type": "integer", "minimum": 1, "description": "Max attendees." }
+        }
+      },
+      "EventPage": {
+        "type": "object",
+        "description": "A page of events.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Events in this page.", "items": { "$ref": "#/components/schemas/Event" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "TicketType": {
+        "type": "object",
+        "description": "A purchasable ticket tier under an event.",
+        "required": ["id", "tenantId", "eventId", "name", "priceCents", "quantity", "soldQuantity", "salesStart", "salesEnd"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique ticket-type id." },
+          "tenantId": { "type": "string", "description": "Tenant the ticket type belongs to." },
+          "eventId": { "type": "string", "description": "Event this tier belongs to." },
+          "name": { "type": "string", "description": "Tier name (General, VIP, Early Bird, etc.)." },
+          "priceCents": { "type": "integer", "description": "Price per ticket in cents." },
+          "quantity": { "type": "integer", "description": "Total inventory in this tier." },
+          "soldQuantity": { "type": "integer", "description": "Tickets sold in this tier." },
+          "salesStart": { "type": "string", "format": "date-time", "description": "When sales open." },
+          "salesEnd": { "type": "string", "format": "date-time", "description": "When sales close." }
+        }
+      },
+      "TicketTypeCreate": {
+        "type": "object",
+        "description": "Payload to create a ticket tier.",
+        "required": ["eventId", "name", "priceCents", "quantity", "salesStart", "salesEnd"],
+        "properties": {
+          "eventId": { "type": "string", "description": "Event the tier belongs to." },
+          "name": { "type": "string", "description": "Tier name." },
+          "priceCents": { "type": "integer", "minimum": 0, "description": "Price per ticket in cents." },
+          "quantity": { "type": "integer", "minimum": 1, "description": "Inventory in this tier." },
+          "salesStart": { "type": "string", "format": "date-time", "description": "When sales open." },
+          "salesEnd": { "type": "string", "format": "date-time", "description": "When sales close." }
+        }
+      },
+      "TicketTypePage": {
+        "type": "object",
+        "description": "A page of ticket types.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/TicketType" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "description": "A ticket order placed by an attendee.",
+        "required": ["id", "tenantId", "eventId", "attendeeEmail", "attendeeName", "totalCents", "currency", "status", "placedAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique order id." },
+          "tenantId": { "type": "string", "description": "Tenant the order belongs to." },
+          "eventId": { "type": "string", "description": "Event the order is for." },
+          "attendeeEmail": { "type": "string", "format": "email", "description": "Buyer email used for the receipt and ticket delivery." },
+          "attendeeName": { "type": "string", "description": "Buyer name." },
+          "totalCents": { "type": "integer", "description": "Total amount charged in cents." },
+          "currency": { "type": "string", "description": "ISO-4217 currency code." },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "paid", "refunded", "canceled"],
+            "description": "Order lifecycle state."
+          },
+          "placedAt": { "type": "string", "format": "date-time", "description": "When the order was created." },
+          "paidAt": { "type": ["string", "null"], "format": "date-time", "description": "When payment captured. Null until paid." },
+          "refundedAt": { "type": ["string", "null"], "format": "date-time", "description": "When refunded. Null if not refunded." }
+        }
+      },
+      "OrderCreate": {
+        "type": "object",
+        "description": "Payload to place a ticket order.",
+        "required": ["eventId", "attendeeEmail", "attendeeName", "totalCents"],
+        "properties": {
+          "eventId": { "type": "string", "description": "Event the order is for." },
+          "attendeeEmail": { "type": "string", "format": "email", "description": "Buyer email." },
+          "attendeeName": { "type": "string", "description": "Buyer name." },
+          "totalCents": { "type": "integer", "minimum": 0, "description": "Total in cents." },
+          "currency": { "type": "string", "description": "ISO-4217 currency. Defaults to USD." }
+        }
+      },
+      "OrderPage": {
+        "type": "object",
+        "description": "A page of orders.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Order" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Ticket": {
+        "type": "object",
+        "description": "An individual issued ticket with a unique QR code.",
+        "required": ["id", "tenantId", "orderId", "ticketTypeId", "attendeeName", "attendeeEmail", "qrCode", "status"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique ticket id." },
+          "tenantId": { "type": "string", "description": "Tenant the ticket belongs to." },
+          "orderId": { "type": "string", "description": "Order that produced this ticket." },
+          "ticketTypeId": { "type": "string", "description": "Ticket tier id." },
+          "attendeeName": { "type": "string", "description": "Attendee name printed on the ticket." },
+          "attendeeEmail": { "type": "string", "format": "email", "description": "Attendee email." },
+          "qrCode": { "type": "string", "description": "QR-code payload scanned at the gate." },
+          "status": {
+            "type": "string",
+            "enum": ["valid", "checked_in", "voided"],
+            "description": "Ticket lifecycle state."
+          },
+          "checkedInAt": { "type": ["string", "null"], "format": "date-time", "description": "When the ticket was scanned. Null if not yet." }
+        }
+      },
+      "TicketPage": {
+        "type": "object",
+        "description": "A page of tickets.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Ticket" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "ValidateTicketResponse": {
+        "type": "object",
+        "description": "Result of a ticket-validity check.",
+        "required": ["ticketId", "valid", "status"],
+        "properties": {
+          "ticketId": { "type": "string", "description": "Ticket id checked." },
+          "valid": { "type": "boolean", "description": "True if the ticket may be admitted right now." },
+          "status": { "type": "string", "description": "Current ticket status." },
+          "reason": { "type": ["string", "null"], "description": "Human-readable reason when not valid." }
+        }
+      },
+      "CheckInRequest": {
+        "type": "object",
+        "description": "Payload sent when scanning a ticket at the gate.",
+        "properties": {
+          "checkedInBy": { "type": "string", "description": "Email of the staff member operating the scanner." },
+          "gate": { "type": "string", "description": "Gate identifier (e.g. main, vip, north)." }
+        }
+      },
+      "Discount": {
+        "type": "object",
+        "description": "A discount code that can be applied at checkout.",
+        "required": ["id", "tenantId", "code", "eventId", "kind", "value", "maxUses", "usedCount", "expiresAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique discount id." },
+          "tenantId": { "type": "string", "description": "Tenant the discount belongs to." },
+          "code": { "type": "string", "description": "Public discount code." },
+          "eventId": { "type": "string", "description": "Event the discount applies to." },
+          "kind": { "type": "string", "enum": ["percent", "flat"], "description": "Percent (1-100) or flat-cents discount." },
+          "value": { "type": "integer", "description": "Percent (when kind=percent) or cents off (when kind=flat)." },
+          "maxUses": { "type": "integer", "description": "Maximum redemptions." },
+          "usedCount": { "type": "integer", "description": "Times the code has been redeemed." },
+          "expiresAt": { "type": "string", "format": "date-time", "description": "When the code expires." }
+        }
+      },
+      "DiscountCreate": {
+        "type": "object",
+        "description": "Payload to create a discount code.",
+        "required": ["code", "eventId", "kind", "value", "maxUses", "expiresAt"],
+        "properties": {
+          "code": { "type": "string", "description": "Public discount code." },
+          "eventId": { "type": "string", "description": "Event the discount applies to." },
+          "kind": { "type": "string", "enum": ["percent", "flat"], "description": "Percent or flat." },
+          "value": { "type": "integer", "minimum": 1, "description": "Percent or cents-off value." },
+          "maxUses": { "type": "integer", "minimum": 1, "description": "Maximum redemptions." },
+          "expiresAt": { "type": "string", "format": "date-time", "description": "Expiration." }
+        }
+      },
+      "DiscountPage": {
+        "type": "object",
+        "description": "A page of discounts.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Discount" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "ForecastAttendanceRequest": {
+        "type": "object",
+        "description": "Input for forecast_attendance.",
+        "required": ["eventId"],
+        "properties": {
+          "eventId": { "type": "string", "description": "Event to forecast." }
+        }
+      },
+      "ForecastAttendanceResponse": {
+        "type": "object",
+        "description": "Result of forecast_attendance.",
+        "required": ["eventId", "startsAt", "capacity", "ticketsSold", "paidOrdersToDate", "dailyVelocity", "daysToEvent", "projectedAdditional", "projectedTotalPaid", "remainingCapacity", "willSellOut"],
+        "properties": {
+          "eventId": { "type": "string", "description": "Event id." },
+          "startsAt": { "type": "string", "format": "date-time", "description": "Event start." },
+          "capacity": { "type": "integer", "description": "Total capacity." },
+          "ticketsSold": { "type": "integer", "description": "Tickets sold so far." },
+          "paidOrdersToDate": { "type": "integer", "description": "Paid orders observed so far." },
+          "dailyVelocity": { "type": "number", "description": "Avg paid orders per day since first paid order." },
+          "daysToEvent": { "type": "number", "description": "Days remaining until startsAt." },
+          "projectedAdditional": { "type": "integer", "description": "Projected additional paid orders by startsAt." },
+          "projectedTotalPaid": { "type": "integer", "description": "Projected total paid orders by startsAt." },
+          "remainingCapacity": { "type": "integer", "description": "capacity - ticketsSold." },
+          "willSellOut": { "type": "boolean", "description": "True when projectedTotalPaid >= capacity." }
+        }
+      },
+      "IssueDiscountRequest": {
+        "type": "object",
+        "description": "Input for issue_discount_for_segment.",
+        "required": ["eventId", "segmentName", "percent", "max"],
+        "properties": {
+          "eventId": { "type": "string", "description": "Event the discount applies to." },
+          "segmentName": { "type": "string", "description": "Audience segment (e.g. alumni, students, press)." },
+          "percent": { "type": "integer", "minimum": 1, "maximum": 100, "description": "Percent off." },
+          "max": { "type": "integer", "minimum": 1, "description": "Maximum redemptions." },
+          "expiresAt": { "type": "string", "format": "date-time", "description": "Optional expiration. Defaults to 30 days from now." }
+        }
+      },
+      "IssueDiscountResponse": {
+        "type": "object",
+        "description": "Result of issue_discount_for_segment.",
+        "required": ["discount", "segment", "shareableCode"],
+        "properties": {
+          "discount": { "$ref": "#/components/schemas/Discount" },
+          "segment": { "type": "string", "description": "Segment tag." },
+          "shareableCode": { "type": "string", "description": "The generated discount code, ready to share." }
+        }
+      },
+      "TriageRefundsRequest": {
+        "type": "object",
+        "description": "Input for triage_refund_requests.",
+        "required": ["eventId"],
+        "properties": {
+          "eventId": { "type": "string", "description": "Event id to triage." },
+          "daysBeforeEvent": { "type": "integer", "minimum": 1, "maximum": 180, "description": "Window in days before the event start. Defaults to 14." }
+        }
+      },
+      "TriageRefundsResponse": {
+        "type": "object",
+        "description": "Result of triage_refund_requests.",
+        "required": ["eventId", "startsAt", "daysToEvent", "windowDays", "inWindow", "count", "orders"],
+        "properties": {
+          "eventId": { "type": "string", "description": "Event id." },
+          "startsAt": { "type": "string", "format": "date-time", "description": "Event start." },
+          "daysToEvent": { "type": "number", "description": "Days remaining until startsAt." },
+          "windowDays": { "type": "integer", "description": "Window in days used for the query." },
+          "inWindow": { "type": "boolean", "description": "True when the event falls within the window." },
+          "count": { "type": "integer", "description": "Number of refund-pending orders returned." },
+          "orders": { "type": "array", "description": "Canceled orders with refundedAt = null.", "items": { "$ref": "#/components/schemas/Order" } }
+        }
+      }
+    }
+  }
+}

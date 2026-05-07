@@ -1,0 +1,644 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Org Chart & People Directory API",
+    "version": "1.0.0",
+    "description": "Headless org chart and people directory. Replaces ChartHop, Pingboard, and BambooHR's directory module. Manages people, teams, and skills, with orchestrator MCP tools that walk the reporting graph for an LLM."
+  },
+  "paths": {
+    "/people": {
+      "get": {
+        "operationId": "list_people",
+        "summary": "List people in the current tenant",
+        "description": "Returns a paginated list of people belonging to the authenticated API key's tenant. Use `cursor` to fetch subsequent pages.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of people to return. Defaults to 50.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque pagination cursor from a previous response.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of people.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PersonPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-people)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_person",
+        "summary": "Create a person",
+        "description": "Add a new employee to the directory. The `tenantId` is set from the authenticated API key.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PersonCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created person.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Person" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-person)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/people/{id}": {
+      "get": {
+        "operationId": "get_person",
+        "summary": "Get a person by id",
+        "description": "Fetch a single person from the current tenant by id.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Person id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The person.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Person" }
+              }
+            }
+          },
+          "404": { "description": "Person not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-person)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "patch": {
+        "operationId": "update_person",
+        "summary": "Update a person",
+        "description": "Patch fields on an existing person — title change, transfer to a new manager, mark as on_leave, etc.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Person id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PersonUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated person.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Person" }
+              }
+            }
+          },
+          "404": { "description": "Person not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/update-person)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/teams": {
+      "get": {
+        "operationId": "list_teams",
+        "summary": "List teams in the current tenant",
+        "description": "Returns a paginated list of teams.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of teams to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Pagination cursor.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of teams.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TeamPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-teams)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_team",
+        "summary": "Create a team",
+        "description": "Create a new team with a lead and an optional parent team.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TeamCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created team.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Team" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-team)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/skills": {
+      "get": {
+        "operationId": "list_skills",
+        "summary": "List skills in the current tenant",
+        "description": "Returns the skills catalog — categories like 'engineering', 'design', 'sales'.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max skills to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Pagination cursor.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of skills.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SkillPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-skills)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/person-skills": {
+      "post": {
+        "operationId": "add_person_skill",
+        "summary": "Attach a skill to a person",
+        "description": "Records that a person has a skill at a given proficiency level (1-5).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PersonSkillCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created person-skill record.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PersonSkill" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/add-person-skill)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/who-reports-to": {
+      "post": {
+        "operationId": "who_reports_to",
+        "summary": "Build a reporting tree under a manager (orchestrator)",
+        "description": "Orchestrator MCP tool. Given a manager email and an optional depth, walks the reporting graph and returns a nested tree of direct and indirect reports. Use this instead of paginating /people manually.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["managerEmail"],
+                "properties": {
+                  "managerEmail": { "type": "string", "description": "Email of the manager at the root of the tree." },
+                  "depth": { "type": "integer", "description": "How many levels of reports to include. Defaults to 3.", "minimum": 1, "maximum": 10 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The reporting tree.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ReportingNode" }
+              }
+            }
+          },
+          "404": { "description": "Manager not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/who-reports-to)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/find-skip-level-reports": {
+      "post": {
+        "operationId": "find_skip_level_reports",
+        "summary": "List skip-level reports for a manager (orchestrator)",
+        "description": "Orchestrator MCP tool. Returns every person two levels deep under the given manager (people whose manager's manager is the input). Useful for skip-level 1:1 planning.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["managerEmail"],
+                "properties": {
+                  "managerEmail": { "type": "string", "description": "Email of the manager whose skip-level reports to find." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Skip-level report summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "managerEmail": { "type": "string", "description": "The manager that was queried." },
+                    "directReportCount": { "type": "integer", "description": "Number of direct reports the manager has." },
+                    "skipLevelReportCount": { "type": "integer", "description": "Number of people two levels deep." },
+                    "skipLevelReports": {
+                      "type": "array",
+                      "description": "The flat list of skip-level reports.",
+                      "items": { "$ref": "#/components/schemas/Person" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/find-skip-level-reports)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/find-owner-of-team": {
+      "post": {
+        "operationId": "find_owner_of_team",
+        "summary": "Find a team's lead and members (orchestrator)",
+        "description": "Orchestrator MCP tool. Given a team name, returns the team's lead plus everyone whose manager is that lead — effectively the team roster.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["teamName"],
+                "properties": {
+                  "teamName": { "type": "string", "description": "Name of the team. Matched case-insensitively." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Team lead and members.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "team": { "$ref": "#/components/schemas/Team" },
+                    "lead": { "$ref": "#/components/schemas/Person" },
+                    "members": {
+                      "type": "array",
+                      "description": "People whose manager is the team's lead.",
+                      "items": { "$ref": "#/components/schemas/Person" }
+                    },
+                    "memberCount": { "type": "integer", "description": "Number of members in the team." }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Team not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/find-owner-of-team)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "org-chart-directory-server",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_people" },
+                { "file": "./config/routes.oas.json", "id": "get_person" },
+                { "file": "./config/routes.oas.json", "id": "create_person" },
+                { "file": "./config/routes.oas.json", "id": "update_person" },
+                { "file": "./config/routes.oas.json", "id": "list_teams" },
+                { "file": "./config/routes.oas.json", "id": "create_team" },
+                { "file": "./config/routes.oas.json", "id": "list_skills" },
+                { "file": "./config/routes.oas.json", "id": "add_person_skill" },
+                { "file": "./config/routes.oas.json", "id": "who_reports_to" },
+                { "file": "./config/routes.oas.json", "id": "find_skip_level_reports" },
+                { "file": "./config/routes.oas.json", "id": "find_owner_of_team" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Person": {
+        "type": "object",
+        "description": "An employee in the org.",
+        "required": ["id", "tenantId", "firstName", "lastName", "email", "title", "department", "managerEmail", "location", "startDate", "status", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique person id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the person belongs to. Set automatically from the API key — never accepted from clients." },
+          "firstName": { "type": "string", "description": "Given name." },
+          "lastName": { "type": "string", "description": "Family name." },
+          "email": { "type": "string", "format": "email", "description": "Work email. Used to link a person to their manager and to skills." },
+          "title": { "type": "string", "description": "Job title." },
+          "department": { "type": "string", "description": "Department name." },
+          "managerEmail": { "type": ["string", "null"], "description": "Email of this person's manager. Null for the top of the org." },
+          "location": { "type": "string", "description": "Office or remote location." },
+          "startDate": { "type": "string", "format": "date", "description": "Hire date." },
+          "status": { "type": "string", "enum": ["active", "on_leave", "departed"], "description": "Employment status." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "ISO-8601 record creation time." }
+        }
+      },
+      "PersonCreate": {
+        "type": "object",
+        "description": "Payload to create a person.",
+        "required": ["firstName", "lastName", "email", "title", "department", "location", "startDate"],
+        "properties": {
+          "firstName": { "type": "string", "description": "Given name." },
+          "lastName": { "type": "string", "description": "Family name." },
+          "email": { "type": "string", "format": "email", "description": "Work email." },
+          "title": { "type": "string", "description": "Job title." },
+          "department": { "type": "string", "description": "Department name." },
+          "managerEmail": { "type": ["string", "null"], "description": "Email of the person's manager. Null for the top of the org." },
+          "location": { "type": "string", "description": "Office or remote location." },
+          "startDate": { "type": "string", "format": "date", "description": "Hire date." },
+          "status": { "type": "string", "enum": ["active", "on_leave", "departed"], "description": "Employment status. Defaults to 'active'." }
+        }
+      },
+      "PersonUpdate": {
+        "type": "object",
+        "description": "Patch payload for an existing person.",
+        "properties": {
+          "firstName": { "type": "string", "description": "New given name." },
+          "lastName": { "type": "string", "description": "New family name." },
+          "title": { "type": "string", "description": "New job title." },
+          "department": { "type": "string", "description": "New department." },
+          "managerEmail": { "type": ["string", "null"], "description": "New manager's email. Null if reporting to the top of the org." },
+          "location": { "type": "string", "description": "New location." },
+          "status": { "type": "string", "enum": ["active", "on_leave", "departed"], "description": "New employment status." }
+        }
+      },
+      "PersonPage": {
+        "type": "object",
+        "description": "A page of people.",
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "The people on this page.",
+            "items": { "$ref": "#/components/schemas/Person" }
+          },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor. Null when no more results." }
+        }
+      },
+      "Team": {
+        "type": "object",
+        "description": "A team in the org.",
+        "required": ["id", "tenantId", "name", "leadEmail", "parentTeamId", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique team id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the team belongs to." },
+          "name": { "type": "string", "description": "Team display name." },
+          "leadEmail": { "type": "string", "format": "email", "description": "Email of the team's lead." },
+          "parentTeamId": { "type": ["string", "null"], "description": "Parent team's id, or null for top-level teams." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "TeamCreate": {
+        "type": "object",
+        "description": "Payload to create a team.",
+        "required": ["name", "leadEmail"],
+        "properties": {
+          "name": { "type": "string", "description": "Team display name." },
+          "leadEmail": { "type": "string", "format": "email", "description": "Email of the team's lead." },
+          "parentTeamId": { "type": ["string", "null"], "description": "Parent team's id, or null for a top-level team." }
+        }
+      },
+      "TeamPage": {
+        "type": "object",
+        "description": "A page of teams.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "The teams on this page.", "items": { "$ref": "#/components/schemas/Team" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor. Null when no more results." }
+        }
+      },
+      "Skill": {
+        "type": "object",
+        "description": "A skill in the catalog.",
+        "required": ["id", "tenantId", "name", "category", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique skill id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the skill belongs to." },
+          "name": { "type": "string", "description": "Skill name (e.g. 'TypeScript', 'Salesforce admin')." },
+          "category": { "type": "string", "description": "Category (e.g. 'engineering', 'sales')." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "SkillPage": {
+        "type": "object",
+        "description": "A page of skills.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "The skills on this page.", "items": { "$ref": "#/components/schemas/Skill" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor. Null when no more results." }
+        }
+      },
+      "PersonSkill": {
+        "type": "object",
+        "description": "A skill attached to a person at a given proficiency level.",
+        "required": ["id", "tenantId", "personEmail", "skillName", "level", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique person-skill id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant scope." },
+          "personEmail": { "type": "string", "format": "email", "description": "Email of the person." },
+          "skillName": { "type": "string", "description": "Name of the skill." },
+          "level": { "type": "integer", "minimum": 1, "maximum": 5, "description": "Proficiency level, 1 (novice) to 5 (expert)." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "PersonSkillCreate": {
+        "type": "object",
+        "description": "Payload to attach a skill to a person.",
+        "required": ["personEmail", "skillName", "level"],
+        "properties": {
+          "personEmail": { "type": "string", "format": "email", "description": "Email of the person." },
+          "skillName": { "type": "string", "description": "Name of the skill." },
+          "level": { "type": "integer", "minimum": 1, "maximum": 5, "description": "Proficiency level, 1 (novice) to 5 (expert)." }
+        }
+      },
+      "ReportingNode": {
+        "type": "object",
+        "description": "A node in the reporting tree.",
+        "required": ["email", "firstName", "lastName", "title", "reports"],
+        "properties": {
+          "email": { "type": "string", "description": "Person's email." },
+          "firstName": { "type": "string", "description": "Person's given name." },
+          "lastName": { "type": "string", "description": "Person's family name." },
+          "title": { "type": "string", "description": "Person's job title." },
+          "reports": {
+            "type": "array",
+            "description": "Direct reports of this person, recursively.",
+            "items": { "$ref": "#/components/schemas/ReportingNode" }
+          }
+        }
+      }
+    }
+  }
+}

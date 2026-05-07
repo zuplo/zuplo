@@ -1,0 +1,649 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Quote / CPQ API",
+    "version": "1.0.0",
+    "description": "Headless CPQ (configure-price-quote) API for B2B sales. Replaces Salesforce CPQ, DealHub, and PandaDoc CPQ. Quotes roll up line items, pricing rules generate margin-safe discounts, and orchestrator MCP tools build priced quotes from natural-language requirements."
+  },
+  "paths": {
+    "/quotes": {
+      "get": {
+        "operationId": "list_quotes",
+        "summary": "List quotes in the current tenant",
+        "description": "Returns a paginated list of quotes belonging to the authenticated API key's tenant, newest first. Use `cursor` to fetch subsequent pages.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of quotes to return. Defaults to 50.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque pagination cursor from a previous response.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of quotes.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/QuotePage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-quotes)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_quote",
+        "summary": "Create a quote",
+        "description": "Create a new draft quote for a deal/customer. Quotes start with zero line items and zero totals — add lines via add_line_item, then send_quote when ready.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/QuoteCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created quote.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Quote" } }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-quote)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/quotes/{id}": {
+      "get": {
+        "operationId": "get_quote",
+        "summary": "Get a quote by id",
+        "description": "Fetch a single quote and its rolled-up totals from the current tenant.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Quote id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The quote.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Quote" } }
+            }
+          },
+          "404": { "description": "Quote not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-quote)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/quotes/{id}/line-items": {
+      "post": {
+        "operationId": "add_line_item",
+        "summary": "Add a line item to a quote",
+        "description": "Append a product to a quote with a quantity, unit price, and optional line-level discount percent. Re-rolls the quote's subtotal and total.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Quote id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LineItemCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created line item.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/LineItem" } }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/add-line-item)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/quotes/{id}/line-items/{lineId}": {
+      "delete": {
+        "operationId": "remove_line_item",
+        "summary": "Remove a line item from a quote",
+        "description": "Permanently remove a line item and roll back its contribution to the parent quote's totals.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Quote id.", "schema": { "type": "string" } },
+          { "name": "lineId", "in": "path", "required": true, "description": "Line item id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "204": { "description": "Line item removed." },
+          "404": { "description": "Line item not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/remove-line-item)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "destructiveHint": true } }
+        }
+      }
+    },
+    "/quotes/{id}/discounts": {
+      "post": {
+        "operationId": "apply_discount",
+        "summary": "Apply a manual discount to a quote",
+        "description": "Apply a percent or flat-amount discount with a reason and approver. The discount adjusts the quote total; an audit record is created.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Quote id.", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DiscountCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created discount record.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Discount" } }
+            }
+          },
+          "404": { "description": "Quote not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/apply-discount)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/quotes/{id}/send": {
+      "post": {
+        "operationId": "send_quote",
+        "summary": "Mark a quote as sent",
+        "description": "Transition a draft quote to status=sent and set sentAt. A real implementation would also email the PDF to the customer.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Quote id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "The updated quote.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Quote" } }
+            }
+          },
+          "404": { "description": "Quote not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/send-quote)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/quotes/{id}/accept": {
+      "post": {
+        "operationId": "accept_quote",
+        "summary": "Mark a quote as accepted",
+        "description": "Transition a sent quote to status=accepted and set acceptedAt. Typically called by an e-sign webhook in production.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Quote id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "The updated quote.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Quote" } }
+            }
+          },
+          "404": { "description": "Quote not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/accept-quote)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/products": {
+      "get": {
+        "operationId": "list_products",
+        "summary": "List the product catalog",
+        "description": "Returns a paginated list of products in this tenant's catalog. Used by orchestrators to look up SKU → list price.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of products to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of products.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ProductPage" } }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-products)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/pricing-rules": {
+      "get": {
+        "operationId": "list_pricing_rules",
+        "summary": "List pricing rules",
+        "description": "Returns the tenant's pricing rules — used by build_quote_from_requirements to compute margin-safe discounts.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of rules to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of pricing rules.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/PricingRulePage" } }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-pricing-rules)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/build-quote-from-requirements": {
+      "post": {
+        "operationId": "build_quote_from_requirements",
+        "summary": "Build a priced quote from a list of products (orchestrator)",
+        "description": "Orchestrator MCP tool. Creates a draft quote, adds a line for each product, applies any matching pricing rules, and returns the priced quote with the rules-applied trace. The 'AI angle' for CPQ — turns a list of requirements into a margin-safe quote in a single call.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["dealId", "customerId", "ownerEmail", "productIds", "quantities"],
+                "properties": {
+                  "dealId": { "type": "string", "description": "External CRM deal id." },
+                  "customerId": { "type": "string", "description": "Customer/account id." },
+                  "ownerEmail": { "type": "string", "description": "Email of the owning sales rep." },
+                  "productIds": { "type": "array", "items": { "type": "string" }, "description": "Product ids in order." },
+                  "quantities": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "description": "Quantity per product, same order as productIds." },
+                  "customerSegment": { "type": "string", "description": "Optional segment used for pricing rule matching, e.g. 'enterprise', 'smb'." },
+                  "validUntil": { "type": "string", "format": "date-time", "description": "Quote expiry. Defaults to 30 days from now." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The priced quote with line items and the rules-applied trace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "quote": { "$ref": "#/components/schemas/Quote" },
+                    "lineItems": { "type": "array", "items": { "$ref": "#/components/schemas/LineItem" } },
+                    "rulesApplied": {
+                      "type": "array",
+                      "description": "Trace of which pricing rules matched and applied to each product.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "productId": { "type": "string", "description": "Product id." },
+                          "ruleId": { "type": "string", "description": "Pricing rule id that matched." },
+                          "ruleName": { "type": "string", "description": "Human-readable rule name." },
+                          "discountPercent": { "type": "number", "description": "Discount percent applied to that line." }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/build-quote-from-requirements)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/route-for-discount-approval": {
+      "post": {
+        "operationId": "route_for_discount_approval",
+        "summary": "Decide if a quote needs deal-desk approval (orchestrator)",
+        "description": "Inspects a quote's effective discount percentage and flags whether it requires approval, returning the threshold reasoning.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["quoteId"],
+                "properties": {
+                  "quoteId": { "type": "string", "description": "Quote id to check." },
+                  "thresholdPercent": { "type": "number", "description": "Approval threshold in percent. Defaults to 20." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Approval decision.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "quoteId": { "type": "string", "description": "Quote id." },
+                    "effectiveDiscountPercent": { "type": "number", "description": "Discount as a percent of subtotal." },
+                    "thresholdPercent": { "type": "number", "description": "Threshold used for the decision." },
+                    "requiresApproval": { "type": "boolean", "description": "True if approval is required." },
+                    "reason": { "type": "string", "description": "Human-readable reason for the decision." },
+                    "subtotalCents": { "type": "integer", "description": "Quote subtotal in cents." },
+                    "discountCents": { "type": "integer", "description": "Total discount in cents." },
+                    "totalCents": { "type": "integer", "description": "Final quote total in cents." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/route-for-discount-approval)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/explain-pricing": {
+      "post": {
+        "operationId": "explain_pricing",
+        "summary": "Return a price breakdown for a quote (orchestrator)",
+        "description": "Returns a list-price → rules-applied → discounts → final breakdown for a quote. The LLM uses this to explain the price to a customer or rep.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["quoteId"],
+                "properties": {
+                  "quoteId": { "type": "string", "description": "Quote id." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Price breakdown.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "quoteId": { "type": "string", "description": "Quote id." },
+                    "customerId": { "type": "string", "description": "Customer id." },
+                    "currency": { "type": "string", "description": "ISO currency." },
+                    "listPriceCents": { "type": "integer", "description": "Sum of list prices, in cents." },
+                    "lineItemDiscountCents": { "type": "integer", "description": "Sum of line-level discounts." },
+                    "quoteDiscountCents": { "type": "integer", "description": "Quote-level discount." },
+                    "totalCents": { "type": "integer", "description": "Final total in cents." },
+                    "summary": { "type": "string", "description": "One-line summary." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/explain-pricing)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "quote-cpq-server",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_quotes" },
+                { "file": "./config/routes.oas.json", "id": "get_quote" },
+                { "file": "./config/routes.oas.json", "id": "create_quote" },
+                { "file": "./config/routes.oas.json", "id": "add_line_item" },
+                { "file": "./config/routes.oas.json", "id": "remove_line_item" },
+                { "file": "./config/routes.oas.json", "id": "apply_discount" },
+                { "file": "./config/routes.oas.json", "id": "send_quote" },
+                { "file": "./config/routes.oas.json", "id": "accept_quote" },
+                { "file": "./config/routes.oas.json", "id": "list_products" },
+                { "file": "./config/routes.oas.json", "id": "list_pricing_rules" },
+                { "file": "./config/routes.oas.json", "id": "build_quote_from_requirements" },
+                { "file": "./config/routes.oas.json", "id": "route_for_discount_approval" },
+                { "file": "./config/routes.oas.json", "id": "explain_pricing" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Quote": {
+        "type": "object",
+        "description": "A sales quote — the parent CPQ document tracking deal lifecycle and roll-up totals.",
+        "required": ["id", "tenantId", "dealId", "customerId", "ownerEmail", "status", "currency", "totalCents", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the quote belongs to. Set automatically from the API key — never accepted from clients." },
+          "dealId": { "type": "string", "description": "External CRM deal id." },
+          "customerId": { "type": "string", "description": "Customer/account id." },
+          "ownerEmail": { "type": "string", "description": "Sales rep email." },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "sent", "accepted", "rejected", "expired"],
+            "description": "Lifecycle state of the quote."
+          },
+          "subtotalCents": { "type": "integer", "description": "Sum of line totals before quote-level discounts, in cents." },
+          "discountCents": { "type": "integer", "description": "Total discount applied (line + quote level), in cents." },
+          "totalCents": { "type": "integer", "description": "Final amount the customer pays, in cents." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code." },
+          "validUntil": { "type": "string", "format": "date-time", "description": "When the quote expires." },
+          "sentAt": { "type": "string", "format": "date-time", "nullable": true, "description": "When the quote was sent to the customer." },
+          "acceptedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "When the quote was accepted." },
+          "terms": { "type": "string", "description": "Free-form payment / contract terms." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "ISO-8601 creation timestamp." }
+        }
+      },
+      "QuoteCreate": {
+        "type": "object",
+        "description": "Payload to create a new draft quote.",
+        "required": ["dealId", "customerId", "ownerEmail", "validUntil"],
+        "properties": {
+          "dealId": { "type": "string", "description": "External CRM deal id." },
+          "customerId": { "type": "string", "description": "Customer/account id." },
+          "ownerEmail": { "type": "string", "description": "Sales rep email." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code. Defaults to USD." },
+          "validUntil": { "type": "string", "format": "date-time", "description": "Quote expiry timestamp." },
+          "terms": { "type": "string", "description": "Free-form payment / contract terms." }
+        }
+      },
+      "QuotePage": {
+        "type": "object",
+        "description": "A page of quotes plus a pagination cursor.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Quote" }, "description": "Quotes on this page." },
+          "nextCursor": { "type": "string", "nullable": true, "description": "Pagination cursor, or null if this is the last page." }
+        }
+      },
+      "LineItem": {
+        "type": "object",
+        "description": "A single line on a quote — one product, a quantity, and a calculated total.",
+        "required": ["id", "tenantId", "quoteId", "productId", "quantity", "unitPriceCents", "totalCents"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique line id." },
+          "tenantId": { "type": "string", "description": "Tenant id; set from the API key." },
+          "quoteId": { "type": "string", "description": "Parent quote id." },
+          "productId": { "type": "string", "description": "Product id from the catalog." },
+          "quantity": { "type": "integer", "description": "Number of units sold on this line." },
+          "unitPriceCents": { "type": "integer", "description": "Per-unit price at time of quoting, in cents." },
+          "discountPercent": { "type": "number", "description": "Line-level discount in percent." },
+          "totalCents": { "type": "integer", "description": "Line total after discount, in cents." }
+        }
+      },
+      "LineItemCreate": {
+        "type": "object",
+        "description": "Payload to add a line item.",
+        "required": ["productId", "quantity", "unitPriceCents"],
+        "properties": {
+          "productId": { "type": "string", "description": "Product id from the catalog." },
+          "quantity": { "type": "integer", "minimum": 1, "description": "Number of units." },
+          "unitPriceCents": { "type": "integer", "minimum": 0, "description": "Per-unit price in cents." },
+          "discountPercent": { "type": "number", "minimum": 0, "maximum": 100, "description": "Optional line-level discount percent." }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "description": "A product in the catalog. Used as the source of truth for list price and recurring interval.",
+        "required": ["id", "tenantId", "sku", "name", "listPriceCents", "recurringInterval", "active"],
+        "properties": {
+          "id": { "type": "string", "description": "Product id." },
+          "tenantId": { "type": "string", "description": "Tenant id; set from the API key." },
+          "sku": { "type": "string", "description": "Stock keeping unit." },
+          "name": { "type": "string", "description": "Human-readable product name." },
+          "listPriceCents": { "type": "integer", "description": "List price in cents." },
+          "recurringInterval": {
+            "type": "string",
+            "enum": ["one_time", "monthly", "yearly"],
+            "description": "Billing cadence used to compute ARR."
+          },
+          "category": { "type": "string", "description": "Catalog category for grouping/reporting." },
+          "active": { "type": "boolean", "description": "Whether the product is currently sellable." }
+        }
+      },
+      "ProductPage": {
+        "type": "object",
+        "description": "A page of products.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Product" }, "description": "Products on this page." },
+          "nextCursor": { "type": "string", "nullable": true, "description": "Pagination cursor or null." }
+        }
+      },
+      "PricingRule": {
+        "type": "object",
+        "description": "A rule that applies a discount when a quote line meets the rule's conditions.",
+        "required": ["id", "tenantId", "name", "productId", "discountPercent", "requiresApproval"],
+        "properties": {
+          "id": { "type": "string", "description": "Rule id." },
+          "tenantId": { "type": "string", "description": "Tenant id; set from the API key." },
+          "name": { "type": "string", "description": "Human-readable rule name." },
+          "productId": { "type": "string", "description": "Product the rule applies to." },
+          "conditions": { "type": "object", "additionalProperties": true, "description": "Free-form condition map (e.g. customerSegment, minQuantity)." },
+          "discountPercent": { "type": "number", "description": "Discount percent the rule grants." },
+          "requiresApproval": { "type": "boolean", "description": "Whether matching this rule needs deal-desk approval." }
+        }
+      },
+      "PricingRulePage": {
+        "type": "object",
+        "description": "A page of pricing rules.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/PricingRule" }, "description": "Pricing rules on this page." },
+          "nextCursor": { "type": "string", "nullable": true, "description": "Pagination cursor or null." }
+        }
+      },
+      "Discount": {
+        "type": "object",
+        "description": "A manual discount applied to a quote, with audit-trail fields.",
+        "required": ["id", "tenantId", "quoteId", "kind", "value", "reason", "appliedBy", "appliedAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Discount id." },
+          "tenantId": { "type": "string", "description": "Tenant id; set from the API key." },
+          "quoteId": { "type": "string", "description": "Parent quote id." },
+          "kind": { "type": "string", "enum": ["percent", "flat"], "description": "Whether the discount is percent or flat-amount." },
+          "value": { "type": "number", "description": "Discount value (percent for percent kind, cents for flat kind)." },
+          "reason": { "type": "string", "description": "Human reason — for audit and approval routing." },
+          "appliedBy": { "type": "string", "description": "Email of the user who applied the discount." },
+          "appliedAt": { "type": "string", "format": "date-time", "description": "When the discount was applied." }
+        }
+      },
+      "DiscountCreate": {
+        "type": "object",
+        "description": "Payload to apply a discount.",
+        "required": ["kind", "value", "reason", "appliedBy"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["percent", "flat"], "description": "Discount kind." },
+          "value": { "type": "number", "minimum": 0, "description": "Percent (0-100) or flat amount in cents." },
+          "reason": { "type": "string", "description": "Human reason — captured for audit." },
+          "appliedBy": { "type": "string", "description": "Email of the user applying it." }
+        }
+      }
+    }
+  }
+}

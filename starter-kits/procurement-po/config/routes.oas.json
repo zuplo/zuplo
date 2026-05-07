@@ -1,0 +1,549 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Procurement / Purchase Order API",
+    "version": "1.0.0",
+    "description": "Headless procurement API. Replaces Coupa/Procurify/Airbase procurement. Covers purchase requests, approval routing, PO issuance, receiving, and 3-way invoice matching."
+  },
+  "paths": {
+    "/purchase-requests": {
+      "get": {
+        "operationId": "list_purchase_requests",
+        "summary": "List purchase requests",
+        "description": "Returns a paginated list of purchase requests in the current tenant, newest first.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of requests to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of purchase requests.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PurchaseRequestPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-purchase-requests)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_purchase_request",
+        "summary": "Create a purchase request",
+        "description": "Create a new purchase request in `draft` state. Requesters fill this in before routing for approval.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreatePurchaseRequestRequest" } } }
+        },
+        "responses": {
+          "201": { "description": "The created request.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PurchaseRequest" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-purchase-request)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/purchase-requests/{id}": {
+      "get": {
+        "operationId": "get_purchase_request",
+        "summary": "Get a purchase request",
+        "description": "Fetch a purchase request by id from the current tenant.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Purchase request id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The purchase request.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PurchaseRequest" } } } },
+          "404": { "description": "Not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-purchase-request)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/purchase-requests/{id}/submit": {
+      "patch": {
+        "operationId": "submit_purchase_request",
+        "summary": "Submit a draft purchase request",
+        "description": "Move a purchase request from `draft` to `submitted`, kicking off approval routing.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Purchase request id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated request.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PurchaseRequest" } } } },
+          "404": { "description": "Not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/submit-purchase-request)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/purchase-requests/{id}/approve": {
+      "post": {
+        "operationId": "approve_purchase_request",
+        "summary": "Approve a purchase request",
+        "description": "Mark the request as approved and stamp the approver. Once approved, the request can be converted to a PO.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Purchase request id.", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApprovalDecisionRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated request.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PurchaseRequest" } } } },
+          "404": { "description": "Not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/approve-purchase-request)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/purchase-requests/{id}/reject": {
+      "post": {
+        "operationId": "reject_purchase_request",
+        "summary": "Reject a purchase request",
+        "description": "Mark a purchase request as rejected with an optional reason.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Purchase request id.", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RejectionDecisionRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated request.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PurchaseRequest" } } } },
+          "404": { "description": "Not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/reject-purchase-request)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "destructiveHint": true } }
+        }
+      }
+    },
+    "/purchase-requests/{id}/convert-to-po": {
+      "post": {
+        "operationId": "convert_to_po",
+        "summary": "Convert an approved purchase request to a PO",
+        "description": "Issue a Purchase Order from an approved request. The request transitions to `converted_to_po`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Purchase request id.", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConvertToPoRequest" } } }
+        },
+        "responses": {
+          "201": { "description": "Issued PO.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PurchaseOrder" } } } },
+          "404": { "description": "Not found." },
+          "409": { "description": "Request is not in approved state." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/convert-to-po)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/purchase-orders": {
+      "get": {
+        "operationId": "list_purchase_orders",
+        "summary": "List purchase orders",
+        "description": "Returns a paginated list of issued purchase orders, newest first.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of POs to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of POs.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PurchaseOrderPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-purchase-orders)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/receipts": {
+      "post": {
+        "operationId": "record_receipt",
+        "summary": "Record a receipt against a PO",
+        "description": "Log goods/services received against a purchase order. Marks the PO as `received` once `allItemsReceived` is true.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecordReceiptRequest" } } }
+        },
+        "responses": {
+          "201": { "description": "Created receipt.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Receipt" } } } },
+          "404": { "description": "PO not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/record-receipt)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/vendors": {
+      "get": {
+        "operationId": "list_vendors",
+        "summary": "List vendors",
+        "description": "Returns a paginated list of vendors set up in the current tenant.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of vendors to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of vendors.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VendorPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-vendors)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/route-request-for-approval": {
+      "post": {
+        "operationId": "route_request_for_approval",
+        "summary": "Route a request for approval (orchestrator)",
+        "description": "Reads dollar threshold + cost center on a purchase request and builds the right approval chain, inserting ApprovalStep rows.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RouteApprovalRequest" } } }
+        },
+        "responses": {
+          "201": { "description": "Created approval steps.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RouteApprovalResponse" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/route-request-for-approval)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/flag-maverick-spend": {
+      "post": {
+        "operationId": "flag_maverick_spend",
+        "summary": "Flag maverick spend (orchestrator)",
+        "description": "Surfaces purchase requests that bypass standard policy — rush flag, thin justification on big spend, etc.",
+        "responses": {
+          "200": { "description": "Flagged requests.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FlagMaverickResponse" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/flag-maverick-spend)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/match-invoice-to-po": {
+      "post": {
+        "operationId": "match_invoice_to_po",
+        "summary": "Match an incoming invoice to an open PO (orchestrator)",
+        "description": "Given a vendor and invoice amount, find open POs from that vendor whose totals are within tolerance (default 5%). Returns ranked candidates.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchInvoiceRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Candidate matches.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchInvoiceResponse" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/match-invoice-to-po)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "procurement-po",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_purchase_requests" },
+                { "file": "./config/routes.oas.json", "id": "get_purchase_request" },
+                { "file": "./config/routes.oas.json", "id": "create_purchase_request" },
+                { "file": "./config/routes.oas.json", "id": "submit_purchase_request" },
+                { "file": "./config/routes.oas.json", "id": "approve_purchase_request" },
+                { "file": "./config/routes.oas.json", "id": "reject_purchase_request" },
+                { "file": "./config/routes.oas.json", "id": "convert_to_po" },
+                { "file": "./config/routes.oas.json", "id": "list_purchase_orders" },
+                { "file": "./config/routes.oas.json", "id": "record_receipt" },
+                { "file": "./config/routes.oas.json", "id": "list_vendors" },
+                { "file": "./config/routes.oas.json", "id": "route_request_for_approval" },
+                { "file": "./config/routes.oas.json", "id": "flag_maverick_spend" },
+                { "file": "./config/routes.oas.json", "id": "match_invoice_to_po" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PurchaseRequest": {
+        "type": "object",
+        "description": "A pre-PO request raised by an employee.",
+        "required": ["id", "tenantId", "requesterEmail", "vendorId", "totalCents", "currency", "costCenter", "justification", "status", "rush", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique request id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the request belongs to." },
+          "requesterEmail": { "type": "string", "format": "email", "description": "Email of the requesting employee." },
+          "vendorId": { "type": "string", "description": "Vendor the request is for." },
+          "totalCents": { "type": "integer", "description": "Total amount in cents." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code." },
+          "costCenter": { "type": "string", "description": "Cost-center code the spend rolls up to." },
+          "justification": { "type": "string", "description": "Free-text business justification." },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "submitted", "approved", "rejected", "converted_to_po"],
+            "description": "Lifecycle state."
+          },
+          "approverEmail": { "type": ["string", "null"], "description": "Email of the approver who decided. Null until decided." },
+          "approvedAt": { "type": ["string", "null"], "format": "date-time", "description": "Timestamp of approval/rejection. Null if pending." },
+          "rush": { "type": "boolean", "description": "True if requester flagged the request as rush — feeds into maverick-spend detection." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp." }
+        }
+      },
+      "PurchaseRequestPage": {
+        "type": "object",
+        "description": "A page of purchase requests.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Requests on this page.", "items": { "$ref": "#/components/schemas/PurchaseRequest" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pass back as `cursor` for the next page." }
+        }
+      },
+      "PurchaseOrder": {
+        "type": "object",
+        "description": "A PO issued to a vendor, derived from an approved PurchaseRequest.",
+        "required": ["id", "tenantId", "purchaseRequestId", "vendorId", "poNumber", "totalCents", "currency", "status", "issuedAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique PO id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the PO belongs to." },
+          "purchaseRequestId": { "type": "string", "description": "Originating purchase request." },
+          "vendorId": { "type": "string", "description": "Vendor the PO is issued to." },
+          "poNumber": { "type": "string", "description": "Human-readable PO number." },
+          "totalCents": { "type": "integer", "description": "Total amount in cents." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code." },
+          "status": {
+            "type": "string",
+            "enum": ["issued", "received", "closed"],
+            "description": "PO lifecycle state."
+          },
+          "issuedAt": { "type": "string", "format": "date-time", "description": "When the PO was issued." }
+        }
+      },
+      "PurchaseOrderPage": {
+        "type": "object",
+        "description": "A page of POs.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "POs on this page.", "items": { "$ref": "#/components/schemas/PurchaseOrder" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Vendor": {
+        "type": "object",
+        "description": "A vendor that POs can be issued to.",
+        "required": ["id", "tenantId", "name", "paymentTerms", "preferredVendor", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Vendor id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the vendor belongs to." },
+          "name": { "type": "string", "description": "Display name." },
+          "email": { "type": ["string", "null"], "description": "Primary contact email." },
+          "taxId": { "type": ["string", "null"], "description": "Tax id (EIN/VAT)." },
+          "paymentTerms": { "type": "string", "description": "Payment terms (e.g. NET30, NET60)." },
+          "preferredVendor": { "type": "boolean", "description": "True if the vendor is on the preferred-vendor list." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "When the vendor was set up." }
+        }
+      },
+      "VendorPage": {
+        "type": "object",
+        "description": "A page of vendors.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Vendors on this page.", "items": { "$ref": "#/components/schemas/Vendor" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Receipt": {
+        "type": "object",
+        "description": "A receiving record against a PO.",
+        "required": ["id", "tenantId", "poId", "receivedAt", "receivedBy", "allItemsReceived"],
+        "properties": {
+          "id": { "type": "string", "description": "Receipt id." },
+          "tenantId": { "type": "string", "description": "Tenant the receipt belongs to." },
+          "poId": { "type": "string", "description": "PO this receipt is against." },
+          "receivedAt": { "type": "string", "format": "date-time", "description": "When goods/services were received." },
+          "receivedBy": { "type": "string", "description": "Who recorded the receipt." },
+          "allItemsReceived": { "type": "boolean", "description": "True if this receipt closes out the PO." },
+          "partialAmountCents": { "type": ["integer", "null"], "description": "Dollar amount received, in cents, if partial. Null when allItemsReceived is true." }
+        }
+      },
+      "CreatePurchaseRequestRequest": {
+        "type": "object",
+        "description": "Payload to create a purchase request.",
+        "required": ["requesterEmail", "vendorId", "totalCents", "currency", "costCenter", "justification"],
+        "properties": {
+          "requesterEmail": { "type": "string", "format": "email", "description": "Email of the requesting employee." },
+          "vendorId": { "type": "string", "description": "Vendor id." },
+          "totalCents": { "type": "integer", "minimum": 0, "description": "Total amount in cents." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code." },
+          "costCenter": { "type": "string", "description": "Cost-center code." },
+          "justification": { "type": "string", "description": "Free-text justification." },
+          "rush": { "type": "boolean", "description": "Rush flag. Defaults to false." }
+        }
+      },
+      "ApprovalDecisionRequest": {
+        "type": "object",
+        "description": "Payload to approve a purchase request.",
+        "required": ["approverEmail"],
+        "properties": {
+          "approverEmail": { "type": "string", "format": "email", "description": "Email of the approver." }
+        }
+      },
+      "RejectionDecisionRequest": {
+        "type": "object",
+        "description": "Payload to reject a purchase request.",
+        "required": ["approverEmail"],
+        "properties": {
+          "approverEmail": { "type": "string", "format": "email", "description": "Email of the approver doing the rejection." },
+          "reason": { "type": "string", "description": "Optional rejection reason." }
+        }
+      },
+      "ConvertToPoRequest": {
+        "type": "object",
+        "description": "Payload to convert an approved request to a PO.",
+        "properties": {
+          "poNumber": { "type": "string", "description": "Optional override PO number. Auto-assigned if omitted." }
+        }
+      },
+      "RecordReceiptRequest": {
+        "type": "object",
+        "description": "Payload to record a receipt against a PO.",
+        "required": ["poId", "receivedBy", "allItemsReceived"],
+        "properties": {
+          "poId": { "type": "string", "description": "PO id being received against." },
+          "receivedBy": { "type": "string", "description": "Person recording the receipt." },
+          "allItemsReceived": { "type": "boolean", "description": "True if this receipt closes the PO." },
+          "partialAmountCents": { "type": "integer", "minimum": 0, "description": "Dollar amount in cents, if partial." }
+        }
+      },
+      "RouteApprovalRequest": {
+        "type": "object",
+        "description": "Input to route_request_for_approval.",
+        "required": ["requestId"],
+        "properties": {
+          "requestId": { "type": "string", "description": "Purchase request id to route." }
+        }
+      },
+      "RouteApprovalResponse": {
+        "type": "object",
+        "description": "Output of route_request_for_approval.",
+        "required": ["requestId", "steps"],
+        "properties": {
+          "requestId": { "type": "string", "description": "Request id that was routed." },
+          "steps": { "type": "array", "description": "Created ApprovalStep rows.", "items": { "$ref": "#/components/schemas/ApprovalStep" } }
+        }
+      },
+      "ApprovalStep": {
+        "type": "object",
+        "description": "A single approval step.",
+        "required": ["id", "tenantId", "purchaseRequestId", "stepOrder", "approverEmail", "status"],
+        "properties": {
+          "id": { "type": "string", "description": "Approval step id." },
+          "tenantId": { "type": "string", "description": "Tenant id." },
+          "purchaseRequestId": { "type": "string", "description": "Request the step belongs to." },
+          "stepOrder": { "type": "integer", "description": "Order of this step in the chain (1-based)." },
+          "approverEmail": { "type": "string", "format": "email", "description": "Email of the approver for this step." },
+          "status": { "type": "string", "enum": ["pending", "approved", "rejected", "skipped"], "description": "Decision state." },
+          "decidedAt": { "type": ["string", "null"], "format": "date-time", "description": "When the step was decided. Null while pending." }
+        }
+      },
+      "FlagMaverickResponse": {
+        "type": "object",
+        "description": "Output of flag_maverick_spend.",
+        "required": ["count", "flagged"],
+        "properties": {
+          "count": { "type": "integer", "description": "Number of flagged requests." },
+          "flagged": {
+            "type": "array",
+            "description": "Flagged requests with reasons.",
+            "items": {
+              "type": "object",
+              "required": ["request", "reasons"],
+              "properties": {
+                "request": { "$ref": "#/components/schemas/PurchaseRequest" },
+                "reasons": { "type": "array", "description": "Why this request was flagged.", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      },
+      "MatchInvoiceRequest": {
+        "type": "object",
+        "description": "Input to match_invoice_to_po.",
+        "required": ["vendorId", "amountCents"],
+        "properties": {
+          "vendorId": { "type": "string", "description": "Vendor on the incoming invoice." },
+          "amountCents": { "type": "integer", "description": "Invoice amount in cents." },
+          "tolerancePercent": { "type": "number", "minimum": 0, "maximum": 50, "description": "Allowed delta percentage. Defaults to 5." }
+        }
+      },
+      "MatchInvoiceResponse": {
+        "type": "object",
+        "description": "Output of match_invoice_to_po.",
+        "required": ["count", "matches"],
+        "properties": {
+          "count": { "type": "integer", "description": "Number of matches." },
+          "matches": {
+            "type": "array",
+            "description": "Candidate POs ranked by closeness.",
+            "items": {
+              "type": "object",
+              "required": ["po", "deltaCents", "deltaPercent"],
+              "properties": {
+                "po": { "$ref": "#/components/schemas/PurchaseOrder" },
+                "deltaCents": { "type": "integer", "description": "invoice amount minus PO total, in cents." },
+                "deltaPercent": { "type": "number", "description": "Absolute delta as a fraction of PO total." }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

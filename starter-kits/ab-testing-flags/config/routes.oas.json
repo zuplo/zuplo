@@ -1,0 +1,845 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Ab Testing Flags API",
+    "version": "1.0.0",
+    "description": "Zuplo Starter Kit: Ab Testing Flags. Multi-tenant via API-key metadata. MCP server at POST /mcp."
+  },
+  "paths": {
+    "/experiment/{id}/complete": {
+      "post": {
+        "operationId": "complete_experiment",
+        "summary": "Complete Experiment",
+        "description": "Complete Experiment.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/complete-experiment)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/experiment": {
+      "post": {
+        "operationId": "create_experiment",
+        "summary": "Create Experiment",
+        "description": "Create Experiment.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-experiment)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/flag": {
+      "post": {
+        "operationId": "create_flag",
+        "summary": "Create Flag",
+        "description": "Create Flag.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-flag)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/assignment/{id}": {
+      "get": {
+        "operationId": "get_assignment",
+        "summary": "Get Assignment",
+        "description": "Get Assignment.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-assignment)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/experiment/{id}": {
+      "get": {
+        "operationId": "get_experiment",
+        "summary": "Get Experiment",
+        "description": "Get Experiment.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-experiment)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/experiments": {
+      "get": {
+        "operationId": "list_experiments",
+        "summary": "List Experiments",
+        "description": "List Experiments.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-experiments)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/flags": {
+      "get": {
+        "operationId": "list_flags",
+        "summary": "List Flags",
+        "description": "List Flags.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-flags)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/results": {
+      "get": {
+        "operationId": "list_results",
+        "summary": "List Results",
+        "description": "List Results.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-results)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/experiment/{id}/pause": {
+      "post": {
+        "operationId": "pause_experiment",
+        "summary": "Pause Experiment",
+        "description": "Pause Experiment.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/pause-experiment)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/event": {
+      "post": {
+        "operationId": "record_event",
+        "summary": "Record Event",
+        "description": "Record Event.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/record-event)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/experiment/{id}/start": {
+      "post": {
+        "operationId": "start_experiment",
+        "summary": "Start Experiment",
+        "description": "Start Experiment.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/start-experiment)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/flag/{id}": {
+      "patch": {
+        "operationId": "update_flag",
+        "summary": "Update Flag",
+        "description": "Update Flag.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/update-flag)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/interpret-results": {
+      "post": {
+        "operationId": "interpret_results",
+        "summary": "Interpret Results",
+        "description": "Interpret Results.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/interpret-results)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/kill-underperforming-variant": {
+      "post": {
+        "operationId": "kill_underperforming_variant",
+        "summary": "Kill Underperforming Variant",
+        "description": "Kill Underperforming Variant.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/kill-underperforming-variant)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/propose-experiment-for-metric": {
+      "post": {
+        "operationId": "propose_experiment_for_metric",
+        "summary": "Propose Experiment For Metric",
+        "description": "Propose Experiment For Metric.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/propose-experiment-for-metric)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "ab-testing-flags-server",
+              "version": "1.0.0",
+              "operations": [
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "complete_experiment"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "create_experiment"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "create_flag"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "get_assignment"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "get_experiment"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_experiments"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_flags"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_results"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "pause_experiment"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "record_event"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "start_experiment"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "update_flag"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "interpret_results"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "kill_underperforming_variant"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "propose_experiment_for_metric"
+                }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ],
+            "outbound": [
+              "prompt-injection-outbound",
+              "secret-masking-outbound"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

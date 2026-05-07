@@ -1,0 +1,689 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "E-commerce Order Ops API",
+    "version": "1.0.0",
+    "description": "Headless commerce order management. Replaces ShipStation, Order Desk, and custom in-house OMS code. Manages orders, shipments, returns, customers, and inventory adjustments — exposed as both an HTTP API and an MCP server."
+  },
+  "paths": {
+    "/orders": {
+      "get": {
+        "operationId": "list_orders",
+        "summary": "List orders",
+        "description": "Returns orders in the current tenant, newest first. Filter by `status` and/or `customerId`.",
+        "parameters": [
+          { "name": "status", "in": "query", "description": "Filter by order status.", "schema": { "type": "string", "enum": ["pending", "paid", "fulfilling", "shipped", "delivered", "returned", "canceled"] } },
+          { "name": "customerId", "in": "query", "description": "Filter by customer id.", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "description": "Maximum number of orders to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of orders.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OrderPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-orders)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_order",
+        "summary": "Create an order",
+        "description": "Create a new order in `pending` status. Move it to `paid` once payment captures upstream.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OrderCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created order.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-order)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "operationId": "get_order",
+        "summary": "Get an order by id",
+        "description": "Fetch a single order in the current tenant.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Order id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The order.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } } },
+          "404": { "description": "Order not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-order)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/orders/{id}/cancel": {
+      "post": {
+        "operationId": "cancel_order",
+        "summary": "Cancel an order",
+        "description": "Marks the order as `canceled`. Releases reserved inventory back to stock at the caller's discretion.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Order id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated order.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } } },
+          "404": { "description": "Order not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/cancel-order)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "destructiveHint": true } }
+        }
+      }
+    },
+    "/shipments": {
+      "get": {
+        "operationId": "list_shipments",
+        "summary": "List shipments",
+        "description": "Returns shipments. Filter by `orderId` and/or `status`.",
+        "parameters": [
+          { "name": "orderId", "in": "query", "description": "Filter by order id.", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "description": "Filter by shipment status.", "schema": { "type": "string", "enum": ["label_purchased", "in_transit", "delivered", "exception"] } },
+          { "name": "limit", "in": "query", "description": "Maximum number to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of shipments.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ShipmentPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-shipments)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_shipment",
+        "summary": "Create a shipment",
+        "description": "Create a shipment with a purchased label against an order. Initial status is `label_purchased`.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ShipmentCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created shipment.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Shipment" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-shipment)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/shipments/{id}/in-transit": {
+      "patch": {
+        "operationId": "mark_shipment_in_transit",
+        "summary": "Mark shipment in transit",
+        "description": "Transitions a shipment to `in_transit` and stamps `shippedAt`. Idempotent.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Shipment id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated shipment.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Shipment" } } } },
+          "404": { "description": "Shipment not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/mark-shipment-in-transit)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/shipments/{id}/delivered": {
+      "patch": {
+        "operationId": "mark_delivered",
+        "summary": "Mark shipment delivered",
+        "description": "Transitions a shipment to `delivered` and stamps `deliveredAt`. Idempotent.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Shipment id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated shipment.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Shipment" } } } },
+          "404": { "description": "Shipment not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/mark-delivered)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/returns": {
+      "get": {
+        "operationId": "list_returns",
+        "summary": "List returns",
+        "description": "Returns return-requests. Filter by `status` and/or `orderId`.",
+        "parameters": [
+          { "name": "status", "in": "query", "description": "Filter by status.", "schema": { "type": "string", "enum": ["requested", "approved", "received", "refunded", "rejected"] } },
+          { "name": "orderId", "in": "query", "description": "Filter by order id.", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "description": "Maximum number to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of returns.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReturnPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-returns)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "request_return",
+        "summary": "Request a return",
+        "description": "Open a return request against a specific line item with quantity and reason. Initial status is `requested`.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReturnCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created return.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Return" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/request-return)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/returns/{id}/approve": {
+      "post": {
+        "operationId": "approve_return",
+        "summary": "Approve a return",
+        "description": "Marks a return as `approved`, signaling the customer to ship the item back.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Return id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated return.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Return" } } } },
+          "404": { "description": "Return not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/approve-return)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/returns/{id}/received": {
+      "patch": {
+        "operationId": "mark_received",
+        "summary": "Mark return received at warehouse",
+        "description": "Transitions a return to `received`. Idempotent.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Return id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated return.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Return" } } } },
+          "404": { "description": "Return not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/mark-received)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/returns/{id}/refund": {
+      "post": {
+        "operationId": "refund_return",
+        "summary": "Refund a return",
+        "description": "Marks a return as `refunded` and stamps `refundedAt`. Issuing the actual refund through the payment gateway is the caller's responsibility.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Return id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated return.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Return" } } } },
+          "404": { "description": "Return not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/refund-return)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/customers": {
+      "get": {
+        "operationId": "list_customers",
+        "summary": "List customers",
+        "description": "Returns customers in the current tenant.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of customers.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CustomerPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-customers)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/inventory-adjustments": {
+      "get": {
+        "operationId": "list_inventory_adjustments",
+        "summary": "List inventory adjustments",
+        "description": "Returns inventory adjustment records. Filter by `sku`.",
+        "parameters": [
+          { "name": "sku", "in": "query", "description": "Filter by SKU.", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "description": "Maximum number to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of adjustments.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InventoryAdjustmentPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-inventory-adjustments)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "adjust_inventory",
+        "summary": "Adjust inventory for a SKU",
+        "description": "Record a positive or negative inventory delta for a SKU with reason and audit metadata.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InventoryAdjustmentCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created adjustment.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InventoryAdjustment" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/adjust-inventory)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/triage-high-risk-orders": {
+      "post": {
+        "operationId": "triage_high_risk_orders",
+        "summary": "List unshipped paid orders above fraud threshold (orchestrator)",
+        "description": "Lists paid orders with fraud score >= threshold (default 70) that have not yet shipped. Used to hold fulfilment for review.",
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TriageHighRiskRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Triage result.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TriageHighRiskResponse" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/triage-high-risk-orders)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/pick-carrier-for-destination": {
+      "post": {
+        "operationId": "pick_carrier_for_destination",
+        "summary": "Pick a carrier and service for an order (orchestrator)",
+        "description": "Recommends a carrier and service based on order value, customer VIP tier, and shipping paid by the buyer. Returns a suggestion the agent can pass to `create_shipment`.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PickCarrierRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Recommendation.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PickCarrierResponse" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/pick-carrier-for-destination)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/auto-approve-returns-under-policy": {
+      "post": {
+        "operationId": "auto_approve_returns_under_policy",
+        "summary": "Bulk-approve returns matching policy (orchestrator)",
+        "description": "Walks `requested` returns, joins each to its parent order, applies a value/age policy, and bulk-approves matching returns through `approve_return`. Returns counts plus the lists of approved and skipped returns.",
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AutoApproveRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Approval result.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AutoApproveResponse" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/auto-approve-returns-under-policy)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "ecommerce-order-ops",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_orders" },
+                { "file": "./config/routes.oas.json", "id": "get_order" },
+                { "file": "./config/routes.oas.json", "id": "create_order" },
+                { "file": "./config/routes.oas.json", "id": "cancel_order" },
+                { "file": "./config/routes.oas.json", "id": "list_shipments" },
+                { "file": "./config/routes.oas.json", "id": "create_shipment" },
+                { "file": "./config/routes.oas.json", "id": "mark_shipment_in_transit" },
+                { "file": "./config/routes.oas.json", "id": "mark_delivered" },
+                { "file": "./config/routes.oas.json", "id": "list_returns" },
+                { "file": "./config/routes.oas.json", "id": "request_return" },
+                { "file": "./config/routes.oas.json", "id": "approve_return" },
+                { "file": "./config/routes.oas.json", "id": "mark_received" },
+                { "file": "./config/routes.oas.json", "id": "refund_return" },
+                { "file": "./config/routes.oas.json", "id": "list_customers" },
+                { "file": "./config/routes.oas.json", "id": "list_inventory_adjustments" },
+                { "file": "./config/routes.oas.json", "id": "adjust_inventory" },
+                { "file": "./config/routes.oas.json", "id": "triage_high_risk_orders" },
+                { "file": "./config/routes.oas.json", "id": "pick_carrier_for_destination" },
+                { "file": "./config/routes.oas.json", "id": "auto_approve_returns_under_policy" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Order": {
+        "type": "object",
+        "description": "A commerce order placed by a customer.",
+        "required": ["id", "tenantId", "customerId", "orderNumber", "status", "subtotalCents", "shippingCents", "taxCents", "totalCents", "currency", "placedAt", "fraudScore", "channel"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique order id." },
+          "tenantId": { "type": "string", "description": "Tenant the order belongs to." },
+          "customerId": { "type": "string", "description": "Buying customer." },
+          "orderNumber": { "type": "string", "description": "Human-readable order number used in receipts." },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "paid", "fulfilling", "shipped", "delivered", "returned", "canceled"],
+            "description": "Order lifecycle state."
+          },
+          "subtotalCents": { "type": "integer", "description": "Item subtotal in cents." },
+          "shippingCents": { "type": "integer", "description": "Shipping charged in cents." },
+          "taxCents": { "type": "integer", "description": "Tax charged in cents." },
+          "totalCents": { "type": "integer", "description": "Total charged in cents." },
+          "currency": { "type": "string", "description": "ISO-4217 currency code." },
+          "placedAt": { "type": "string", "format": "date-time", "description": "When the order was placed." },
+          "paidAt": { "type": ["string", "null"], "format": "date-time", "description": "When payment captured. Null until paid." },
+          "shippedAt": { "type": ["string", "null"], "format": "date-time", "description": "When the order shipped. Null until shipped." },
+          "fraudScore": { "type": "number", "description": "Risk score 0-100. 100 = highest risk." },
+          "channel": {
+            "type": "string",
+            "enum": ["web", "marketplace", "phone"],
+            "description": "Where the order originated."
+          }
+        }
+      },
+      "OrderCreate": {
+        "type": "object",
+        "description": "Payload to create an order.",
+        "required": ["customerId", "orderNumber", "subtotalCents", "totalCents"],
+        "properties": {
+          "customerId": { "type": "string", "description": "Buying customer." },
+          "orderNumber": { "type": "string", "description": "Order number." },
+          "subtotalCents": { "type": "integer", "minimum": 0, "description": "Item subtotal." },
+          "shippingCents": { "type": "integer", "minimum": 0, "description": "Shipping charge. Defaults to 0." },
+          "taxCents": { "type": "integer", "minimum": 0, "description": "Tax. Defaults to 0." },
+          "totalCents": { "type": "integer", "minimum": 0, "description": "Total in cents." },
+          "currency": { "type": "string", "description": "ISO-4217 currency. Defaults to USD." },
+          "fraudScore": { "type": "number", "description": "Initial fraud score (0-100)." },
+          "channel": { "type": "string", "enum": ["web", "marketplace", "phone"], "description": "Origin." }
+        }
+      },
+      "OrderPage": {
+        "type": "object",
+        "description": "A page of orders.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Order" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Shipment": {
+        "type": "object",
+        "description": "A shipment created against an order.",
+        "required": ["id", "tenantId", "orderId", "carrier", "service", "trackingNumber", "status"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique shipment id." },
+          "tenantId": { "type": "string", "description": "Tenant." },
+          "orderId": { "type": "string", "description": "Order this shipment fulfils." },
+          "carrier": { "type": "string", "description": "Carrier (USPS, UPS, FedEx, DHL, etc.)." },
+          "service": { "type": "string", "description": "Service level (Ground, Priority, Overnight, etc.)." },
+          "trackingNumber": { "type": "string", "description": "Carrier tracking number." },
+          "status": { "type": "string", "enum": ["label_purchased", "in_transit", "delivered", "exception"], "description": "Shipment lifecycle state." },
+          "shippedAt": { "type": ["string", "null"], "format": "date-time", "description": "When the package picked up. Null until in transit." },
+          "deliveredAt": { "type": ["string", "null"], "format": "date-time", "description": "When delivered. Null until delivered." }
+        }
+      },
+      "ShipmentCreate": {
+        "type": "object",
+        "description": "Payload to create a shipment.",
+        "required": ["orderId", "carrier", "service", "trackingNumber"],
+        "properties": {
+          "orderId": { "type": "string", "description": "Order to fulfil." },
+          "carrier": { "type": "string", "description": "Carrier name." },
+          "service": { "type": "string", "description": "Service level." },
+          "trackingNumber": { "type": "string", "description": "Tracking number." }
+        }
+      },
+      "ShipmentPage": {
+        "type": "object",
+        "description": "A page of shipments.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Shipment" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Return": {
+        "type": "object",
+        "description": "A return request opened against a specific line item on an order.",
+        "required": ["id", "tenantId", "orderId", "lineItemId", "quantity", "reason", "status", "requestedAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique return id." },
+          "tenantId": { "type": "string", "description": "Tenant." },
+          "orderId": { "type": "string", "description": "Originating order." },
+          "lineItemId": { "type": "string", "description": "Specific line item being returned." },
+          "quantity": { "type": "integer", "description": "Quantity being returned." },
+          "reason": { "type": "string", "description": "Customer-stated reason." },
+          "status": { "type": "string", "enum": ["requested", "approved", "received", "refunded", "rejected"], "description": "Return lifecycle state." },
+          "requestedAt": { "type": "string", "format": "date-time", "description": "When the request opened." },
+          "refundedAt": { "type": ["string", "null"], "format": "date-time", "description": "When the refund posted. Null until refunded." }
+        }
+      },
+      "ReturnCreate": {
+        "type": "object",
+        "description": "Payload to open a return request.",
+        "required": ["orderId", "lineItemId", "quantity", "reason"],
+        "properties": {
+          "orderId": { "type": "string", "description": "Order id." },
+          "lineItemId": { "type": "string", "description": "Line item id." },
+          "quantity": { "type": "integer", "minimum": 1, "description": "Quantity being returned." },
+          "reason": { "type": "string", "description": "Reason." }
+        }
+      },
+      "ReturnPage": {
+        "type": "object",
+        "description": "A page of returns.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Return" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "description": "A customer who can place orders.",
+        "required": ["id", "tenantId", "email", "firstName", "lastName", "totalOrders", "totalSpentCents", "vipTier"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique customer id." },
+          "tenantId": { "type": "string", "description": "Tenant." },
+          "email": { "type": "string", "format": "email", "description": "Email." },
+          "firstName": { "type": "string", "description": "First name." },
+          "lastName": { "type": "string", "description": "Last name." },
+          "totalOrders": { "type": "integer", "description": "Lifetime order count." },
+          "totalSpentCents": { "type": "integer", "description": "Lifetime spend in cents." },
+          "vipTier": { "type": "string", "enum": ["none", "silver", "gold"], "description": "VIP tier." }
+        }
+      },
+      "CustomerPage": {
+        "type": "object",
+        "description": "A page of customers.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Customer" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "InventoryAdjustment": {
+        "type": "object",
+        "description": "A delta applied to a SKU's stock count.",
+        "required": ["id", "tenantId", "sku", "delta", "reason", "performedAt", "performedBy"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique adjustment id." },
+          "tenantId": { "type": "string", "description": "Tenant." },
+          "sku": { "type": "string", "description": "SKU." },
+          "delta": { "type": "integer", "description": "Stock delta. Positive = receive, negative = remove." },
+          "reason": { "type": "string", "description": "Reason for the adjustment." },
+          "performedAt": { "type": "string", "format": "date-time", "description": "When recorded." },
+          "performedBy": { "type": "string", "description": "Who recorded it (email, system, etc.)." }
+        }
+      },
+      "InventoryAdjustmentCreate": {
+        "type": "object",
+        "description": "Payload to record an inventory adjustment.",
+        "required": ["sku", "delta", "reason"],
+        "properties": {
+          "sku": { "type": "string", "description": "SKU." },
+          "delta": { "type": "integer", "description": "Stock delta." },
+          "reason": { "type": "string", "description": "Reason." },
+          "performedBy": { "type": "string", "description": "Who recorded it." }
+        }
+      },
+      "InventoryAdjustmentPage": {
+        "type": "object",
+        "description": "A page of inventory adjustments.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/InventoryAdjustment" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "TriageHighRiskRequest": {
+        "type": "object",
+        "description": "Input for triage_high_risk_orders.",
+        "properties": {
+          "fraudScoreThreshold": { "type": "number", "minimum": 0, "maximum": 100, "description": "Score >= threshold flags an order. Defaults to 70." }
+        }
+      },
+      "TriageHighRiskResponse": {
+        "type": "object",
+        "description": "Result of triage_high_risk_orders.",
+        "required": ["threshold", "count", "orders"],
+        "properties": {
+          "threshold": { "type": "number", "description": "Threshold used." },
+          "count": { "type": "integer", "description": "Orders flagged." },
+          "orders": { "type": "array", "description": "The flagged orders.", "items": { "$ref": "#/components/schemas/Order" } }
+        }
+      },
+      "PickCarrierRequest": {
+        "type": "object",
+        "description": "Input for pick_carrier_for_destination.",
+        "required": ["orderId"],
+        "properties": {
+          "orderId": { "type": "string", "description": "Order to ship." }
+        }
+      },
+      "PickCarrierResponse": {
+        "type": "object",
+        "description": "Result of pick_carrier_for_destination.",
+        "required": ["orderId", "recommendedCarrier", "recommendedService", "reasons"],
+        "properties": {
+          "orderId": { "type": "string", "description": "Order id." },
+          "recommendedCarrier": { "type": "string", "description": "Suggested carrier name." },
+          "recommendedService": { "type": "string", "description": "Suggested service level." },
+          "reasons": { "type": "array", "items": { "type": "string" }, "description": "Why this carrier/service was picked." }
+        }
+      },
+      "AutoApproveRequest": {
+        "type": "object",
+        "description": "Input for auto_approve_returns_under_policy.",
+        "properties": {
+          "maxValueCents": { "type": "integer", "minimum": 0, "description": "Approve only when the parent order total is at or below this. Defaults to 10000 ($100)." },
+          "daysSincePurchase": { "type": "integer", "minimum": 1, "maximum": 365, "description": "Approve only when the order was placed within this many days. Defaults to 30." }
+        }
+      },
+      "AutoApproveResponse": {
+        "type": "object",
+        "description": "Result of auto_approve_returns_under_policy.",
+        "required": ["maxValueCents", "daysSincePurchase", "candidatesScanned", "approvedCount", "skippedCount", "approved", "skipped"],
+        "properties": {
+          "maxValueCents": { "type": "integer", "description": "Threshold used." },
+          "daysSincePurchase": { "type": "integer", "description": "Window used in days." },
+          "candidatesScanned": { "type": "integer", "description": "How many requested returns were considered." },
+          "approvedCount": { "type": "integer", "description": "Approved." },
+          "skippedCount": { "type": "integer", "description": "Skipped." },
+          "approved": { "type": "array", "items": { "$ref": "#/components/schemas/Return" }, "description": "The approved returns." },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["ret", "reason"],
+              "properties": {
+                "ret": { "$ref": "#/components/schemas/Return" },
+                "reason": { "type": "string", "description": "Why this return was skipped." }
+              }
+            },
+            "description": "Skipped returns + reason."
+          }
+        }
+      }
+    }
+  }
+}

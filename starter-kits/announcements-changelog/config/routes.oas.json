@@ -1,0 +1,746 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Internal Announcements & Changelog API",
+    "version": "1.0.0",
+    "description": "Headless internal announcements and changelog service. Replaces Headway, Beamer, and ad-hoc Slack #announcements channels. Manages announcements, audiences, categories, and acknowledgements, with orchestrator MCP tools to find unread critical items, summarize a team's week, and draft changelogs from merged PRs."
+  },
+  "paths": {
+    "/announcements": {
+      "get": {
+        "operationId": "list_announcements",
+        "summary": "List announcements in the current tenant",
+        "description": "Returns a paginated list of announcements newest-first. Use `cursor` for the next page.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of announcements to return. Defaults to 50.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque pagination cursor from a previous response.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of announcements.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AnnouncementPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-announcements)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_announcement",
+        "summary": "Create a draft announcement",
+        "description": "Create a new announcement. Defaults to status 'draft' so authors can preview before scheduling or publishing.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AnnouncementCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created announcement.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Announcement" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-announcement)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/announcements/{id}": {
+      "get": {
+        "operationId": "get_announcement",
+        "summary": "Get an announcement by id",
+        "description": "Fetch a single announcement from the current tenant.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Announcement id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The announcement.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Announcement" }
+              }
+            }
+          },
+          "404": { "description": "Announcement not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-announcement)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/announcements/{id}/schedule": {
+      "patch": {
+        "operationId": "schedule_announcement",
+        "summary": "Schedule an announcement for future publication",
+        "description": "Move a draft to 'scheduled' and set the `scheduledFor` timestamp. The publisher cron picks it up later.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Announcement id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["scheduledFor"],
+                "properties": {
+                  "scheduledFor": { "type": "string", "format": "date-time", "description": "When to publish, ISO-8601." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The scheduled announcement.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Announcement" } }
+            }
+          },
+          "404": { "description": "Announcement not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/schedule-announcement)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/announcements/{id}/publish": {
+      "patch": {
+        "operationId": "publish_announcement",
+        "summary": "Publish an announcement immediately",
+        "description": "Move the announcement to 'published' and stamp `publishedAt`. Skips the schedule step.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Announcement id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The published announcement.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Announcement" } }
+            }
+          },
+          "404": { "description": "Announcement not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/publish-announcement)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/announcements/{id}/archive": {
+      "patch": {
+        "operationId": "archive_announcement",
+        "summary": "Archive an announcement",
+        "description": "Move the announcement to 'archived'. The record is retained for audit but removed from active feeds. This is destructive in the sense that readers no longer see it.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Announcement id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The archived announcement.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Announcement" } }
+            }
+          },
+          "404": { "description": "Announcement not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/archive-announcement)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "destructiveHint": true } }
+        }
+      }
+    },
+    "/audiences": {
+      "get": {
+        "operationId": "list_audiences",
+        "summary": "List audiences in the current tenant",
+        "description": "Returns a paginated list of audience definitions used to target announcements.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max audiences to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Pagination cursor.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of audiences.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AudiencePage" } }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-audiences)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_audience",
+        "summary": "Create an audience",
+        "description": "Create a new audience definition (e.g. 'engineering', 'us-employees'). The `criteria` object is open-ended — encode whatever your downstream targeting layer expects.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AudienceCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created audience.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Audience" } }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-audience)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/acknowledgements": {
+      "get": {
+        "operationId": "list_acknowledgements",
+        "summary": "List acknowledgements",
+        "description": "Returns a paginated list of acknowledgements (employee + announcement + timestamp).",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max acknowledgements to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Pagination cursor.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of acknowledgements.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AcknowledgementPage" } }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-acknowledgements)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "acknowledge_announcement",
+        "summary": "Record that an employee has acknowledged an announcement",
+        "description": "Marks the given employee as having read the given announcement. Used by `find_unread_critical_for_user` to compute unread sets.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AcknowledgementCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created acknowledgement.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Acknowledgement" } }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/acknowledge-announcement)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/categories": {
+      "get": {
+        "operationId": "list_categories",
+        "summary": "List categories",
+        "description": "Returns the category catalog (release-notes, ops, people-policy, etc.) used to group announcements in digests.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max categories to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Pagination cursor.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of categories.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/CategoryPage" } }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-categories)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/find-unread-critical-for-user": {
+      "post": {
+        "operationId": "find_unread_critical_for_user",
+        "summary": "Find unread critical announcements for a user (orchestrator)",
+        "description": "Orchestrator MCP tool. Lists every published announcement at priority 'critical' that the given employee has not yet acknowledged. Use this to build a 'must read' panel or to nudge a user before they finish onboarding.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["employeeEmail"],
+                "properties": {
+                  "employeeEmail": { "type": "string", "format": "email", "description": "Email of the employee to check unread items for." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unread critical announcements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "employeeEmail": { "type": "string", "description": "Echo of the employee email." },
+                    "unreadCount": { "type": "integer", "description": "How many critical announcements are unread." },
+                    "unread": {
+                      "type": "array",
+                      "description": "The unread critical announcements.",
+                      "items": { "$ref": "#/components/schemas/Announcement" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/find-unread-critical-for-user)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/summarize-week-for-team": {
+      "post": {
+        "operationId": "summarize_week_for_team",
+        "summary": "Summarize a team's week of announcements (orchestrator)",
+        "description": "Orchestrator MCP tool. Returns published announcements for an audience over the 7-day window starting at `weekStartDate`, grouped by category. Use this to draft a Monday digest.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["audienceSlug", "weekStartDate"],
+                "properties": {
+                  "audienceSlug": { "type": "string", "description": "Slug of the audience to summarize for." },
+                  "weekStartDate": { "type": "string", "format": "date", "description": "ISO date for the start of the 7-day window." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Week summary grouped by category.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "audienceSlug": { "type": "string", "description": "Echo of the audience slug." },
+                    "weekStart": { "type": "string", "format": "date-time", "description": "ISO start of the window." },
+                    "weekEnd": { "type": "string", "format": "date-time", "description": "ISO end of the window (exclusive)." },
+                    "total": { "type": "integer", "description": "Total announcements in the window." },
+                    "byCategory": {
+                      "type": "object",
+                      "description": "Map of category slug to announcements published in the window.",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/Announcement" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/summarize-week-for-team)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/draft-changelog-from-merged-prs": {
+      "post": {
+        "operationId": "draft_changelog_from_merged_prs",
+        "summary": "Draft a changelog body from merged PR titles (orchestrator)",
+        "description": "Orchestrator MCP tool. Given a list of merged PR titles (e.g. from a CI step after a release), classifies each into feature/fix/chore and returns a markdown draft. The agent can then call `create_announcement` to actually post — this tool is read-only and just returns the draft.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prTitles"],
+                "properties": {
+                  "prTitles": {
+                    "type": "array",
+                    "description": "Merged PR titles, in any order. Conventional Commits prefixes (feat:, fix:, chore:) are honored.",
+                    "items": { "type": "string" }
+                  },
+                  "releaseTag": { "type": "string", "description": "Optional release tag (e.g. 'v2.5.0') used in the draft heading." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft changelog title and body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "draftTitle": { "type": "string", "description": "Suggested announcement title." },
+                    "draftBody": { "type": "string", "description": "Markdown body grouped into New / Fixes / Other." },
+                    "counts": {
+                      "type": "object",
+                      "description": "Per-bucket counts.",
+                      "properties": {
+                        "feature": { "type": "integer", "description": "Number of feature entries." },
+                        "fix": { "type": "integer", "description": "Number of fix entries." },
+                        "chore": { "type": "integer", "description": "Number of chore/docs/refactor entries." }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/draft-changelog-from-merged-prs)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "announcements-changelog-server",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_announcements" },
+                { "file": "./config/routes.oas.json", "id": "get_announcement" },
+                { "file": "./config/routes.oas.json", "id": "create_announcement" },
+                { "file": "./config/routes.oas.json", "id": "schedule_announcement" },
+                { "file": "./config/routes.oas.json", "id": "publish_announcement" },
+                { "file": "./config/routes.oas.json", "id": "archive_announcement" },
+                { "file": "./config/routes.oas.json", "id": "list_audiences" },
+                { "file": "./config/routes.oas.json", "id": "create_audience" },
+                { "file": "./config/routes.oas.json", "id": "list_acknowledgements" },
+                { "file": "./config/routes.oas.json", "id": "acknowledge_announcement" },
+                { "file": "./config/routes.oas.json", "id": "list_categories" },
+                { "file": "./config/routes.oas.json", "id": "find_unread_critical_for_user" },
+                { "file": "./config/routes.oas.json", "id": "summarize_week_for_team" },
+                { "file": "./config/routes.oas.json", "id": "draft_changelog_from_merged_prs" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Announcement": {
+        "type": "object",
+        "description": "An internal announcement or changelog entry.",
+        "required": ["id", "tenantId", "title", "body", "kind", "audienceSlug", "status", "priority", "scheduledFor", "publishedAt", "authorEmail", "categorySlug", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique announcement id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the announcement belongs to. Set automatically from the API key." },
+          "title": { "type": "string", "description": "Short headline." },
+          "body": { "type": "string", "description": "Markdown body." },
+          "kind": { "type": "string", "enum": ["feature", "fix", "policy", "event", "general"], "description": "What kind of update this is." },
+          "audienceSlug": { "type": "string", "description": "Slug of the targeted audience." },
+          "status": { "type": "string", "enum": ["draft", "scheduled", "published", "archived"], "description": "Lifecycle state." },
+          "priority": { "type": "string", "enum": ["info", "normal", "high", "critical"], "description": "Display priority. 'critical' opts in to forced acknowledgement flows." },
+          "scheduledFor": { "type": ["string", "null"], "format": "date-time", "description": "When the announcement is scheduled to publish, or null." },
+          "publishedAt": { "type": ["string", "null"], "format": "date-time", "description": "When it actually published, or null." },
+          "authorEmail": { "type": "string", "format": "email", "description": "Email of the author who created the announcement." },
+          "categorySlug": { "type": ["string", "null"], "description": "Slug of the category, or null." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "AnnouncementCreate": {
+        "type": "object",
+        "description": "Payload to create a new announcement.",
+        "required": ["title", "body", "kind", "audienceSlug", "authorEmail"],
+        "properties": {
+          "title": { "type": "string", "description": "Short headline." },
+          "body": { "type": "string", "description": "Markdown body." },
+          "kind": { "type": "string", "enum": ["feature", "fix", "policy", "event", "general"], "description": "What kind of update this is." },
+          "audienceSlug": { "type": "string", "description": "Slug of the targeted audience." },
+          "authorEmail": { "type": "string", "format": "email", "description": "Email of the author." },
+          "priority": { "type": "string", "enum": ["info", "normal", "high", "critical"], "description": "Display priority. Defaults to 'normal'." },
+          "status": { "type": "string", "enum": ["draft", "scheduled", "published", "archived"], "description": "Initial status. Defaults to 'draft'." },
+          "scheduledFor": { "type": ["string", "null"], "format": "date-time", "description": "Optional scheduled time." },
+          "categorySlug": { "type": ["string", "null"], "description": "Optional category slug." }
+        }
+      },
+      "AnnouncementPage": {
+        "type": "object",
+        "description": "A page of announcements.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Announcements on this page.", "items": { "$ref": "#/components/schemas/Announcement" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor. Null when no more results." }
+        }
+      },
+      "Audience": {
+        "type": "object",
+        "description": "A targeted group an announcement can address.",
+        "required": ["id", "tenantId", "slug", "name", "criteria", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique audience id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant scope." },
+          "slug": { "type": "string", "description": "Stable url-safe identifier (e.g. 'engineering')." },
+          "name": { "type": "string", "description": "Human-readable name." },
+          "criteria": { "type": "object", "description": "Open object describing how the audience is computed (department, location, role, etc.).", "additionalProperties": true },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "AudienceCreate": {
+        "type": "object",
+        "description": "Payload to create an audience.",
+        "required": ["slug", "name"],
+        "properties": {
+          "slug": { "type": "string", "description": "Stable url-safe identifier." },
+          "name": { "type": "string", "description": "Human-readable name." },
+          "criteria": { "type": "object", "description": "Open targeting object.", "additionalProperties": true }
+        }
+      },
+      "AudiencePage": {
+        "type": "object",
+        "description": "A page of audiences.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Audiences on this page.", "items": { "$ref": "#/components/schemas/Audience" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor. Null when no more results." }
+        }
+      },
+      "Acknowledgement": {
+        "type": "object",
+        "description": "Records that an employee has acknowledged a specific announcement.",
+        "required": ["id", "tenantId", "announcementId", "employeeEmail", "acknowledgedAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique acknowledgement id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant scope." },
+          "announcementId": { "type": "string", "description": "Id of the acknowledged announcement." },
+          "employeeEmail": { "type": "string", "format": "email", "description": "Email of the acknowledging employee." },
+          "acknowledgedAt": { "type": "string", "format": "date-time", "description": "When the acknowledgement was recorded." }
+        }
+      },
+      "AcknowledgementCreate": {
+        "type": "object",
+        "description": "Payload to record an acknowledgement.",
+        "required": ["announcementId", "employeeEmail"],
+        "properties": {
+          "announcementId": { "type": "string", "description": "Id of the announcement being acknowledged." },
+          "employeeEmail": { "type": "string", "format": "email", "description": "Email of the acknowledging employee." }
+        }
+      },
+      "AcknowledgementPage": {
+        "type": "object",
+        "description": "A page of acknowledgements.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Acknowledgements on this page.", "items": { "$ref": "#/components/schemas/Acknowledgement" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor. Null when no more results." }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "description": "A category that groups announcements (e.g. 'release-notes', 'ops').",
+        "required": ["id", "tenantId", "slug", "name", "color", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique category id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant scope." },
+          "slug": { "type": "string", "description": "Stable url-safe identifier." },
+          "name": { "type": "string", "description": "Display name." },
+          "color": { "type": "string", "description": "Hex color used by the UI to badge the category." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "CategoryPage": {
+        "type": "object",
+        "description": "A page of categories.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Categories on this page.", "items": { "$ref": "#/components/schemas/Category" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor. Null when no more results." }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "zuplo-starter-kit-marketing-attribution",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Marketing attribution API + MCP server. Replaces Dreamdata, Attribution.com, and RollWorks.",
+  "scripts": {
+    "dev": "zuplo dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "deploy": "zuplo deploy"
+  },
+  "dependencies": {
+    "@zuplo/starter-kit-shared": "*",
+    "zuplo": "^6"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5",
+    "vitest": "^2"
+  }
+}

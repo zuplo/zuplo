@@ -10,13 +10,16 @@
   },
   "workspaces": [
     "packages/*",
-    "tools/*"
+    "tools/*",
+    "starter-kits/*"
   ],
   "homepage": "https://github.com/zuplo/zuplo#readme",
   "scripts": {
-    "clean": "git clean -Xfde !.env"
+    "clean": "git clean -Xfde !.env",
+    "test:starter-kits": "cd starter-kits && vitest run"
   },
   "devDependencies": {
-    "prettier": "^3.7.4"
+    "prettier": "^3.7.4",
+    "vitest": "^2"
   }
 }

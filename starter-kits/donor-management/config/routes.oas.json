@@ -1,0 +1,537 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Donor / Fundraising CRM API",
+    "version": "1.0.0",
+    "description": "Headless donor-management CRM. Replaces Bloomerang/Blackbaud/DonorPerfect. Tracks donors, donations, campaigns, pledges, and recurring gifts. Includes orchestrators for re-engagement, segmentation, and year-end receipts."
+  },
+  "paths": {
+    "/donors": {
+      "get": {
+        "operationId": "list_donors",
+        "summary": "List donors",
+        "description": "Returns a paginated list of donors in the current tenant, newest first.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of donors to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Page of donors.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DonorPage" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-donors)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_donor",
+        "summary": "Create a donor",
+        "description": "Add a new donor to the database. Lifetime giving / gift count start at zero.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateDonorRequest" } } } },
+        "responses": { "201": { "description": "The created donor.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Donor" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-donor)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/donors/{id}": {
+      "get": {
+        "operationId": "get_donor",
+        "summary": "Get a donor by id",
+        "description": "Fetch a donor by id from the current tenant.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Donor id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The donor.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Donor" } } } },
+          "404": { "description": "Donor not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-donor)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/donations": {
+      "get": {
+        "operationId": "list_donations",
+        "summary": "List donations",
+        "description": "Returns a paginated list of donations in the current tenant, newest first.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of donations to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Page of donations.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DonationPage" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-donations)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "record_donation",
+        "summary": "Record a donation",
+        "description": "Record a donation. Updates the donor's lifetime giving, gift count, and last gift date.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecordDonationRequest" } } } },
+        "responses": {
+          "201": { "description": "Recorded donation.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Donation" } } } },
+          "404": { "description": "Donor not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/record-donation)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/campaigns": {
+      "get": {
+        "operationId": "list_campaigns",
+        "summary": "List campaigns",
+        "description": "Returns a paginated list of fundraising campaigns.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of campaigns to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Page of campaigns.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CampaignPage" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-campaigns)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_campaign",
+        "summary": "Create a campaign",
+        "description": "Create a new fundraising campaign. raisedCents and donorCount start at zero.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateCampaignRequest" } } } },
+        "responses": { "201": { "description": "Created campaign.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Campaign" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-campaign)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/pledges": {
+      "get": {
+        "operationId": "list_pledges",
+        "summary": "List pledges",
+        "description": "Returns a paginated list of pledges (multi-installment promises).",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of pledges to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Page of pledges.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PledgePage" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-pledges)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_pledge",
+        "summary": "Create a pledge",
+        "description": "Record a new pledge from a donor with a due date.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreatePledgeRequest" } } } },
+        "responses": { "201": { "description": "Created pledge.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Pledge" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-pledge)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/recurring-gifts": {
+      "get": {
+        "operationId": "list_recurring_gifts",
+        "summary": "List recurring gifts",
+        "description": "Returns a paginated list of sustaining (recurring) gifts.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of recurring gifts to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Page of recurring gifts.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecurringGiftPage" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-recurring-gifts)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/identify-lapsed-donors": {
+      "post": {
+        "operationId": "identify_lapsed_donors",
+        "summary": "Identify lapsed donors (orchestrator)",
+        "description": "Returns donors with no gift in N months who meet a minimum lifetime giving threshold.",
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LapsedDonorsRequest" } } }
+        },
+        "responses": { "200": { "description": "Lapsed donors.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LapsedDonorsResponse" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/identify-lapsed-donors)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/segment-for-campaign": {
+      "post": {
+        "operationId": "segment_for_campaign",
+        "summary": "Segment donors for a campaign (orchestrator)",
+        "description": "Returns donors matching criteria such as lifetime giving floor and prior donations to the same campaign.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SegmentRequest" } } } },
+        "responses": { "200": { "description": "Donor segment.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SegmentResponse" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/segment-for-campaign)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/generate-year-end-receipts": {
+      "post": {
+        "operationId": "generate_year_end_receipts",
+        "summary": "Generate year-end receipt data (orchestrator)",
+        "description": "Returns per-donor receipt-ready data for a calendar year — totals, deductible amounts, and per-donation detail.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/YearEndRequest" } } } },
+        "responses": { "200": { "description": "Receipt batch.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/YearEndResponse" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/generate-year-end-receipts)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "donor-management",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_donors" },
+                { "file": "./config/routes.oas.json", "id": "get_donor" },
+                { "file": "./config/routes.oas.json", "id": "create_donor" },
+                { "file": "./config/routes.oas.json", "id": "list_donations" },
+                { "file": "./config/routes.oas.json", "id": "record_donation" },
+                { "file": "./config/routes.oas.json", "id": "list_campaigns" },
+                { "file": "./config/routes.oas.json", "id": "create_campaign" },
+                { "file": "./config/routes.oas.json", "id": "list_pledges" },
+                { "file": "./config/routes.oas.json", "id": "create_pledge" },
+                { "file": "./config/routes.oas.json", "id": "list_recurring_gifts" },
+                { "file": "./config/routes.oas.json", "id": "identify_lapsed_donors" },
+                { "file": "./config/routes.oas.json", "id": "segment_for_campaign" },
+                { "file": "./config/routes.oas.json", "id": "generate_year_end_receipts" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Donor": {
+        "type": "object",
+        "description": "A donor — individual or organization.",
+        "required": ["id", "tenantId", "firstName", "lastName", "email", "donorType", "lifetimeGivingCents", "giftCount", "status", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Donor id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant id." },
+          "firstName": { "type": "string", "description": "Donor first name (or organization-name first half)." },
+          "lastName": { "type": "string", "description": "Donor last name (or organization-name second half)." },
+          "email": { "type": "string", "format": "email", "description": "Primary email." },
+          "mailingAddress": { "type": ["string", "null"], "description": "Mailing address for receipts." },
+          "donorType": { "type": "string", "enum": ["individual", "organization"], "description": "Whether the donor is a person or an entity." },
+          "lifetimeGivingCents": { "type": "integer", "description": "Sum of all donations across history, in cents." },
+          "lastGiftDate": { "type": ["string", "null"], "format": "date-time", "description": "Date of the donor's most recent gift. Null if never given." },
+          "giftCount": { "type": "integer", "description": "Total number of recorded donations." },
+          "status": { "type": "string", "enum": ["active", "lapsed", "do_not_contact"], "description": "Donor lifecycle state." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "When the donor record was created." }
+        }
+      },
+      "DonorPage": {
+        "type": "object",
+        "description": "A page of donors.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Donors on this page.", "items": { "$ref": "#/components/schemas/Donor" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Donation": {
+        "type": "object",
+        "description": "A single donation event.",
+        "required": ["id", "tenantId", "donorId", "amountCents", "currency", "receivedAt", "paymentMethod", "taxDeductibleAmountCents", "anonymous"],
+        "properties": {
+          "id": { "type": "string", "description": "Donation id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant id." },
+          "donorId": { "type": "string", "description": "Donor that gave." },
+          "campaignId": { "type": ["string", "null"], "description": "Campaign attribution. Null if unrestricted." },
+          "amountCents": { "type": "integer", "description": "Total gift amount in cents." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code." },
+          "receivedAt": { "type": "string", "format": "date-time", "description": "When the gift was received." },
+          "paymentMethod": { "type": "string", "description": "Payment method (card, ach, check, stock, dafs, etc.)." },
+          "taxDeductibleAmountCents": { "type": "integer", "description": "Tax-deductible portion in cents (after FMV of any benefit)." },
+          "anonymous": { "type": "boolean", "description": "If true, donor's identity should be masked in public reports." },
+          "restrictedFund": { "type": ["string", "null"], "description": "Name of a restricted fund if the gift is earmarked." }
+        }
+      },
+      "DonationPage": {
+        "type": "object",
+        "description": "A page of donations.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Donations on this page.", "items": { "$ref": "#/components/schemas/Donation" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Campaign": {
+        "type": "object",
+        "description": "A fundraising campaign.",
+        "required": ["id", "tenantId", "name", "goalCents", "startDate", "endDate", "raisedCents", "donorCount", "status"],
+        "properties": {
+          "id": { "type": "string", "description": "Campaign id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant id." },
+          "name": { "type": "string", "description": "Display name." },
+          "goalCents": { "type": "integer", "description": "Fundraising goal in cents." },
+          "startDate": { "type": "string", "format": "date", "description": "Start date." },
+          "endDate": { "type": "string", "format": "date", "description": "End date." },
+          "raisedCents": { "type": "integer", "description": "Amount raised so far in cents." },
+          "donorCount": { "type": "integer", "description": "Distinct donors so far." },
+          "status": { "type": "string", "enum": ["active", "closed"], "description": "Campaign state." }
+        }
+      },
+      "CampaignPage": {
+        "type": "object",
+        "description": "A page of campaigns.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Campaigns on this page.", "items": { "$ref": "#/components/schemas/Campaign" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Pledge": {
+        "type": "object",
+        "description": "A pledge — promise to give over time.",
+        "required": ["id", "tenantId", "donorId", "amountCents", "fulfilledCents", "dueDate", "status", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Pledge id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant id." },
+          "donorId": { "type": "string", "description": "Donor making the pledge." },
+          "amountCents": { "type": "integer", "description": "Total pledged amount in cents." },
+          "fulfilledCents": { "type": "integer", "description": "How much of the pledge has been fulfilled in cents." },
+          "dueDate": { "type": "string", "format": "date", "description": "Pledge fulfilment deadline." },
+          "status": { "type": "string", "enum": ["open", "fulfilled", "defaulted"], "description": "Pledge state." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "When the pledge was recorded." }
+        }
+      },
+      "PledgePage": {
+        "type": "object",
+        "description": "A page of pledges.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Pledges on this page.", "items": { "$ref": "#/components/schemas/Pledge" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "RecurringGift": {
+        "type": "object",
+        "description": "A sustaining (recurring) gift.",
+        "required": ["id", "tenantId", "donorId", "amountCents", "currency", "intervalUnit", "nextChargeDate", "status", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Recurring gift id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant id." },
+          "donorId": { "type": "string", "description": "Donor sustaining." },
+          "amountCents": { "type": "integer", "description": "Per-charge amount in cents." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code." },
+          "intervalUnit": { "type": "string", "enum": ["monthly", "quarterly", "annual"], "description": "Charge interval." },
+          "nextChargeDate": { "type": "string", "format": "date", "description": "Date of the next scheduled charge." },
+          "status": { "type": "string", "enum": ["active", "paused", "canceled"], "description": "Recurring-gift state." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "When the recurring gift was created." }
+        }
+      },
+      "RecurringGiftPage": {
+        "type": "object",
+        "description": "A page of recurring gifts.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Recurring gifts on this page.", "items": { "$ref": "#/components/schemas/RecurringGift" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "CreateDonorRequest": {
+        "type": "object",
+        "description": "Payload to create a donor.",
+        "required": ["firstName", "lastName", "email"],
+        "properties": {
+          "firstName": { "type": "string", "description": "First name." },
+          "lastName": { "type": "string", "description": "Last name." },
+          "email": { "type": "string", "format": "email", "description": "Primary email." },
+          "mailingAddress": { "type": "string", "description": "Mailing address for receipts." },
+          "donorType": { "type": "string", "enum": ["individual", "organization"], "description": "Donor type. Defaults to 'individual'." }
+        }
+      },
+      "RecordDonationRequest": {
+        "type": "object",
+        "description": "Payload to record a donation.",
+        "required": ["donorId", "amountCents", "currency", "paymentMethod"],
+        "properties": {
+          "donorId": { "type": "string", "description": "Donor id." },
+          "campaignId": { "type": "string", "description": "Optional campaign attribution." },
+          "amountCents": { "type": "integer", "minimum": 1, "description": "Gift amount in cents." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code." },
+          "paymentMethod": { "type": "string", "description": "Payment method." },
+          "taxDeductibleAmountCents": { "type": "integer", "minimum": 0, "description": "Tax-deductible portion. Defaults to amountCents." },
+          "anonymous": { "type": "boolean", "description": "Mark as anonymous publicly. Defaults to false." },
+          "restrictedFund": { "type": "string", "description": "Restricted fund name if earmarked." }
+        }
+      },
+      "CreateCampaignRequest": {
+        "type": "object",
+        "description": "Payload to create a campaign.",
+        "required": ["name", "goalCents", "startDate", "endDate"],
+        "properties": {
+          "name": { "type": "string", "description": "Campaign name." },
+          "goalCents": { "type": "integer", "minimum": 0, "description": "Goal in cents." },
+          "startDate": { "type": "string", "format": "date", "description": "Start date." },
+          "endDate": { "type": "string", "format": "date", "description": "End date." }
+        }
+      },
+      "CreatePledgeRequest": {
+        "type": "object",
+        "description": "Payload to record a pledge.",
+        "required": ["donorId", "amountCents", "dueDate"],
+        "properties": {
+          "donorId": { "type": "string", "description": "Donor id." },
+          "amountCents": { "type": "integer", "minimum": 1, "description": "Pledged amount in cents." },
+          "dueDate": { "type": "string", "format": "date", "description": "Pledge fulfilment deadline." }
+        }
+      },
+      "LapsedDonorsRequest": {
+        "type": "object",
+        "description": "Filter for identify_lapsed_donors.",
+        "properties": {
+          "monthsLapsed": { "type": "integer", "minimum": 1, "maximum": 240, "description": "Months without a gift to consider lapsed. Defaults to 12." },
+          "minLifetimeCents": { "type": "integer", "minimum": 0, "description": "Minimum lifetime giving threshold. Defaults to 0." }
+        }
+      },
+      "LapsedDonorsResponse": {
+        "type": "object",
+        "description": "Output of identify_lapsed_donors.",
+        "required": ["count", "monthsLapsed", "minLifetimeCents", "donors"],
+        "properties": {
+          "count": { "type": "integer", "description": "Number of lapsed donors returned." },
+          "monthsLapsed": { "type": "integer", "description": "The threshold used." },
+          "minLifetimeCents": { "type": "integer", "description": "The threshold used." },
+          "donors": { "type": "array", "description": "Lapsed donors.", "items": { "$ref": "#/components/schemas/Donor" } }
+        }
+      },
+      "SegmentRequest": {
+        "type": "object",
+        "description": "Input for segment_for_campaign.",
+        "required": ["campaignId"],
+        "properties": {
+          "campaignId": { "type": "string", "description": "Campaign id to segment for." },
+          "criteria": {
+            "type": "object",
+            "description": "Optional segmentation criteria.",
+            "properties": {
+              "minLifetimeCents": { "type": "integer", "minimum": 0, "description": "Lifetime giving floor." },
+              "gaveToCampaignInLastYears": { "type": "integer", "minimum": 1, "maximum": 50, "description": "Limit to donors who gave to this campaign within N years." },
+              "onlyActive": { "type": "boolean", "description": "Active donors only. Defaults to true." }
+            }
+          }
+        }
+      },
+      "SegmentResponse": {
+        "type": "object",
+        "description": "Output of segment_for_campaign.",
+        "required": ["campaignId", "count", "donors"],
+        "properties": {
+          "campaignId": { "type": "string", "description": "Campaign id segmented for." },
+          "count": { "type": "integer", "description": "Number of donors in segment." },
+          "donors": { "type": "array", "description": "Donors in segment.", "items": { "$ref": "#/components/schemas/Donor" } }
+        }
+      },
+      "YearEndRequest": {
+        "type": "object",
+        "description": "Input for generate_year_end_receipts.",
+        "required": ["year"],
+        "properties": {
+          "year": { "type": "integer", "minimum": 1900, "maximum": 2100, "description": "Calendar year to receipt." }
+        }
+      },
+      "YearEndResponse": {
+        "type": "object",
+        "description": "Output of generate_year_end_receipts.",
+        "required": ["year", "count", "receipts"],
+        "properties": {
+          "year": { "type": "integer", "description": "Calendar year." },
+          "count": { "type": "integer", "description": "Number of donors with receipts." },
+          "receipts": {
+            "type": "array",
+            "description": "Per-donor receipt summaries.",
+            "items": {
+              "type": "object",
+              "required": ["donorId", "donorName", "donorEmail", "year", "totalGivingCents", "totalTaxDeductibleCents", "donationCount", "donations"],
+              "properties": {
+                "donorId": { "type": "string", "description": "Donor id." },
+                "donorName": { "type": "string", "description": "Donor full name." },
+                "donorEmail": { "type": "string", "format": "email", "description": "Donor email." },
+                "mailingAddress": { "type": ["string", "null"], "description": "Donor mailing address if on file." },
+                "year": { "type": "integer", "description": "Calendar year." },
+                "totalGivingCents": { "type": "integer", "description": "Total of all gifts in the year." },
+                "totalTaxDeductibleCents": { "type": "integer", "description": "Total deductible portion." },
+                "donationCount": { "type": "integer", "description": "Number of donations in the year." },
+                "donations": {
+                  "type": "array",
+                  "description": "Per-donation detail rows.",
+                  "items": {
+                    "type": "object",
+                    "required": ["donationId", "amountCents", "taxDeductibleAmountCents", "receivedAt", "paymentMethod"],
+                    "properties": {
+                      "donationId": { "type": "string", "description": "Donation id." },
+                      "amountCents": { "type": "integer", "description": "Gross amount in cents." },
+                      "taxDeductibleAmountCents": { "type": "integer", "description": "Deductible portion." },
+                      "receivedAt": { "type": "string", "format": "date-time", "description": "When the donation was received." },
+                      "paymentMethod": { "type": "string", "description": "Payment method." },
+                      "restrictedFund": { "type": ["string", "null"], "description": "Restricted fund if any." }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

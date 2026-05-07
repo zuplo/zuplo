@@ -1,0 +1,752 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Employee Onboarding API",
+    "version": "1.0.0",
+    "description": "API + MCP server for managing new-hire onboarding. Replaces Sapling, ChartHop onboarding, Workday onboarding. Includes orchestrator MCP tools for spinning up plans from templates, surfacing overdue work, and drafting buddy notifications."
+  },
+  "paths": {
+    "/hires": {
+      "get": {
+        "operationId": "list_hires",
+        "summary": "List hires in the current tenant",
+        "description": "Returns a paginated list of new hires being onboarded. Optional status filter narrows by lifecycle phase.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of hires to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque pagination cursor.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Lifecycle phase filter.",
+            "schema": { "type": "string", "enum": ["pre_start", "first_week", "first_month", "complete"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of hires.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HirePage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-hires)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": true }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_hire",
+        "summary": "Create a hire",
+        "description": "Add a new hire. Defaults to status=pre_start. Use create_onboarding_plan separately to spin up tasks from a template.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/HireCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created hire.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Hire" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-hire)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": false }
+          }
+        }
+      }
+    },
+    "/hires/{id}": {
+      "get": {
+        "operationId": "get_hire",
+        "summary": "Get a hire by id",
+        "description": "Fetch a single hire.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Hire id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The hire.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Hire" }
+              }
+            }
+          },
+          "404": { "description": "Hire not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-hire)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": true }
+          }
+        }
+      }
+    },
+    "/tasks": {
+      "get": {
+        "operationId": "list_tasks",
+        "summary": "List onboarding tasks in the current tenant",
+        "description": "Returns onboarding tasks. Filter by hireId, status, ownerEmail, or category.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of tasks to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque pagination cursor.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "hireId",
+            "in": "query",
+            "description": "Filter to tasks for a single hire.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by task status.",
+            "schema": { "type": "string", "enum": ["open", "in_progress", "done", "blocked"] }
+          },
+          {
+            "name": "ownerEmail",
+            "in": "query",
+            "description": "Filter to tasks owned by a single email.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by category.",
+            "schema": { "type": "string", "enum": ["it", "hr", "manager", "buddy"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of tasks.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OnboardingTaskPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-tasks)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": true }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_task",
+        "summary": "Create an onboarding task",
+        "description": "Create a single onboarding task. For bulk-creating tasks from a template, use create_onboarding_plan instead.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/OnboardingTaskCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created task.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OnboardingTask" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-task)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": false }
+          }
+        }
+      }
+    },
+    "/tasks/{id}/complete": {
+      "patch": {
+        "operationId": "complete_task",
+        "summary": "Mark a task as done",
+        "description": "Mark an onboarding task as done. Sets status=done and completedAt to the current time. Idempotent.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Task id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The completed task.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OnboardingTask" }
+              }
+            }
+          },
+          "404": { "description": "Task not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/complete-task)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": false, "idempotentHint": true }
+          }
+        }
+      }
+    },
+    "/templates": {
+      "get": {
+        "operationId": "list_templates",
+        "summary": "List onboarding templates",
+        "description": "Returns reusable onboarding checklists. Filter by role.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of templates to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque pagination cursor.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "description": "Filter to templates for a single role.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of templates.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OnboardingTemplatePage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-templates)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": true }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_template",
+        "summary": "Create an onboarding template",
+        "description": "Define a reusable checklist. Each TaskTemplate carries a daysFromStart offset (0=start day, -3=three days before) and an optional dependsOnTitles array referencing other titles in the same template.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/OnboardingTemplateCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created template.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OnboardingTemplate" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-template)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": false }
+          }
+        }
+      }
+    },
+    "/create-onboarding-plan": {
+      "post": {
+        "operationId": "create_onboarding_plan",
+        "summary": "Spin up onboarding tasks from a template (orchestrator)",
+        "description": "Reads the template and creates one OnboardingTask per TaskTemplate, attached to the hire and scheduled relative to startDate. Resolves dependsOnTitles into the new task ids in a second pass.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["hireId", "templateId"],
+                "properties": {
+                  "hireId": { "type": "string", "description": "Hire to attach the tasks to." },
+                  "templateId": { "type": "string", "description": "Template to materialise." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tasks created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "hireId": { "type": "string", "description": "Hire id." },
+                    "templateId": { "type": "string", "description": "Source template id." },
+                    "tasksCreated": { "type": "integer", "description": "Number of tasks created." },
+                    "tasks": {
+                      "type": "array",
+                      "description": "The created OnboardingTask records.",
+                      "items": { "$ref": "#/components/schemas/OnboardingTask" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Hire or template not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/create-onboarding-plan)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": false }
+          }
+        }
+      }
+    },
+    "/check-overdue-tasks": {
+      "post": {
+        "operationId": "check_overdue_tasks",
+        "summary": "Find overdue tasks (orchestrator)",
+        "description": "Lists tasks where dueDate < today and status != done, optionally narrowed to a single hire. Groups results by ownerEmail so the LLM can chase the right people.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hireId": { "type": "string", "description": "Optional: limit to one hire's tasks." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Overdue tasks grouped by owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "asOf": { "type": "string", "description": "Date the check was run." },
+                    "filter": {
+                      "type": "object",
+                      "description": "Echo of the filter applied.",
+                      "properties": {
+                        "hireId": { "type": ["string", "null"], "description": "Hire filter, if any." }
+                      }
+                    },
+                    "overdueCount": { "type": "integer", "description": "Total overdue tasks." },
+                    "byOwner": {
+                      "type": "array",
+                      "description": "One entry per ownerEmail with overdue tasks.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ownerEmail": { "type": "string", "description": "Email of the owner." },
+                          "count": { "type": "integer", "description": "Tasks overdue for this owner." },
+                          "tasks": {
+                            "type": "array",
+                            "description": "Task summaries.",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": { "type": "string", "description": "Task id." },
+                                "hireId": { "type": "string", "description": "Hire the task is for." },
+                                "title": { "type": "string", "description": "Task title." },
+                                "dueDate": { "type": "string", "description": "Due date." },
+                                "status": { "type": "string", "description": "Task status." },
+                                "category": { "type": "string", "description": "Task category." }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/check-overdue-tasks)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": true }
+          }
+        }
+      }
+    },
+    "/notify-buddy": {
+      "post": {
+        "operationId": "notify_buddy",
+        "summary": "Draft a buddy notification (orchestrator)",
+        "description": "Reads the hire + their assigned buddy + the buddy-category tasks scheduled in the first week, and returns a draft notification payload. Does NOT actually send email — agents should review and send via their own email tool.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["hireId"],
+                "properties": {
+                  "hireId": { "type": "string", "description": "Hire whose buddy to notify." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft notification.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "to": { "type": "string", "description": "Buddy email address." },
+                    "subject": { "type": "string", "description": "Suggested subject line." },
+                    "body": { "type": "string", "description": "Plain-text body." },
+                    "hire": {
+                      "type": "object",
+                      "description": "Summary of the hire.",
+                      "properties": {
+                        "id": { "type": "string", "description": "Hire id." },
+                        "firstName": { "type": "string", "description": "First name." },
+                        "lastName": { "type": "string", "description": "Last name." },
+                        "startDate": { "type": "string", "description": "Start date." },
+                        "role": { "type": "string", "description": "Role." }
+                      }
+                    },
+                    "taskCount": { "type": "integer", "description": "Number of buddy tasks scheduled in the first week." },
+                    "tasks": {
+                      "type": "array",
+                      "description": "Buddy tasks scheduled in the first week.",
+                      "items": { "$ref": "#/components/schemas/OnboardingTask" }
+                    },
+                    "note": { "type": "string", "description": "Reminder that this tool drafts only." }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Hire not found in this tenant." },
+          "409": { "description": "Hire has no buddyEmail assigned." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/notify-buddy)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": true }
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "employee-onboarding",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_hires" },
+                { "file": "./config/routes.oas.json", "id": "get_hire" },
+                { "file": "./config/routes.oas.json", "id": "create_hire" },
+                { "file": "./config/routes.oas.json", "id": "list_tasks" },
+                { "file": "./config/routes.oas.json", "id": "create_task" },
+                { "file": "./config/routes.oas.json", "id": "complete_task" },
+                { "file": "./config/routes.oas.json", "id": "list_templates" },
+                { "file": "./config/routes.oas.json", "id": "create_template" },
+                { "file": "./config/routes.oas.json", "id": "create_onboarding_plan" },
+                { "file": "./config/routes.oas.json", "id": "check_overdue_tasks" },
+                { "file": "./config/routes.oas.json", "id": "notify_buddy" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Hire": {
+        "type": "object",
+        "description": "A new employee being onboarded.",
+        "required": ["id", "tenantId", "firstName", "lastName", "email", "role", "startDate", "managerEmail", "status", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the hire belongs to." },
+          "firstName": { "type": "string", "description": "First name." },
+          "lastName": { "type": "string", "description": "Last name." },
+          "email": { "type": "string", "description": "Work email." },
+          "role": { "type": "string", "description": "Role / job title." },
+          "startDate": { "type": "string", "format": "date", "description": "First day of work (YYYY-MM-DD)." },
+          "managerEmail": { "type": "string", "description": "Hiring manager's email." },
+          "buddyEmail": { "type": ["string", "null"], "description": "Onboarding buddy's email, if assigned." },
+          "status": { "type": "string", "enum": ["pre_start", "first_week", "first_month", "complete"], "description": "Lifecycle phase." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "ISO-8601 creation timestamp." }
+        }
+      },
+      "HireCreate": {
+        "type": "object",
+        "description": "Payload to create a hire.",
+        "required": ["firstName", "lastName", "email", "role", "startDate", "managerEmail"],
+        "properties": {
+          "firstName": { "type": "string", "description": "First name." },
+          "lastName": { "type": "string", "description": "Last name." },
+          "email": { "type": "string", "description": "Work email." },
+          "role": { "type": "string", "description": "Role / job title." },
+          "startDate": { "type": "string", "format": "date", "description": "First day of work." },
+          "managerEmail": { "type": "string", "description": "Hiring manager's email." },
+          "buddyEmail": { "type": "string", "description": "Optional onboarding buddy's email." }
+        }
+      },
+      "HirePage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Page of hires.", "items": { "$ref": "#/components/schemas/Hire" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "OnboardingTask": {
+        "type": "object",
+        "description": "A single onboarding checklist item.",
+        "required": ["id", "tenantId", "hireId", "title", "description", "ownerEmail", "dueDate", "status", "category", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the task belongs to." },
+          "hireId": { "type": "string", "description": "Hire the task is for." },
+          "title": { "type": "string", "description": "Short title." },
+          "description": { "type": "string", "description": "Longer description." },
+          "ownerEmail": { "type": "string", "description": "Person responsible for completing it." },
+          "dueDate": { "type": "string", "format": "date", "description": "Due date (YYYY-MM-DD)." },
+          "status": { "type": "string", "enum": ["open", "in_progress", "done", "blocked"], "description": "Task status." },
+          "category": { "type": "string", "enum": ["it", "hr", "manager", "buddy"], "description": "Owning team category." },
+          "dependsOn": { "type": "array", "description": "Task ids that must finish first.", "items": { "type": "string" } },
+          "completedAt": { "type": ["string", "null"], "format": "date-time", "description": "When the task was completed." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "ISO-8601 creation timestamp." }
+        }
+      },
+      "OnboardingTaskCreate": {
+        "type": "object",
+        "description": "Payload to create a single task.",
+        "required": ["hireId", "title", "description", "ownerEmail", "dueDate", "category"],
+        "properties": {
+          "hireId": { "type": "string", "description": "Hire the task is for." },
+          "title": { "type": "string", "description": "Short title." },
+          "description": { "type": "string", "description": "Longer description." },
+          "ownerEmail": { "type": "string", "description": "Person responsible." },
+          "dueDate": { "type": "string", "format": "date", "description": "Due date." },
+          "category": { "type": "string", "enum": ["it", "hr", "manager", "buddy"], "description": "Owning category." },
+          "dependsOn": { "type": "array", "description": "Task ids that must finish first.", "items": { "type": "string" } },
+          "status": { "type": "string", "enum": ["open", "in_progress", "done", "blocked"], "description": "Initial status. Defaults to 'open'." }
+        }
+      },
+      "OnboardingTaskPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Page of tasks.", "items": { "$ref": "#/components/schemas/OnboardingTask" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "TaskTemplate": {
+        "type": "object",
+        "description": "A task definition inside an OnboardingTemplate.",
+        "required": ["title", "description", "ownerEmail", "category", "daysFromStart"],
+        "properties": {
+          "title": { "type": "string", "description": "Task title." },
+          "description": { "type": "string", "description": "Task description." },
+          "ownerEmail": { "type": "string", "description": "Default owner." },
+          "category": { "type": "string", "enum": ["it", "hr", "manager", "buddy"], "description": "Owning team category." },
+          "daysFromStart": { "type": "integer", "description": "Days relative to startDate. Negative values are pre-start." },
+          "dependsOnTitles": { "type": "array", "description": "Other titles in this template that must finish first.", "items": { "type": "string" } }
+        }
+      },
+      "OnboardingTemplate": {
+        "type": "object",
+        "description": "A reusable onboarding checklist for a role.",
+        "required": ["id", "tenantId", "name", "role", "tasks", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the template belongs to." },
+          "name": { "type": "string", "description": "Template name." },
+          "role": { "type": "string", "description": "Role this template targets." },
+          "tasks": { "type": "array", "description": "Task definitions.", "items": { "$ref": "#/components/schemas/TaskTemplate" } },
+          "createdAt": { "type": "string", "format": "date-time", "description": "ISO-8601 creation timestamp." }
+        }
+      },
+      "OnboardingTemplateCreate": {
+        "type": "object",
+        "description": "Payload to create a template.",
+        "required": ["name", "role", "tasks"],
+        "properties": {
+          "name": { "type": "string", "description": "Template name." },
+          "role": { "type": "string", "description": "Role this template targets." },
+          "tasks": { "type": "array", "description": "Task definitions.", "items": { "$ref": "#/components/schemas/TaskTemplate" } }
+        }
+      },
+      "OnboardingTemplatePage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Page of templates.", "items": { "$ref": "#/components/schemas/OnboardingTemplate" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      }
+    }
+  }
+}

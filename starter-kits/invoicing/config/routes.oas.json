@@ -1,0 +1,559 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Invoicing API",
+    "version": "1.0.0",
+    "description": "Headless invoicing API — issue, send, void, and chase invoices. Replaces QuickBooks Invoicing, FreshBooks, Wave. Ships with orchestrator MCP tools that draft chase emails and produce AR aging summaries."
+  },
+  "paths": {
+    "/invoices": {
+      "get": {
+        "operationId": "list_invoices",
+        "summary": "List invoices in the current tenant",
+        "description": "Returns a paginated list of invoices. Use `cursor` to fetch subsequent pages.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum invoices to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Pagination cursor.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of invoices.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/InvoicePage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-invoices)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_invoice",
+        "summary": "Create a draft invoice",
+        "description": "Create an invoice in `draft` status. Use `send_invoice` to mark it sent and `record_payment` to mark it paid.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/InvoiceCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created invoice.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Invoice" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-invoice)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/invoices/{id}": {
+      "get": {
+        "operationId": "get_invoice",
+        "summary": "Get an invoice by id",
+        "description": "Fetch a single invoice from the current tenant.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Invoice id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The invoice.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Invoice" }
+              }
+            }
+          },
+          "404": { "description": "Invoice not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-invoice)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/invoices/{id}/send": {
+      "patch": {
+        "operationId": "send_invoice",
+        "summary": "Mark an invoice as sent",
+        "description": "Transition an invoice from `draft` to `sent` and stamp `sentAt`. Use `record_payment` next when payment arrives.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Invoice id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The updated invoice.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Invoice" }
+              }
+            }
+          },
+          "404": { "description": "Invoice not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/send-invoice)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/invoices/{id}/void": {
+      "patch": {
+        "operationId": "void_invoice",
+        "summary": "Void an invoice",
+        "description": "Mark an invoice as `void`. Voiding is destructive — the invoice is no longer collectible.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Invoice id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The voided invoice.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Invoice" }
+              }
+            }
+          },
+          "404": { "description": "Invoice not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/void-invoice)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "destructiveHint": true } }
+        }
+      }
+    },
+    "/payments": {
+      "post": {
+        "operationId": "record_payment",
+        "summary": "Record a payment against an invoice",
+        "description": "Records a payment and (best-effort) marks the invoice paid. Real implementations should compare sum(payments) vs totalCents before flipping status.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PaymentCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The recorded payment.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Payment" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/record-payment)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/customers": {
+      "get": {
+        "operationId": "list_customers",
+        "summary": "List customers",
+        "description": "Returns a paginated list of customers (the people/companies you bill).",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max customers to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Pagination cursor.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of customers.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CustomerPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-customers)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_customer",
+        "summary": "Create a customer",
+        "description": "Create a new customer record.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CustomerCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created customer.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Customer" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-customer)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/chase-overdue-invoices": {
+      "post": {
+        "operationId": "chase_overdue_invoices",
+        "summary": "Chase overdue invoices (orchestrator)",
+        "description": "Orchestrator MCP tool. Lists invoices past due, hydrates customer info, and produces a draft chase email per invoice. Tone is intentionally neutral — the LLM caller should rewrite for voice.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "daysOverdue": { "type": "integer", "description": "Only include invoices that are at least this many days past due. Defaults to 0.", "minimum": 0, "maximum": 365 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chase summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": { "type": "integer", "description": "Number of overdue invoices." },
+                    "totalOutstandingCents": { "type": "integer", "description": "Sum of total amounts across overdue invoices, in cents." },
+                    "invoices": {
+                      "type": "array",
+                      "description": "Per-invoice chase rows.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "invoice": { "$ref": "#/components/schemas/Invoice" },
+                          "customer": { "$ref": "#/components/schemas/Customer" },
+                          "daysOverdue": { "type": "integer", "description": "How many days past dueDate." },
+                          "draftEmail": { "type": "string", "description": "Draft email text the LLM can rewrite." }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/chase-overdue-invoices)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/summarize-ar-aging": {
+      "post": {
+        "operationId": "summarize_ar_aging",
+        "summary": "Summarize AR aging by bucket (orchestrator)",
+        "description": "Orchestrator MCP tool. Buckets outstanding invoices into 0-30/31-60/61-90/90+ days past due based on `asOf` (defaults to today) and returns counts plus totals per bucket.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "asOf": { "type": "string", "format": "date-time", "description": "Cutoff date for aging. Defaults to now." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AR aging summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "asOf": { "type": "string", "description": "The asOf timestamp the buckets were computed against." },
+                    "buckets": {
+                      "type": "object",
+                      "description": "Counts and totals per aging bucket.",
+                      "properties": {
+                        "0-30": { "$ref": "#/components/schemas/AgingBucket" },
+                        "31-60": { "$ref": "#/components/schemas/AgingBucket" },
+                        "61-90": { "$ref": "#/components/schemas/AgingBucket" },
+                        "90+": { "$ref": "#/components/schemas/AgingBucket" }
+                      }
+                    },
+                    "grandTotalCents": { "type": "integer", "description": "Sum across all buckets, in cents." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/summarize-ar-aging)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "invoicing-server",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_invoices" },
+                { "file": "./config/routes.oas.json", "id": "get_invoice" },
+                { "file": "./config/routes.oas.json", "id": "create_invoice" },
+                { "file": "./config/routes.oas.json", "id": "send_invoice" },
+                { "file": "./config/routes.oas.json", "id": "void_invoice" },
+                { "file": "./config/routes.oas.json", "id": "record_payment" },
+                { "file": "./config/routes.oas.json", "id": "list_customers" },
+                { "file": "./config/routes.oas.json", "id": "create_customer" },
+                { "file": "./config/routes.oas.json", "id": "chase_overdue_invoices" },
+                { "file": "./config/routes.oas.json", "id": "summarize_ar_aging" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Invoice": {
+        "type": "object",
+        "description": "An invoice issued to a customer.",
+        "required": ["id", "tenantId", "customerId", "number", "status", "subtotalCents", "taxCents", "totalCents", "currency", "dueDate", "sentAt", "paidAt", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique invoice id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the invoice belongs to. Set automatically from the API key." },
+          "customerId": { "type": "string", "description": "Id of the customer being billed." },
+          "number": { "type": "string", "description": "Human-friendly invoice number (INV-001, etc.)." },
+          "status": { "type": "string", "enum": ["draft", "sent", "paid", "overdue", "void"], "description": "Lifecycle state." },
+          "subtotalCents": { "type": "integer", "description": "Pre-tax subtotal in cents." },
+          "taxCents": { "type": "integer", "description": "Tax amount in cents." },
+          "totalCents": { "type": "integer", "description": "Total amount in cents (subtotal + tax)." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code (USD, EUR, GBP, ...)." },
+          "dueDate": { "type": "string", "format": "date", "description": "Date the invoice is due." },
+          "sentAt": { "type": ["string", "null"], "format": "date-time", "description": "When the invoice was sent. Null until status moves past 'draft'." },
+          "paidAt": { "type": ["string", "null"], "format": "date-time", "description": "When the invoice was paid. Null until paid." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "InvoiceCreate": {
+        "type": "object",
+        "description": "Payload to create a draft invoice.",
+        "required": ["customerId", "number", "subtotalCents", "taxCents", "totalCents", "currency", "dueDate"],
+        "properties": {
+          "customerId": { "type": "string", "description": "Id of the customer being billed." },
+          "number": { "type": "string", "description": "Invoice number." },
+          "subtotalCents": { "type": "integer", "description": "Pre-tax subtotal in cents." },
+          "taxCents": { "type": "integer", "description": "Tax amount in cents." },
+          "totalCents": { "type": "integer", "description": "Total amount in cents." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code." },
+          "dueDate": { "type": "string", "format": "date", "description": "Date the invoice is due." }
+        }
+      },
+      "InvoicePage": {
+        "type": "object",
+        "description": "A page of invoices.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Invoices on this page.", "items": { "$ref": "#/components/schemas/Invoice" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor. Null when no more results." }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "description": "A customer that can be billed.",
+        "required": ["id", "tenantId", "name", "email", "billingAddress", "currency", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique customer id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the customer belongs to." },
+          "name": { "type": "string", "description": "Customer name (person or company)." },
+          "email": { "type": "string", "format": "email", "description": "Billing email address." },
+          "billingAddress": { "type": "string", "description": "Billing address (free-form)." },
+          "currency": { "type": "string", "description": "Default currency for invoices to this customer." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "CustomerCreate": {
+        "type": "object",
+        "description": "Payload to create a customer.",
+        "required": ["name", "email", "billingAddress", "currency"],
+        "properties": {
+          "name": { "type": "string", "description": "Customer name." },
+          "email": { "type": "string", "format": "email", "description": "Billing email." },
+          "billingAddress": { "type": "string", "description": "Billing address." },
+          "currency": { "type": "string", "description": "Default currency." }
+        }
+      },
+      "CustomerPage": {
+        "type": "object",
+        "description": "A page of customers.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Customers on this page.", "items": { "$ref": "#/components/schemas/Customer" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "description": "A payment recorded against an invoice.",
+        "required": ["id", "tenantId", "invoiceId", "amountCents", "method", "paidAt", "reference", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique payment id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the payment belongs to." },
+          "invoiceId": { "type": "string", "description": "Id of the invoice the payment applies to." },
+          "amountCents": { "type": "integer", "description": "Amount paid, in cents." },
+          "method": { "type": "string", "description": "Payment method (e.g. 'ach', 'card', 'wire', 'check')." },
+          "paidAt": { "type": "string", "format": "date-time", "description": "When the payment was made." },
+          "reference": { "type": "string", "description": "External reference (check number, ACH trace, etc.)." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "PaymentCreate": {
+        "type": "object",
+        "description": "Payload to record a payment.",
+        "required": ["invoiceId", "amountCents", "method", "paidAt", "reference"],
+        "properties": {
+          "invoiceId": { "type": "string", "description": "Id of the invoice the payment applies to." },
+          "amountCents": { "type": "integer", "description": "Amount paid, in cents." },
+          "method": { "type": "string", "description": "Payment method (e.g. 'ach', 'card', 'wire', 'check')." },
+          "paidAt": { "type": "string", "format": "date-time", "description": "When the payment was made." },
+          "reference": { "type": "string", "description": "External reference." }
+        }
+      },
+      "AgingBucket": {
+        "type": "object",
+        "description": "Counts and totals for a single aging bucket.",
+        "required": ["count", "totalCents"],
+        "properties": {
+          "count": { "type": "integer", "description": "Number of invoices in this bucket." },
+          "totalCents": { "type": "integer", "description": "Sum of total amounts in cents." }
+        }
+      }
+    }
+  }
+}

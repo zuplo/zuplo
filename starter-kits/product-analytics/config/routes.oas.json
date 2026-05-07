@@ -1,0 +1,950 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Product Analytics Events API",
+    "version": "1.0.0",
+    "description": "Headless product analytics API. Replaces Mixpanel and lightweight Amplitude deployments. Ingest events, identify users, define funnels and cohorts, and run orchestrator MCP tools that propose funnels from natural-language questions, find drop-off steps, and compare cohorts."
+  },
+  "paths": {
+    "/events": {
+      "get": {
+        "operationId": "list_events",
+        "summary": "List recent events",
+        "description": "Returns a paginated list of events ordered by `occurredAt` descending. For high-volume tenants, push filters into ClickHouse via the adapter.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum events to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Pagination cursor.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of events.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EventPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-events)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/ingest-event": {
+      "post": {
+        "operationId": "ingest_event",
+        "summary": "Ingest a single event",
+        "description": "Record one event. For client SDK ingestion or low-volume sources. Use `ingest_events_batch` for bulk loads.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EventCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created event.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Event" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/ingest-event)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/ingest-events-batch": {
+      "post": {
+        "operationId": "ingest_events_batch",
+        "summary": "Ingest a batch of events",
+        "description": "Record many events in one call. Recommended for server-side ingestion. ClickHouse production deployments should add a bulk-insert RPC instead of looping.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["events"],
+                "properties": {
+                  "events": {
+                    "type": "array",
+                    "description": "List of events to ingest.",
+                    "items": { "$ref": "#/components/schemas/EventCreate" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created events.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": { "type": "integer", "description": "Number of events ingested." },
+                    "events": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Event" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/ingest-events-batch)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "list_users",
+        "summary": "List users",
+        "description": "Paginated list of users (anonymous + identified) ordered by `lastSeenAt` descending.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum users to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Pagination cursor.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of users.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-users)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "operationId": "get_user",
+        "summary": "Get a user by id",
+        "description": "Fetch a single user record (anonymous or identified) from the current tenant.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "User id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The user.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "404": { "description": "User not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-user)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "patch": {
+        "operationId": "identify_user",
+        "summary": "Identify a user",
+        "description": "Attach an `identifiedEmail` and merge `traits` onto an existing user record. Use this when an anonymous user signs up or logs in.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "User id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identifiedEmail": { "type": ["string", "null"], "format": "email", "description": "Email to attach. Null clears it." },
+                  "traits": { "type": "object", "additionalProperties": true, "description": "Traits to merge into the user. Existing keys are overwritten." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated user.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "404": { "description": "User not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/identify-user)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/funnels": {
+      "get": {
+        "operationId": "list_funnels",
+        "summary": "List funnels",
+        "description": "Returns a paginated list of saved funnel definitions.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum funnels to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Pagination cursor.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of funnels.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FunnelPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-funnels)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_funnel",
+        "summary": "Create a funnel",
+        "description": "Save a funnel definition by `slug`. Steps are an ordered list of {eventName, filters} pairs.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FunnelCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created funnel.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Funnel" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-funnel)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/funnels/{slug}": {
+      "get": {
+        "operationId": "get_funnel",
+        "summary": "Get a funnel by slug",
+        "description": "Fetch a saved funnel definition.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "description": "Funnel slug.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The funnel.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Funnel" }
+              }
+            }
+          },
+          "404": { "description": "Funnel not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-funnel)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/compute-funnel": {
+      "post": {
+        "operationId": "compute_funnel",
+        "summary": "Compute a funnel over a date window",
+        "description": "Counts how many users complete each funnel step over [`dateFrom`,`dateTo`] and returns counts plus step-to-step conversion rates.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["funnelSlug"],
+                "properties": {
+                  "funnelSlug": { "type": "string", "description": "Slug of the funnel to compute." },
+                  "dateFrom": { "type": "string", "format": "date-time", "description": "Window start. Defaults to the epoch." },
+                  "dateTo": { "type": "string", "format": "date-time", "description": "Window end. Defaults to now." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Funnel computation result.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FunnelResult" }
+              }
+            }
+          },
+          "404": { "description": "Funnel not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/compute-funnel)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/cohorts": {
+      "get": {
+        "operationId": "list_cohorts",
+        "summary": "List cohorts",
+        "description": "Returns a paginated list of saved cohort definitions and their last-computed user counts.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum cohorts to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Pagination cursor.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of cohorts.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CohortPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-cohorts)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_cohort",
+        "summary": "Create a cohort",
+        "description": "Save a cohort by `slug`. `criteria` is a flat key/value map matched against user `traits` (plus the special `identifiedEmail` key).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CohortCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created cohort.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Cohort" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-cohort)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/compute-cohort": {
+      "post": {
+        "operationId": "compute_cohort",
+        "summary": "Compute a cohort's membership",
+        "description": "Counts users matching the cohort criteria, updates `userCount` + `computedAt` on the cohort record, and returns a sample of user ids.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["cohortSlug"],
+                "properties": {
+                  "cohortSlug": { "type": "string", "description": "Slug of the cohort to compute." },
+                  "sampleSize": { "type": "integer", "description": "How many user ids to return as a sample. Defaults to 10.", "minimum": 1, "maximum": 100 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cohort computation result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cohortSlug": { "type": "string", "description": "Cohort slug." },
+                    "userCount": { "type": "integer", "description": "Number of users matching criteria." },
+                    "sampleUserIds": { "type": "array", "items": { "type": "string" }, "description": "Sample of matching user ids." },
+                    "computedAt": { "type": "string", "format": "date-time", "description": "When this computation ran." }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Cohort not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/compute-cohort)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/define-funnel-from-question": {
+      "post": {
+        "operationId": "define_funnel_from_question",
+        "summary": "Propose a funnel from a natural-language question (orchestrator)",
+        "description": "Stub matcher that scores word overlap between a question and a list of candidate event names. Returns proposed steps the caller can persist with `create_funnel`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["question", "candidateEvents"],
+                "properties": {
+                  "question": { "type": "string", "description": "User-supplied analytics question." },
+                  "candidateEvents": { "type": "array", "items": { "type": "string" }, "description": "Event names the matcher should pick from. Provide your tracked event names." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Proposed funnel.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "question": { "type": "string", "description": "The original question." },
+                    "proposedSteps": {
+                      "type": "array",
+                      "description": "Ordered proposed funnel steps.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "eventName": { "type": "string", "description": "Event name." },
+                          "filters": { "type": "object", "additionalProperties": true, "description": "Filters (initially empty)." },
+                          "matchedTokens": { "type": "array", "items": { "type": "string" }, "description": "Tokens that matched the question." }
+                        }
+                      }
+                    },
+                    "candidatesConsidered": { "type": "integer", "description": "Number of candidates passed in." },
+                    "questionTokens": { "type": "array", "items": { "type": "string" }, "description": "Tokens extracted from the question." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/define-funnel-from-question)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/find-drop-off-step": {
+      "post": {
+        "operationId": "find_drop_off_step",
+        "summary": "Find the worst drop-off step in a funnel (orchestrator)",
+        "description": "Calls `compute_funnel` over the last `daysBack` days, then returns the step with the largest drop in conversion from the previous step.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["funnelSlug"],
+                "properties": {
+                  "funnelSlug": { "type": "string", "description": "Slug of the funnel to analyse." },
+                  "daysBack": { "type": "integer", "description": "Lookback window in days. Defaults to 7.", "minimum": 1, "maximum": 365 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Worst drop-off step plus full funnel breakdown.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "funnelSlug": { "type": "string", "description": "Funnel slug." },
+                    "daysBack": { "type": "integer", "description": "Lookback window in days." },
+                    "dateFrom": { "type": "string", "format": "date-time", "description": "Window start." },
+                    "dateTo": { "type": "string", "format": "date-time", "description": "Window end." },
+                    "stepsAnalyzed": { "type": "integer", "description": "Number of post-first steps considered." },
+                    "worstStep": {
+                      "type": ["object", "null"],
+                      "description": "The step with the worst drop-off (or null if no qualifying step).",
+                      "properties": {
+                        "stepIndex": { "type": "integer", "description": "Zero-based index." },
+                        "eventName": { "type": "string", "description": "Event name for this step." },
+                        "count": { "type": "integer", "description": "Users completing this step." },
+                        "conversionFromPrev": { "type": "number", "description": "Fraction of previous-step users who completed this step." }
+                      }
+                    },
+                    "dropoffPct": { "type": ["number", "null"], "description": "Drop-off percentage at the worst step (1 - conversionFromPrev * 100)." },
+                    "allSteps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "stepIndex": { "type": "integer", "description": "Zero-based index." },
+                          "eventName": { "type": "string", "description": "Event name." },
+                          "count": { "type": "integer", "description": "Users at this step." },
+                          "conversionFromPrev": { "type": "number", "description": "Step-over-step conversion rate." }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/find-drop-off-step)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/compare-cohorts": {
+      "post": {
+        "operationId": "compare_cohorts",
+        "summary": "Compare two cohorts on a metric (orchestrator)",
+        "description": "Pulls users in two cohorts (by slug), then computes a per-user metric (`session_count` or `event_count`) and returns mean + count for each cohort plus the delta.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["cohortSlugA", "cohortSlugB", "metric"],
+                "properties": {
+                  "cohortSlugA": { "type": "string", "description": "Slug of cohort A." },
+                  "cohortSlugB": { "type": "string", "description": "Slug of cohort B." },
+                  "metric": { "type": "string", "enum": ["session_count", "event_count"], "description": "Per-user metric to compute." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cohort comparison.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "metric": { "type": "string", "description": "The metric that was computed." },
+                    "cohortA": {
+                      "type": "object",
+                      "properties": {
+                        "slug": { "type": "string", "description": "Cohort A slug." },
+                        "userCount": { "type": "integer", "description": "Users matching cohort A." },
+                        "mean": { "type": "number", "description": "Mean metric value across cohort A users." }
+                      }
+                    },
+                    "cohortB": {
+                      "type": "object",
+                      "properties": {
+                        "slug": { "type": "string", "description": "Cohort B slug." },
+                        "userCount": { "type": "integer", "description": "Users matching cohort B." },
+                        "mean": { "type": "number", "description": "Mean metric value across cohort B users." }
+                      }
+                    },
+                    "delta": { "type": "number", "description": "cohortA.mean - cohortB.mean. Positive means A is higher." }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "One or both cohorts not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/compare-cohorts)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "product-analytics-server",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_events" },
+                { "file": "./config/routes.oas.json", "id": "ingest_event" },
+                { "file": "./config/routes.oas.json", "id": "ingest_events_batch" },
+                { "file": "./config/routes.oas.json", "id": "list_users" },
+                { "file": "./config/routes.oas.json", "id": "get_user" },
+                { "file": "./config/routes.oas.json", "id": "identify_user" },
+                { "file": "./config/routes.oas.json", "id": "list_funnels" },
+                { "file": "./config/routes.oas.json", "id": "get_funnel" },
+                { "file": "./config/routes.oas.json", "id": "create_funnel" },
+                { "file": "./config/routes.oas.json", "id": "compute_funnel" },
+                { "file": "./config/routes.oas.json", "id": "list_cohorts" },
+                { "file": "./config/routes.oas.json", "id": "create_cohort" },
+                { "file": "./config/routes.oas.json", "id": "compute_cohort" },
+                { "file": "./config/routes.oas.json", "id": "define_funnel_from_question" },
+                { "file": "./config/routes.oas.json", "id": "find_drop_off_step" },
+                { "file": "./config/routes.oas.json", "id": "compare_cohorts" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Event": {
+        "type": "object",
+        "description": "A single tracked event.",
+        "required": ["id", "tenantId", "userId", "name", "properties", "occurredAt", "sessionId", "deviceId", "ip", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique event id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the event belongs to." },
+          "userId": { "type": "string", "description": "Id of the user who triggered the event." },
+          "name": { "type": "string", "description": "Event name (e.g. `signup_completed`, `checkout_started`)." },
+          "properties": { "type": "object", "additionalProperties": true, "description": "Free-form event properties." },
+          "occurredAt": { "type": "string", "format": "date-time", "description": "When the event was triggered (client-supplied)." },
+          "sessionId": { "type": ["string", "null"], "description": "Session this event belongs to. Null when sessionless." },
+          "deviceId": { "type": ["string", "null"], "description": "Device identifier. Null when unknown." },
+          "ip": { "type": ["string", "null"], "description": "IP address that sent the event. Null when omitted." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "When the gateway recorded the event." }
+        }
+      },
+      "EventCreate": {
+        "type": "object",
+        "description": "Payload to ingest an event.",
+        "required": ["userId", "name"],
+        "properties": {
+          "userId": { "type": "string", "description": "Id of the user who triggered the event." },
+          "name": { "type": "string", "description": "Event name." },
+          "properties": { "type": "object", "additionalProperties": true, "description": "Free-form event properties." },
+          "occurredAt": { "type": "string", "format": "date-time", "description": "When the event was triggered. Defaults to now." },
+          "sessionId": { "type": ["string", "null"], "description": "Session this event belongs to." },
+          "deviceId": { "type": ["string", "null"], "description": "Device identifier." },
+          "ip": { "type": ["string", "null"], "description": "IP address." }
+        }
+      },
+      "EventPage": {
+        "type": "object",
+        "description": "A page of events.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Events on this page.", "items": { "$ref": "#/components/schemas/Event" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor. Null when no more results." }
+        }
+      },
+      "User": {
+        "type": "object",
+        "description": "A tracked user (anonymous or identified).",
+        "required": ["id", "tenantId", "anonId", "identifiedEmail", "firstSeenAt", "lastSeenAt", "traits", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique user id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the user belongs to." },
+          "anonId": { "type": "string", "description": "Stable anonymous identifier from the SDK." },
+          "identifiedEmail": { "type": ["string", "null"], "format": "email", "description": "Email once the user has been identified. Null while anonymous." },
+          "firstSeenAt": { "type": "string", "format": "date-time", "description": "When this user first triggered an event." },
+          "lastSeenAt": { "type": "string", "format": "date-time", "description": "When this user most recently triggered an event." },
+          "traits": { "type": "object", "additionalProperties": true, "description": "User traits, e.g. plan, country, signup_source." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "UserPage": {
+        "type": "object",
+        "description": "A page of users.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Users on this page.", "items": { "$ref": "#/components/schemas/User" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Funnel": {
+        "type": "object",
+        "description": "A funnel definition.",
+        "required": ["id", "tenantId", "slug", "name", "steps", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique funnel id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the funnel belongs to." },
+          "slug": { "type": "string", "description": "Stable slug used to look up the funnel." },
+          "name": { "type": "string", "description": "Human-readable name." },
+          "steps": {
+            "type": "array",
+            "description": "Ordered funnel steps.",
+            "items": {
+              "type": "object",
+              "required": ["eventName"],
+              "properties": {
+                "eventName": { "type": "string", "description": "Event name to match for this step." },
+                "filters": { "type": "object", "additionalProperties": true, "description": "Equality filters on event properties." }
+              }
+            }
+          },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "FunnelCreate": {
+        "type": "object",
+        "description": "Payload to create a funnel.",
+        "required": ["slug", "name", "steps"],
+        "properties": {
+          "slug": { "type": "string", "description": "Stable slug." },
+          "name": { "type": "string", "description": "Human-readable name." },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["eventName"],
+              "properties": {
+                "eventName": { "type": "string", "description": "Event name." },
+                "filters": { "type": "object", "additionalProperties": true, "description": "Optional filters." }
+              }
+            }
+          }
+        }
+      },
+      "FunnelPage": {
+        "type": "object",
+        "description": "A page of funnels.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Funnels on this page.", "items": { "$ref": "#/components/schemas/Funnel" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "FunnelResult": {
+        "type": "object",
+        "description": "Result of a funnel computation.",
+        "required": ["funnelSlug", "usersConsidered", "steps"],
+        "properties": {
+          "funnelSlug": { "type": "string", "description": "Funnel slug." },
+          "dateFrom": { "type": ["string", "null"], "format": "date-time", "description": "Window start." },
+          "dateTo": { "type": ["string", "null"], "format": "date-time", "description": "Window end." },
+          "usersConsidered": { "type": "integer", "description": "Distinct users with at least one event in the window." },
+          "steps": {
+            "type": "array",
+            "description": "Per-step counts and conversion rates.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "stepIndex": { "type": "integer", "description": "Zero-based step index." },
+                "eventName": { "type": "string", "description": "Event name." },
+                "count": { "type": "integer", "description": "Users completing this step." },
+                "conversionFromPrev": { "type": "number", "description": "Conversion from the previous step (0..1)." }
+              }
+            }
+          }
+        }
+      },
+      "Cohort": {
+        "type": "object",
+        "description": "A cohort definition.",
+        "required": ["id", "tenantId", "slug", "name", "criteria", "userCount", "computedAt", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique cohort id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the cohort belongs to." },
+          "slug": { "type": "string", "description": "Stable slug used to look up the cohort." },
+          "name": { "type": "string", "description": "Human-readable name." },
+          "criteria": { "type": "object", "additionalProperties": true, "description": "Flat key/value match criteria against user traits." },
+          "userCount": { "type": "integer", "description": "Cached count of matching users from the last `compute_cohort` call." },
+          "computedAt": { "type": ["string", "null"], "format": "date-time", "description": "When `compute_cohort` last ran. Null if never." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "CohortCreate": {
+        "type": "object",
+        "description": "Payload to create a cohort.",
+        "required": ["slug", "name", "criteria"],
+        "properties": {
+          "slug": { "type": "string", "description": "Stable slug." },
+          "name": { "type": "string", "description": "Human-readable name." },
+          "criteria": { "type": "object", "additionalProperties": true, "description": "Match criteria." }
+        }
+      },
+      "CohortPage": {
+        "type": "object",
+        "description": "A page of cohorts.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Cohorts on this page.", "items": { "$ref": "#/components/schemas/Cohort" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      }
+    }
+  }
+}

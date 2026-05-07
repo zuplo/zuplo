@@ -1,0 +1,822 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Renewal Management API",
+    "version": "1.0.0",
+    "description": "Headless renewal-forecasting and negotiation API for CSMs and renewal AEs. Models renewal opportunities, the contracts behind them, the risks logged against them, and the negotiation back-and-forth. Replaces Gainsight Renewals and Salesforce Renewal Cloud."
+  },
+  "paths": {
+    "/renewals": {
+      "get": {
+        "operationId": "list_renewals",
+        "summary": "List renewal opportunities",
+        "description": "Returns renewals ordered by upcoming renewal date. Filter by status, ownerEmail, or riskTier so a renewal AE can fetch their book in one call.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of renewals to return. Defaults to 50.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque pagination cursor from a previous response.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Restrict to renewals in this status.",
+            "schema": { "type": "string", "enum": ["upcoming", "in_negotiation", "won", "lost", "churned"] }
+          },
+          {
+            "name": "ownerEmail",
+            "in": "query",
+            "description": "Restrict to renewals owned by this AE.",
+            "schema": { "type": "string", "format": "email" }
+          },
+          {
+            "name": "riskTier",
+            "in": "query",
+            "description": "Restrict to renewals at this risk tier.",
+            "schema": { "type": "string", "enum": ["low", "med", "high"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of renewals.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RenewalPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-renewals)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_renewal",
+        "summary": "Create a renewal opportunity",
+        "description": "Create a new renewal tied to an existing contract. Defaults `proposedArrCents` to `currentArrCents`, `status` to `upcoming`, `riskTier` to `low`, and `forecastCategory` to `pipeline`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RenewalCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created renewal.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RenewalOpportunity" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-renewal)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/renewals/{id}": {
+      "get": {
+        "operationId": "get_renewal",
+        "summary": "Get a renewal by id",
+        "description": "Fetch a single renewal opportunity from the current tenant.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Renewal id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The renewal.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RenewalOpportunity" }
+              }
+            }
+          },
+          "404": { "description": "Renewal not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-renewal)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "patch": {
+        "operationId": "update_renewal_status",
+        "summary": "Update a renewal's status",
+        "description": "Move a renewal between statuses (e.g. upcoming -> in_negotiation -> won) and optionally update the forecast category and proposed ARR.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Renewal id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RenewalStatusUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated renewal.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RenewalOpportunity" }
+              }
+            }
+          },
+          "404": { "description": "Renewal not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/update-renewal-status)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/contracts": {
+      "get": {
+        "operationId": "list_contracts",
+        "summary": "List contracts",
+        "description": "Returns contracts ordered by end date. Filter by accountId for an account's contract history.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of contracts to return. Defaults to 50.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque pagination cursor from a previous response.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "accountId",
+            "in": "query",
+            "description": "Restrict to contracts on a single account.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of contracts.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ContractPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-contracts)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/contracts/{id}": {
+      "get": {
+        "operationId": "get_contract",
+        "summary": "Get a contract by id",
+        "description": "Fetch a single contract from the current tenant.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Contract id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The contract.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Contract" }
+              }
+            }
+          },
+          "404": { "description": "Contract not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-contract)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/risk-factors": {
+      "get": {
+        "operationId": "list_risk_factors",
+        "summary": "List risk factors on renewals",
+        "description": "Returns risk factors newest first. Filter by renewalId to scope to a single renewal, or by `open=true|false` to find unresolved or resolved risks.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of risk factors to return. Defaults to 50.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque pagination cursor from a previous response.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "renewalId",
+            "in": "query",
+            "description": "Restrict to risks on a single renewal.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "open",
+            "in": "query",
+            "description": "If `true`, only unresolved risks (addressedAt is null). If `false`, only resolved risks.",
+            "schema": { "type": "string", "enum": ["true", "false"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of risk factors.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RiskFactorPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-risk-factors)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "add_risk_factor",
+        "summary": "Add a risk factor to a renewal",
+        "description": "Append a new risk factor on a renewal. `addedAt` is set automatically; `addressedAt` starts null.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RiskFactorCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created risk factor.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RiskFactor" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/add-risk-factor)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/negotiations": {
+      "get": {
+        "operationId": "list_negotiations",
+        "summary": "List negotiations on renewals",
+        "description": "Returns negotiation entries. Filter by renewalId for a renewal's full history, or by status to find only open proposals.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of negotiations to return. Defaults to 50.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque pagination cursor from a previous response.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "renewalId",
+            "in": "query",
+            "description": "Restrict to negotiations on a single renewal.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Restrict to negotiations in this status.",
+            "schema": { "type": "string", "enum": ["open", "accepted", "rejected"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of negotiations.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NegotiationPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-negotiations)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "log_negotiation",
+        "summary": "Log a negotiation entry",
+        "description": "Record a new negotiation proposal on a renewal. If `status` is provided as `accepted`/`rejected`, `decidedAt` is set automatically.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NegotiationCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The logged negotiation.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Negotiation" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/log-negotiation)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/prep-renewal-briefing": {
+      "post": {
+        "operationId": "prep_renewal_briefing",
+        "summary": "Prepare a renewal briefing (orchestrator)",
+        "description": "Pulls the renewal, the underlying contract, all risk factors (open and addressed), and the full negotiation history for an LLM-shaped briefing.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["renewalId"],
+                "properties": {
+                  "renewalId": {
+                    "type": "string",
+                    "description": "Renewal to prepare a briefing for."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Renewal briefing.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RenewalBriefing" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/prep-renewal-briefing)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/calculate-uplift-proposal": {
+      "post": {
+        "operationId": "calculate_uplift_proposal",
+        "summary": "Recommend an uplift % and ARR (orchestrator)",
+        "description": "Recommends a target uplift and resulting ARR for a renewal, capped by the open risk-factor profile. High-severity open risks zero out the uplift; medium caps it at 3%.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["renewalId"],
+                "properties": {
+                  "renewalId": { "type": "string", "description": "Renewal to compute uplift for." },
+                  "targetUpliftPercent": {
+                    "type": "number",
+                    "description": "Desired uplift percentage. Defaults to 7.",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Uplift proposal.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UpliftProposal" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/calculate-uplift-proposal)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/flag-at-risk-renewals": {
+      "post": {
+        "operationId": "flag_at_risk_renewals",
+        "summary": "Flag at-risk upcoming renewals (orchestrator)",
+        "description": "Returns renewals due in the next `daysAhead` (default 60) where riskTier is `high` OR there are open high-severity risk factors. Filterable by ownerEmail.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "daysAhead": {
+                    "type": "integer",
+                    "description": "Window in days. Defaults to 60.",
+                    "minimum": 1,
+                    "maximum": 365
+                  },
+                  "ownerEmail": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Restrict to a single AE."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of at-risk renewals with reasons.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AtRiskRenewalReport" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/flag-at-risk-renewals)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "renewal-management-server",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_renewals" },
+                { "file": "./config/routes.oas.json", "id": "create_renewal" },
+                { "file": "./config/routes.oas.json", "id": "get_renewal" },
+                { "file": "./config/routes.oas.json", "id": "update_renewal_status" },
+                { "file": "./config/routes.oas.json", "id": "list_contracts" },
+                { "file": "./config/routes.oas.json", "id": "get_contract" },
+                { "file": "./config/routes.oas.json", "id": "list_risk_factors" },
+                { "file": "./config/routes.oas.json", "id": "add_risk_factor" },
+                { "file": "./config/routes.oas.json", "id": "list_negotiations" },
+                { "file": "./config/routes.oas.json", "id": "log_negotiation" },
+                { "file": "./config/routes.oas.json", "id": "prep_renewal_briefing" },
+                { "file": "./config/routes.oas.json", "id": "calculate_uplift_proposal" },
+                { "file": "./config/routes.oas.json", "id": "flag_at_risk_renewals" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RenewalOpportunity": {
+        "type": "object",
+        "description": "A renewal opportunity — the unit of forecasting and ownership.",
+        "required": ["id", "tenantId", "contractId", "accountId", "ownerEmail", "renewsOn", "currentArrCents", "proposedArrCents", "status", "riskTier", "forecastCategory"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the renewal belongs to." },
+          "contractId": { "type": "string", "description": "Underlying contract id." },
+          "accountId": { "type": "string", "description": "Account id this renewal is for." },
+          "ownerEmail": { "type": "string", "format": "email", "description": "Renewal AE / CSM email." },
+          "renewsOn": { "type": "string", "format": "date-time", "description": "Renewal date (ISO-8601)." },
+          "currentArrCents": { "type": "integer", "description": "ARR before the renewal in minor units (cents)." },
+          "proposedArrCents": { "type": "integer", "description": "ARR being proposed in minor units (cents)." },
+          "status": {
+            "type": "string",
+            "enum": ["upcoming", "in_negotiation", "won", "lost", "churned"],
+            "description": "Renewal status."
+          },
+          "riskTier": {
+            "type": "string",
+            "enum": ["low", "med", "high"],
+            "description": "Renewal risk tier."
+          },
+          "forecastCategory": {
+            "type": "string",
+            "enum": ["commit", "upside", "pipeline"],
+            "description": "Forecast category."
+          }
+        }
+      },
+      "RenewalCreate": {
+        "type": "object",
+        "description": "Payload to create a renewal.",
+        "required": ["contractId", "accountId", "ownerEmail", "renewsOn", "currentArrCents"],
+        "properties": {
+          "contractId": { "type": "string", "description": "Underlying contract id." },
+          "accountId": { "type": "string", "description": "Account id." },
+          "ownerEmail": { "type": "string", "format": "email", "description": "Renewal AE / CSM email." },
+          "renewsOn": { "type": "string", "format": "date-time", "description": "Renewal date (ISO-8601)." },
+          "currentArrCents": { "type": "integer", "description": "ARR before the renewal in minor units." },
+          "proposedArrCents": { "type": "integer", "description": "Proposed ARR in minor units. Defaults to currentArrCents." },
+          "status": { "type": "string", "enum": ["upcoming", "in_negotiation", "won", "lost", "churned"], "description": "Initial status. Defaults to upcoming." },
+          "riskTier": { "type": "string", "enum": ["low", "med", "high"], "description": "Initial risk tier. Defaults to low." },
+          "forecastCategory": { "type": "string", "enum": ["commit", "upside", "pipeline"], "description": "Initial forecast category. Defaults to pipeline." }
+        }
+      },
+      "RenewalStatusUpdate": {
+        "type": "object",
+        "description": "Payload to move a renewal between statuses.",
+        "required": ["status"],
+        "properties": {
+          "status": { "type": "string", "enum": ["upcoming", "in_negotiation", "won", "lost", "churned"], "description": "Target status." },
+          "forecastCategory": { "type": "string", "enum": ["commit", "upside", "pipeline"], "description": "Optional new forecast category." },
+          "proposedArrCents": { "type": "integer", "description": "Optional new proposed ARR." }
+        }
+      },
+      "RenewalPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/RenewalOpportunity" } },
+          "nextCursor": { "type": "string", "nullable": true, "description": "Pagination cursor; null when no more results." }
+        }
+      },
+      "Contract": {
+        "type": "object",
+        "description": "The signed agreement behind a renewal opportunity.",
+        "required": ["id", "tenantId", "accountId", "startDate", "endDate", "autoRenews", "currentArrCents", "currency", "terms"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the contract belongs to." },
+          "accountId": { "type": "string", "description": "Account id." },
+          "startDate": { "type": "string", "format": "date-time", "description": "Contract start date (ISO-8601)." },
+          "endDate": { "type": "string", "format": "date-time", "description": "Contract end date (ISO-8601)." },
+          "autoRenews": { "type": "boolean", "description": "Whether the contract auto-renews." },
+          "currentArrCents": { "type": "integer", "description": "Current ARR in minor units." },
+          "currency": { "type": "string", "description": "ISO currency code, e.g. USD." },
+          "terms": { "type": "string", "description": "Free-form terms summary." }
+        }
+      },
+      "ContractPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Contract" } },
+          "nextCursor": { "type": "string", "nullable": true, "description": "Pagination cursor; null when no more results." }
+        }
+      },
+      "RiskFactor": {
+        "type": "object",
+        "description": "A specific risk on a renewal.",
+        "required": ["id", "tenantId", "renewalId", "factor", "severity", "addedAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the risk belongs to." },
+          "renewalId": { "type": "string", "description": "Renewal the risk applies to." },
+          "factor": { "type": "string", "description": "Free-form risk label — e.g. champion left, late invoice." },
+          "severity": { "type": "string", "enum": ["low", "med", "high"], "description": "Severity." },
+          "addedAt": { "type": "string", "format": "date-time", "description": "When the risk was added (ISO-8601)." },
+          "addressedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "When the risk was resolved, or null if still open." }
+        }
+      },
+      "RiskFactorCreate": {
+        "type": "object",
+        "description": "Payload to add a risk factor.",
+        "required": ["renewalId", "factor", "severity"],
+        "properties": {
+          "renewalId": { "type": "string", "description": "Renewal the risk applies to." },
+          "factor": { "type": "string", "description": "Free-form risk label." },
+          "severity": { "type": "string", "enum": ["low", "med", "high"], "description": "Severity." }
+        }
+      },
+      "RiskFactorPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/RiskFactor" } },
+          "nextCursor": { "type": "string", "nullable": true, "description": "Pagination cursor; null when no more results." }
+        }
+      },
+      "Negotiation": {
+        "type": "object",
+        "description": "A back-and-forth proposal during a renewal negotiation.",
+        "required": ["id", "tenantId", "renewalId", "kind", "proposal", "status"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the negotiation belongs to." },
+          "renewalId": { "type": "string", "description": "Renewal the negotiation applies to." },
+          "kind": { "type": "string", "enum": ["discount_request", "term_change", "product_swap"], "description": "Negotiation kind." },
+          "proposal": { "type": "string", "description": "Free-form proposal text." },
+          "status": { "type": "string", "enum": ["open", "accepted", "rejected"], "description": "Decision status." },
+          "decidedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "When the negotiation was decided, or null if still open." }
+        }
+      },
+      "NegotiationCreate": {
+        "type": "object",
+        "description": "Payload to log a negotiation.",
+        "required": ["renewalId", "kind", "proposal"],
+        "properties": {
+          "renewalId": { "type": "string", "description": "Renewal the negotiation applies to." },
+          "kind": { "type": "string", "enum": ["discount_request", "term_change", "product_swap"], "description": "Negotiation kind." },
+          "proposal": { "type": "string", "description": "Free-form proposal text." },
+          "status": { "type": "string", "enum": ["open", "accepted", "rejected"], "description": "Initial status. Defaults to open." }
+        }
+      },
+      "NegotiationPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Negotiation" } },
+          "nextCursor": { "type": "string", "nullable": true, "description": "Pagination cursor; null when no more results." }
+        }
+      },
+      "RenewalBriefing": {
+        "type": "object",
+        "description": "Output of `prep_renewal_briefing`.",
+        "required": ["renewal", "contract", "daysToRenewal", "upliftPercent", "openRisks", "addressedRisks", "openNegotiations", "decided", "narrative"],
+        "properties": {
+          "renewal": { "$ref": "#/components/schemas/RenewalOpportunity" },
+          "contract": { "$ref": "#/components/schemas/Contract" },
+          "daysToRenewal": { "type": "integer", "description": "Days until renewal." },
+          "upliftPercent": { "type": "integer", "description": "Currently proposed uplift vs. current ARR." },
+          "openRisks": { "type": "array", "items": { "$ref": "#/components/schemas/RiskFactor" } },
+          "addressedRisks": { "type": "array", "items": { "$ref": "#/components/schemas/RiskFactor" } },
+          "openNegotiations": { "type": "array", "items": { "$ref": "#/components/schemas/Negotiation" } },
+          "decided": { "type": "array", "items": { "$ref": "#/components/schemas/Negotiation" } },
+          "narrative": { "type": "string", "description": "One-sentence English summary." }
+        }
+      },
+      "UpliftProposal": {
+        "type": "object",
+        "description": "Output of `calculate_uplift_proposal`.",
+        "required": ["renewalId", "currentArrCents", "target", "recommendedUpliftPercent", "recommendedArrCents", "recommendedRiskTier", "drivers"],
+        "properties": {
+          "renewalId": { "type": "string" },
+          "currentArrCents": { "type": "integer" },
+          "target": { "type": "number" },
+          "recommendedUpliftPercent": { "type": "number" },
+          "recommendedArrCents": { "type": "integer" },
+          "recommendedRiskTier": { "type": "string", "enum": ["low", "med", "high"] },
+          "drivers": {
+            "type": "object",
+            "properties": {
+              "hasHigh": { "type": "boolean" },
+              "hasMed": { "type": "boolean" },
+              "openRiskCount": { "type": "integer" }
+            }
+          }
+        }
+      },
+      "AtRiskRenewalReport": {
+        "type": "object",
+        "description": "Output of `flag_at_risk_renewals`.",
+        "required": ["filter", "flaggedCount", "flagged"],
+        "properties": {
+          "filter": {
+            "type": "object",
+            "properties": {
+              "daysAhead": { "type": "integer" },
+              "ownerEmail": { "type": "string", "nullable": true }
+            }
+          },
+          "flaggedCount": { "type": "integer" },
+          "flagged": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "renewal": { "$ref": "#/components/schemas/RenewalOpportunity" },
+                "openHighRisks": { "type": "array", "items": { "$ref": "#/components/schemas/RiskFactor" } },
+                "reasons": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

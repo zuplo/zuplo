@@ -1,0 +1,940 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Incident Change Management API",
+    "version": "1.0.0",
+    "description": "Zuplo Starter Kit: Incident Change Management. Multi-tenant via API-key metadata. MCP server at POST /mcp."
+  },
+  "paths": {
+    "/change/{id}/approve": {
+      "post": {
+        "operationId": "approve_change",
+        "summary": "Approve Change",
+        "description": "Approve Change.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/approve-change)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/change/{id}/complete": {
+      "post": {
+        "operationId": "complete_change",
+        "summary": "Complete Change",
+        "description": "Complete Change.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/complete-change)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/declare-incident": {
+      "post": {
+        "operationId": "declare_incident",
+        "summary": "Declare Incident",
+        "description": "Declare Incident.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/declare-incident)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/draft-postmortem": {
+      "post": {
+        "operationId": "draft_postmortem",
+        "summary": "Draft Postmortem",
+        "description": "Draft Postmortem.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/draft-postmortem)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/incident/{id}": {
+      "get": {
+        "operationId": "get_incident",
+        "summary": "Get Incident",
+        "description": "Get Incident.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-incident)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/changes": {
+      "get": {
+        "operationId": "list_changes",
+        "summary": "List Changes",
+        "description": "List Changes.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-changes)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/incidents": {
+      "get": {
+        "operationId": "list_incidents",
+        "summary": "List Incidents",
+        "description": "List Incidents.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-incidents)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/oncall-schedule": {
+      "get": {
+        "operationId": "list_oncall_schedule",
+        "summary": "List Oncall Schedule",
+        "description": "List Oncall Schedule.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-oncall-schedule)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/postmortems": {
+      "get": {
+        "operationId": "list_postmortems",
+        "summary": "List Postmortems",
+        "description": "List Postmortems.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-postmortems)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/post-incident-update": {
+      "post": {
+        "operationId": "post_incident_update",
+        "summary": "Post Incident Update",
+        "description": "Post Incident Update.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/post-incident-update)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/propose-change": {
+      "post": {
+        "operationId": "propose_change",
+        "summary": "Propose Change",
+        "description": "Propose Change.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/propose-change)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/postmortem/{id}/publish": {
+      "post": {
+        "operationId": "publish_postmortem",
+        "summary": "Publish Postmortem",
+        "description": "Publish Postmortem.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/publish-postmortem)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/change/{id}/reject": {
+      "post": {
+        "operationId": "reject_change",
+        "summary": "Reject Change",
+        "description": "Reject Change.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/reject-change)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/resolve-incident": {
+      "post": {
+        "operationId": "resolve_incident",
+        "summary": "Resolve Incident",
+        "description": "Resolve Incident.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/resolve-incident)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/assess-change-risk": {
+      "post": {
+        "operationId": "assess_change_risk",
+        "summary": "Assess Change Risk",
+        "description": "Assess Change Risk.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/assess-change-risk)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/current-oncall-for-service": {
+      "post": {
+        "operationId": "current_oncall_for_service",
+        "summary": "Current Oncall For Service",
+        "description": "Current Oncall For Service.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/current-oncall-for-service)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/summarize-timeline": {
+      "post": {
+        "operationId": "summarize_timeline",
+        "summary": "Summarize Timeline",
+        "description": "Summarize Timeline.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/summarize-timeline)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "incident-change-management-server",
+              "version": "1.0.0",
+              "operations": [
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "approve_change"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "complete_change"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "declare_incident"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "draft_postmortem"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "get_incident"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_changes"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_incidents"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_oncall_schedule"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_postmortems"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "post_incident_update"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "propose_change"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "publish_postmortem"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "reject_change"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "resolve_incident"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "assess_change_risk"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "current_oncall_for_service"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "summarize_timeline"
+                }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ],
+            "outbound": [
+              "prompt-injection-outbound",
+              "secret-masking-outbound"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

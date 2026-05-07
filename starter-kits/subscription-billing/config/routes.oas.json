@@ -1,0 +1,510 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Subscription Billing API",
+    "version": "1.0.0",
+    "description": "Headless subscription billing — plans, subscriptions, usage records, and billing invoices. Replaces Stripe Billing, Chargebee, Recurly. Includes orchestrator MCP tools that forecast MRR, surface at-risk subscriptions, and propose upgrades for over-using customers."
+  },
+  "paths": {
+    "/subscriptions": {
+      "get": {
+        "operationId": "list_subscriptions",
+        "summary": "List subscriptions in the current tenant",
+        "description": "Returns a paginated list of subscriptions, newest first.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Max subscriptions to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of subscriptions.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SubscriptionPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-subscriptions)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_subscription",
+        "summary": "Create a subscription",
+        "description": "Subscribes a customer to a plan starting at `startDate`. Initial status is `active`.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SubscriptionCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created subscription.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Subscription" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-subscription)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/subscriptions/{id}": {
+      "get": {
+        "operationId": "get_subscription",
+        "summary": "Get a subscription by id",
+        "description": "Fetch a single subscription from the current tenant.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Subscription id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The subscription.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Subscription" } } } },
+          "404": { "description": "Subscription not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-subscription)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/subscriptions/{id}/cancel": {
+      "patch": {
+        "operationId": "cancel_subscription",
+        "summary": "Cancel a subscription",
+        "description": "Move a subscription to `canceled` and stamp `canceledAt`. Destructive — the customer will not be billed at the next renewal.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Subscription id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The canceled subscription.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Subscription" } } } },
+          "404": { "description": "Subscription not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/cancel-subscription)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "destructiveHint": true } }
+        }
+      }
+    },
+    "/subscriptions/{id}/pause": {
+      "patch": {
+        "operationId": "pause_subscription",
+        "summary": "Pause a subscription",
+        "description": "Move a subscription to `paused`. Idempotent.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Subscription id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The paused subscription.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Subscription" } } } },
+          "404": { "description": "Subscription not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/pause-subscription)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/plans": {
+      "get": {
+        "operationId": "list_plans",
+        "summary": "List plans",
+        "description": "Return the catalog of pricing plans, cheapest first.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Max plans to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of plans.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlanPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-plans)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_plan",
+        "summary": "Create a plan",
+        "description": "Create a new pricing plan.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlanCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created plan.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Plan" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-plan)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/usage-records": {
+      "post": {
+        "operationId": "record_usage",
+        "summary": "Record usage against a subscription",
+        "description": "Append a usage record for a subscription's billing period. Used by `propose_upgrade_for_customer`.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UsageRecordCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created usage record.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UsageRecord" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/record-usage)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/billing-invoices": {
+      "get": {
+        "operationId": "list_billing_invoices",
+        "summary": "List billing invoices",
+        "description": "Return billing invoices generated against subscription periods.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Max invoices to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of billing invoices.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BillingInvoicePage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-billing-invoices)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/forecast-mrr": {
+      "post": {
+        "operationId": "forecast_mrr",
+        "summary": "Forecast MRR (orchestrator)",
+        "description": "Orchestrator MCP tool. Sums active subscriptions × plan price normalized to monthly. Returns total MRR/ARR plus a breakdown by plan.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "asOf": { "type": "string", "format": "date-time", "description": "Informational. Returned in the response." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "MRR summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "asOf": { "type": "string", "description": "Echoed input or current time." },
+                    "activeSubscriptionCount": { "type": "integer", "description": "Number of subscriptions with status=active." },
+                    "mrrCents": { "type": "integer", "description": "MRR in cents." },
+                    "arrCents": { "type": "integer", "description": "ARR in cents (12 × MRR)." },
+                    "byPlan": {
+                      "type": "object",
+                      "description": "Breakdown by plan id.",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "planName": { "type": "string", "description": "Display name of the plan." },
+                          "activeCount": { "type": "integer", "description": "Active subscription count on this plan." },
+                          "mrrCents": { "type": "integer", "description": "MRR contribution from this plan, in cents." }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/forecast-mrr)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/find-at-risk-subscriptions": {
+      "post": {
+        "operationId": "find_at_risk_subscriptions",
+        "summary": "Find at-risk subscriptions (orchestrator)",
+        "description": "Orchestrator MCP tool. Returns subscriptions that are past_due, have a cancellation pending, or whose trial ends in <7 days. Each entry is annotated with reasons.",
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "type": "object", "properties": {} } } }
+        },
+        "responses": {
+          "200": {
+            "description": "At-risk subscriptions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": { "type": "integer", "description": "Number of at-risk subscriptions." },
+                    "at_risk": {
+                      "type": "array",
+                      "description": "The at-risk rows.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "subscription": { "$ref": "#/components/schemas/Subscription" },
+                          "risks": { "type": "array", "description": "Risk reasons.", "items": { "type": "string" } }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/find-at-risk-subscriptions)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/propose-upgrade-for-customer": {
+      "post": {
+        "operationId": "propose_upgrade_for_customer",
+        "summary": "Propose a plan upgrade for a customer (orchestrator)",
+        "description": "Orchestrator MCP tool. Walks the customer's active subscriptions, sums recent usage, and if usage has exceeded the current plan's includedUsage, suggests the cheapest plan whose includedUsage covers it.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customerId"],
+                "properties": {
+                  "customerId": { "type": "string", "description": "Id of the customer to evaluate." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upgrade suggestions per active subscription.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "customerId": { "type": "string", "description": "Echoed input." },
+                    "reason": { "type": "string", "description": "Optional reason if no suggestions are returned." },
+                    "suggestions": {
+                      "type": "array",
+                      "description": "One row per active subscription.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "subscriptionId": { "type": "string", "description": "Subscription id." },
+                          "currentPlan": { "$ref": "#/components/schemas/Plan" },
+                          "currentPeriodUsage": { "type": "integer", "description": "Sum of usage in the current billing period." },
+                          "suggestedPlan": { "$ref": "#/components/schemas/Plan" },
+                          "overage": { "type": "integer", "description": "Units over the current plan's includedUsage." }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/propose-upgrade-for-customer)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "subscription-billing-server",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_subscriptions" },
+                { "file": "./config/routes.oas.json", "id": "get_subscription" },
+                { "file": "./config/routes.oas.json", "id": "create_subscription" },
+                { "file": "./config/routes.oas.json", "id": "cancel_subscription" },
+                { "file": "./config/routes.oas.json", "id": "pause_subscription" },
+                { "file": "./config/routes.oas.json", "id": "list_plans" },
+                { "file": "./config/routes.oas.json", "id": "create_plan" },
+                { "file": "./config/routes.oas.json", "id": "record_usage" },
+                { "file": "./config/routes.oas.json", "id": "list_billing_invoices" },
+                { "file": "./config/routes.oas.json", "id": "forecast_mrr" },
+                { "file": "./config/routes.oas.json", "id": "find_at_risk_subscriptions" },
+                { "file": "./config/routes.oas.json", "id": "propose_upgrade_for_customer" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Subscription": {
+        "type": "object",
+        "description": "A customer's active or historical subscription to a plan.",
+        "required": ["id", "tenantId", "customerId", "planId", "status", "startDate", "currentPeriodStart", "currentPeriodEnd", "trialEnd", "canceledAt", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique subscription id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the subscription belongs to. Set automatically from the API key." },
+          "customerId": { "type": "string", "description": "Id of the customer that owns this subscription." },
+          "planId": { "type": "string", "description": "Id of the plan being subscribed to." },
+          "status": { "type": "string", "enum": ["active", "past_due", "canceled", "paused"], "description": "Lifecycle state." },
+          "startDate": { "type": "string", "format": "date", "description": "Date the subscription began." },
+          "currentPeriodStart": { "type": "string", "format": "date-time", "description": "Start of the current billing period." },
+          "currentPeriodEnd": { "type": "string", "format": "date-time", "description": "End of the current billing period." },
+          "trialEnd": { "type": ["string", "null"], "format": "date-time", "description": "When the trial ends, or null if no trial." },
+          "canceledAt": { "type": ["string", "null"], "format": "date-time", "description": "When cancellation was initiated, or null." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "SubscriptionCreate": {
+        "type": "object",
+        "description": "Payload to create a subscription.",
+        "required": ["customerId", "planId", "startDate", "currentPeriodStart", "currentPeriodEnd"],
+        "properties": {
+          "customerId": { "type": "string", "description": "Id of the customer." },
+          "planId": { "type": "string", "description": "Id of the plan." },
+          "startDate": { "type": "string", "format": "date", "description": "Date the subscription begins." },
+          "currentPeriodStart": { "type": "string", "format": "date-time", "description": "Start of the first billing period." },
+          "currentPeriodEnd": { "type": "string", "format": "date-time", "description": "End of the first billing period." },
+          "trialEnd": { "type": ["string", "null"], "format": "date-time", "description": "When the trial ends, or null." }
+        }
+      },
+      "SubscriptionPage": {
+        "type": "object",
+        "description": "A page of subscriptions.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Subscriptions on this page.", "items": { "$ref": "#/components/schemas/Subscription" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Plan": {
+        "type": "object",
+        "description": "A pricing plan.",
+        "required": ["id", "tenantId", "name", "intervalUnit", "priceCents", "currency", "includedUsage", "overageRateCents", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique plan id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the plan belongs to." },
+          "name": { "type": "string", "description": "Plan name." },
+          "intervalUnit": { "type": "string", "enum": ["month", "year"], "description": "Billing interval." },
+          "priceCents": { "type": "integer", "description": "Recurring price per interval, in cents." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code." },
+          "includedUsage": { "type": "integer", "description": "Units of usage included in the plan." },
+          "overageRateCents": { "type": "integer", "description": "Per-unit overage rate above includedUsage, in cents." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "PlanCreate": {
+        "type": "object",
+        "description": "Payload to create a plan.",
+        "required": ["name", "intervalUnit", "priceCents", "currency", "includedUsage", "overageRateCents"],
+        "properties": {
+          "name": { "type": "string", "description": "Plan name." },
+          "intervalUnit": { "type": "string", "enum": ["month", "year"], "description": "Billing interval." },
+          "priceCents": { "type": "integer", "description": "Recurring price per interval, in cents." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code." },
+          "includedUsage": { "type": "integer", "description": "Units of usage included." },
+          "overageRateCents": { "type": "integer", "description": "Per-unit overage rate, in cents." }
+        }
+      },
+      "PlanPage": {
+        "type": "object",
+        "description": "A page of plans.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Plans on this page.", "items": { "$ref": "#/components/schemas/Plan" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "UsageRecord": {
+        "type": "object",
+        "description": "A usage record for a subscription period.",
+        "required": ["id", "tenantId", "subscriptionId", "quantity", "recordedAt", "periodStart", "periodEnd", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique usage-record id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the usage record belongs to." },
+          "subscriptionId": { "type": "string", "description": "Subscription the usage applies to." },
+          "quantity": { "type": "integer", "description": "Quantity of usage." },
+          "recordedAt": { "type": "string", "format": "date-time", "description": "When the usage actually happened." },
+          "periodStart": { "type": "string", "format": "date-time", "description": "Start of the billing period." },
+          "periodEnd": { "type": "string", "format": "date-time", "description": "End of the billing period." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "UsageRecordCreate": {
+        "type": "object",
+        "description": "Payload to record usage.",
+        "required": ["subscriptionId", "quantity", "recordedAt", "periodStart", "periodEnd"],
+        "properties": {
+          "subscriptionId": { "type": "string", "description": "Subscription id." },
+          "quantity": { "type": "integer", "description": "Quantity of usage." },
+          "recordedAt": { "type": "string", "format": "date-time", "description": "Usage timestamp." },
+          "periodStart": { "type": "string", "format": "date-time", "description": "Billing-period start." },
+          "periodEnd": { "type": "string", "format": "date-time", "description": "Billing-period end." }
+        }
+      },
+      "BillingInvoice": {
+        "type": "object",
+        "description": "An invoice generated for a subscription period.",
+        "required": ["id", "tenantId", "subscriptionId", "periodStart", "periodEnd", "totalCents", "status", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique billing-invoice id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the invoice belongs to." },
+          "subscriptionId": { "type": "string", "description": "Subscription the invoice covers." },
+          "periodStart": { "type": "string", "format": "date-time", "description": "Start of the billing period." },
+          "periodEnd": { "type": "string", "format": "date-time", "description": "End of the billing period." },
+          "totalCents": { "type": "integer", "description": "Total in cents." },
+          "status": { "type": "string", "enum": ["open", "paid", "failed"], "description": "Invoice state." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "BillingInvoicePage": {
+        "type": "object",
+        "description": "A page of billing invoices.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Billing invoices on this page.", "items": { "$ref": "#/components/schemas/BillingInvoice" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      }
+    }
+  }
+}

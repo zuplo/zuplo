@@ -233,8 +233,13 @@ function humanize(s) {
 }
 
 function isTemplateRoutes(routesPath) {
-  if (!fs.existsSync(routesPath)) return true;
-  const content = fs.readFileSync(routesPath, "utf8");
+  let content;
+  try {
+    content = fs.readFileSync(routesPath, "utf8");
+  } catch (err) {
+    if (err.code === "ENOENT") return true;
+    throw err;
+  }
   return content.includes('"list_items"');
 }
 

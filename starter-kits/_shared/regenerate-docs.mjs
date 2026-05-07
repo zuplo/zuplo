@@ -21,6 +21,15 @@ const ALL_ADAPTER_LABELS = {
   "neon": "Neon (HTTP serverless)",
 };
 
+function readIfExists(filePath) {
+  try {
+    return fs.readFileSync(filePath, "utf8");
+  } catch (err) {
+    if (err.code === "ENOENT") return null;
+    throw err;
+  }
+}
+
 function isStaleClaude(content) {
   return content.includes("`Item` example entity");
 }
@@ -170,7 +179,8 @@ for (const slug of kits) {
   const claudePath = path.join(kitDir, "CLAUDE.md");
   const readmePath = path.join(kitDir, "README.md");
   const routesPath = path.join(kitDir, "config/routes.oas.json");
-  if (!fs.existsSync(routesPath)) {
+  const routesContent = readIfExists(routesPath);
+  if (routesContent === null) {
     console.error(`SKIP ${slug}: no routes.oas.json`);
     continue;
   }
@@ -179,10 +189,12 @@ for (const slug of kits) {
     console.error(`SKIP ${slug}: not in starter-kits.json`);
     continue;
   }
-  const oas = JSON.parse(fs.readFileSync(routesPath, "utf8"));
+  const oas = JSON.parse(routesContent);
 
-  const claudeStale = !fs.existsSync(claudePath) || isStaleClaude(fs.readFileSync(claudePath, "utf8"));
-  const readmeStale = !fs.existsSync(readmePath) || isStaleReadme(fs.readFileSync(readmePath, "utf8"));
+  const claudeContent = readIfExists(claudePath);
+  const readmeContent = readIfExists(readmePath);
+  const claudeStale = claudeContent === null || isStaleClaude(claudeContent);
+  const readmeStale = readmeContent === null || isStaleReadme(readmeContent);
 
   if (claudeStale) {
     fs.writeFileSync(claudePath, claude(kitMeta, oas));

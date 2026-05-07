@@ -1,6 +1,6 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { requireTenant } from "@zuplo/starter-kit-shared/auth";
-import { NotFoundError } from "@zuplo/starter-kit-shared/adapters";
+import { requireTenant } from "../_shared/auth/index.ts";
+import { NotFoundError } from "../_shared/adapters/index.ts";
 import { listingRepository } from "../repositories/listings.ts";
 
 export default async function (request: ZuploRequest, context: ZuploContext) {

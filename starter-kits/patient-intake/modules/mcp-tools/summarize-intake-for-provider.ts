@@ -1,5 +1,5 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
+import { invokeJson } from "../_shared/mcp/helpers.ts";
 import type { IntakeSubmission } from "../repositories/intake-submissions.ts";
 import type { IntakeForm } from "../repositories/intake-forms.ts";
 import type { Patient } from "../repositories/patients.ts";

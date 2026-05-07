@@ -82,5 +82,5 @@ The three orchestrators turn the cadence into a self-managing engagement loop. `
 
 - **New entity:** add the entity in `modules/repositories/`, update the OpenAPI schema.
 - **New endpoint:** create a handler, add the route with `mcp: { type: "tool" }`, register in `/mcp` `operations`.
-- **New orchestrator:** add to `modules/mcp-tools/` using `invokeJson` from `@zuplo/starter-kit-shared/mcp`.
+- **New orchestrator:** add to `modules/mcp-tools/` using `invokeJson` from `../_shared/mcp/helpers.ts`.
 - **Switch databases:** change `DB_PROVIDER`. Handler code never changes.

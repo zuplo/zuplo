@@ -31,19 +31,21 @@ import { fileURLToPath } from "node:url";
 import {
   runKitSmokeSuite,
   runKitFunctionalSuite,
-} from "@zuplo/starter-kit-shared/testing";
+} from "../modules/_shared/testing/index.ts";
 
 const kitDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 runKitSmokeSuite(kitDir);
 runKitFunctionalSuite(kitDir);
 ```
 
+The kit imports its **vendored** copy of `_shared/testing/index.ts` — every kit ships self-contained, with `<kit>/modules/_shared/` populated by `node starter-kits/_shared/regenerate-shared.mjs`.
+
 ### Smoke suite (`_shared/testing/smoke.ts`)
 
 Static / structural checks, 9 per kit:
 
 1. **Required files exist** — `config/routes.oas.json`, `config/policies.json`, `package.json`
-2. **Package is wired** — `package.json` depends on `@zuplo/starter-kit-shared`
+2. **Vendored shared is present** — `<kit>/modules/_shared/` exists (run regenerate-shared if missing)
 3. **OpenAPI is valid JSON** with a `paths` object
 4. **Two-layer MCP wiring agrees** — every operation tagged `mcp: { type: "tool" }` is in
    the `/mcp` route's `operations: [...]` array, and vice versa
@@ -110,8 +112,8 @@ npx vitest run
 ```
 
 Kits do not install vitest themselves — they pick up the hoisted root copy.
-The `vitest.config.ts` in each kit is a one-liner that re-exports the shared
-config from `@zuplo/starter-kit-shared/testing/vitest.config`.
+The `vitest.config.ts` in each kit is a one-liner that re-exports the vendored
+config from `./modules/_shared/testing/vitest.config.ts`.
 
 ## CI — `.github/workflows/starter-kits.yml`
 
@@ -144,7 +146,7 @@ create `tests/<your-test>.test.ts` next to `smoke.test.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest";
-import { makeRequest, makeContext } from "@zuplo/starter-kit-shared/testing";
+import { makeRequest, makeContext } from "../modules/_shared/testing/index.ts";
 import createInvoice from "../modules/handlers/create-invoice.ts";
 
 describe("create_invoice", () => {
@@ -164,7 +166,7 @@ describe("create_invoice", () => {
 });
 ```
 
-Available helpers in `@zuplo/starter-kit-shared/testing`:
+Available helpers in the vendored `modules/_shared/testing/`:
 
 - `makeRequest(opts)` — build a `ZuploRequest` with `user.data.tenantId` populated
 - `makeContext({ routes })` — `ZuploContext` whose `invokeRoute` dispatches to a route map (use this when testing orchestrator MCP tools that fan out to sibling endpoints)

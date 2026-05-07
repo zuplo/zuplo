@@ -1,6 +1,6 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { requireTenant } from "@zuplo/starter-kit-shared/auth";
-import { NotFoundError } from "@zuplo/starter-kit-shared/adapters";
+import { requireTenant } from "../_shared/auth/index.ts";
+import { NotFoundError } from "../_shared/adapters/index.ts";
 import { entryRepository, type Entry } from "../repositories/entries.ts";
 
 interface Body {

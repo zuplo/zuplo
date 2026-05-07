@@ -1,5 +1,5 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
+import { invokeJson } from "../_shared/mcp/helpers.ts";
 import type { Account } from "../repositories/accounts.ts";
 import type { HealthScore } from "../repositories/health-scores.ts";
 import type { Signal } from "../repositories/signals.ts";

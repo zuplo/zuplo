@@ -1,5 +1,5 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
+import { invokeJson } from "../_shared/mcp/helpers.ts";
 import type { Enrollment } from "../repositories/enrollments.ts";
 import type { Student } from "../repositories/students.ts";
 import type { Course } from "../repositories/courses.ts";

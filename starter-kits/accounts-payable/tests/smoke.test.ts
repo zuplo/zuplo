@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import {
   runKitSmokeSuite,
   runKitFunctionalSuite,
-} from "@zuplo/starter-kit-shared/testing";
+} from "../modules/_shared/testing/index.ts";
 
 const kitDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 runKitSmokeSuite(kitDir);

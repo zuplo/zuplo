@@ -1,5 +1,5 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
+import { invokeJson } from "../_shared/mcp/helpers.ts";
 import type { RenewalOpportunity } from "../repositories/renewals.ts";
 import type { Contract } from "../repositories/contracts.ts";
 import type { RiskFactor } from "../repositories/risk-factors.ts";

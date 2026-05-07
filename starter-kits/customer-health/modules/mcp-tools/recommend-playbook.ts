@@ -1,5 +1,5 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
+import { invokeJson } from "../_shared/mcp/helpers.ts";
 import type { Signal } from "../repositories/signals.ts";
 import type { Playbook } from "../repositories/playbooks.ts";
 import type { PlaybookRun } from "../repositories/playbook-runs.ts";

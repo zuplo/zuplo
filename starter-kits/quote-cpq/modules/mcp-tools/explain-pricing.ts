@@ -1,5 +1,5 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
+import { invokeJson } from "../_shared/mcp/helpers.ts";
 import type { Quote } from "../repositories/quotes.ts";
 import type { LineItem } from "../repositories/line-items.ts";
 import type { Product } from "../repositories/products.ts";

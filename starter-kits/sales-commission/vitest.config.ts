@@ -1,1 +1,1 @@
-export { default } from "@zuplo/starter-kit-shared/testing/vitest.config";
+export { default } from "./modules/_shared/testing/vitest.config.ts";

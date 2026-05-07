@@ -1,0 +1,31 @@
+{
+  "name": "@zuplo/starter-kit-shared",
+  "version": "0.1.0",
+  "description": "Shared adapters, auth helpers, and MCP utilities for Zuplo Starter Kits.",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./adapters": "./adapters/index.ts",
+    "./adapters/repository": "./adapters/repository.ts",
+    "./adapters/in-memory": "./adapters/in-memory.ts",
+    "./adapters/supabase": "./adapters/supabase.ts",
+    "./adapters/firestore": "./adapters/firestore.ts",
+    "./adapters/clickhouse": "./adapters/clickhouse.ts",
+    "./adapters/upstash-redis": "./adapters/upstash-redis.ts",
+    "./adapters/neon": "./adapters/neon.ts",
+    "./auth": "./auth/index.ts",
+    "./mcp": "./mcp/helpers.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@zuplo/runtime": "^6"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5",
+    "vitest": "^2"
+  }
+}

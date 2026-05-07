@@ -1,0 +1,1150 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Internal Wiki API",
+    "version": "1.0.0",
+    "description": "API + MCP server for an internal wiki / docs site. Replaces Notion, Confluence, Slab. Models spaces, pages, revisions, comments, and per-space permissions, plus orchestrator MCP tools that find the canonical page for a topic, flag outdated pages, and propose merges of duplicates."
+  },
+  "paths": {
+    "/spaces": {
+      "get": {
+        "operationId": "list_spaces",
+        "summary": "List spaces",
+        "description": "Returns all spaces (top-level page namespaces) in the current tenant.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum spaces to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque pagination cursor.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of spaces.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SpacePage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-spaces)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_space",
+        "summary": "Create a space",
+        "description": "Create a new space (e.g. for a new team or product area).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SpaceCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created space.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Space" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-space)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/spaces/{id}": {
+      "get": {
+        "operationId": "get_space",
+        "summary": "Get a space by id",
+        "description": "Fetch a single space by its id.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Space id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The space.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Space" }
+              }
+            }
+          },
+          "404": { "description": "Space not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-space)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/pages": {
+      "get": {
+        "operationId": "list_pages",
+        "summary": "List pages (filter by space, status)",
+        "description": "Returns pages in the tenant, newest-edited first. Optional spaceSlug + status filters.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum pages to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque pagination cursor.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "spaceSlug",
+            "in": "query",
+            "description": "Filter to a single space.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status.",
+            "schema": {
+              "type": "string",
+              "enum": ["draft", "published", "archived"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of pages.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PagePage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-pages)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_page",
+        "summary": "Create a page",
+        "description": "Create a new page in a space. Defaults to draft.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PageCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created page.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-page)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/pages/search": {
+      "get": {
+        "operationId": "search_pages",
+        "summary": "Search pages by title or body substring",
+        "description": "Returns pages whose title or body contains the query string. Production forks would push to a real search index.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Query string to search for.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum results to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pages that match the query.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "description": "Matching pages.",
+                      "items": { "$ref": "#/components/schemas/Page" }
+                    },
+                    "query": { "type": "string", "description": "The query string used." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/search-pages)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/pages/{id}": {
+      "get": {
+        "operationId": "get_page",
+        "summary": "Get a page by id",
+        "description": "Fetch a single page by its id.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Page id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The page.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page" }
+              }
+            }
+          },
+          "404": { "description": "Page not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-page)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "patch": {
+        "operationId": "update_page",
+        "summary": "Update a page",
+        "description": "Update title / body / parent. Writes a Revision row before mutating so the edit history is preserved.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Page id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PageUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated page.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page" }
+              }
+            }
+          },
+          "404": { "description": "Page not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/update-page)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/pages/{id}/publish": {
+      "patch": {
+        "operationId": "publish_page",
+        "summary": "Publish a draft page",
+        "description": "Move a page to status=published. Idempotent.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Page id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The published page.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page" }
+              }
+            }
+          },
+          "404": { "description": "Page not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/publish-page)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": false, "idempotentHint": true }
+          }
+        }
+      }
+    },
+    "/pages/{id}/archive": {
+      "delete": {
+        "operationId": "archive_page",
+        "summary": "Archive a page",
+        "description": "Soft-deletes by moving to status=archived. The row is retained for audit.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Page id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Archived." },
+          "404": { "description": "Page not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/archive-page)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "destructiveHint": true } }
+        }
+      }
+    },
+    "/pages/{id}/revisions": {
+      "get": {
+        "operationId": "list_revisions",
+        "summary": "List a page's revisions",
+        "description": "Returns the full edit history for a page, newest first.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Page id.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum revisions to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of revisions.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RevisionPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-revisions)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/pages/{id}/comments": {
+      "get": {
+        "operationId": "list_comments",
+        "summary": "List comments on a page",
+        "description": "Returns discussion comments on a page, oldest first.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Page id.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum comments to return.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of comments.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CommentPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-comments)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "add_comment",
+        "summary": "Add a comment to a page",
+        "description": "Append a comment to a page. Comments default to unresolved.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Page id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CommentCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created comment.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Comment" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/add-comment)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/permissions": {
+      "post": {
+        "operationId": "set_permission",
+        "summary": "Set or update a permission row",
+        "description": "Upsert a (spaceSlug, employeeEmail) -> role row. Idempotent.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PermissionSet" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The permission row (created or updated).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Permission" }
+              }
+            }
+          },
+          "201": {
+            "description": "The created permission row.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Permission" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/set-permission)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": false, "idempotentHint": true }
+          }
+        }
+      }
+    },
+    "/find-canonical-page-for-topic": {
+      "post": {
+        "operationId": "find_canonical_page_for_topic",
+        "summary": "Find the canonical wiki page for a topic (orchestrator)",
+        "description": "Scans every published page in the tenant, scores them by keyword match weight + viewCount + recency, and returns the top matches so an LLM can link to the right page instead of inventing one.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["keywords"],
+                "properties": {
+                  "keywords": {
+                    "type": "array",
+                    "description": "Keywords to score pages against.",
+                    "items": { "type": "string" }
+                  },
+                  "topN": {
+                    "type": "integer",
+                    "description": "How many top matches to return. Defaults to 5.",
+                    "minimum": 1,
+                    "maximum": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Top scored pages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "keywords": {
+                      "type": "array",
+                      "description": "Echoed keywords.",
+                      "items": { "type": "string" }
+                    },
+                    "totalMatches": {
+                      "type": "integer",
+                      "description": "Number of pages with at least one keyword hit."
+                    },
+                    "results": {
+                      "type": "array",
+                      "description": "Top matches sorted by score.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "page": { "$ref": "#/components/schemas/Page" },
+                          "score": {
+                            "type": "number",
+                            "description": "Composite ranking score."
+                          },
+                          "matchedKeywords": {
+                            "type": "array",
+                            "description": "Keywords that hit this page.",
+                            "items": { "type": "string" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/find-canonical-page-for-topic)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/flag-outdated-pages": {
+      "post": {
+        "operationId": "flag_outdated_pages",
+        "summary": "List published pages that haven't been edited recently (orchestrator)",
+        "description": "Returns published pages whose lastEditedAt is older than the cutoff. Optionally filter by space.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "olderThanDays": {
+                    "type": "integer",
+                    "description": "How old (in days) before a page is considered stale. Defaults to 90.",
+                    "minimum": 1
+                  },
+                  "spaceSlug": {
+                    "type": "string",
+                    "description": "Optional space slug to scope the scan to."
+                  },
+                  "topN": {
+                    "type": "integer",
+                    "description": "Maximum stale pages to return. Defaults to 25.",
+                    "minimum": 1,
+                    "maximum": 100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stale pages, oldest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "olderThanDays": {
+                      "type": "integer",
+                      "description": "Cutoff used for the scan."
+                    },
+                    "spaceSlug": {
+                      "type": ["string", "null"],
+                      "description": "Space filter, or null."
+                    },
+                    "stalePageCount": {
+                      "type": "integer",
+                      "description": "Total stale pages across the tenant."
+                    },
+                    "pages": {
+                      "type": "array",
+                      "description": "Top stale pages, oldest first.",
+                      "items": { "$ref": "#/components/schemas/Page" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/flag-outdated-pages)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/merge-duplicate-pages": {
+      "post": {
+        "operationId": "merge_duplicate_pages",
+        "summary": "Propose a merge of two duplicate pages (orchestrator)",
+        "description": "Given two page ids, returns a proposed merged body and the next steps a caller should run (update the winner, archive the loser). Does NOT mutate anything itself.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["pageIdA", "pageIdB"],
+                "properties": {
+                  "pageIdA": {
+                    "type": "string",
+                    "description": "First page to consider."
+                  },
+                  "pageIdB": {
+                    "type": "string",
+                    "description": "Second page to consider."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The proposed merge.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "proposedWinnerPageId": {
+                      "type": "string",
+                      "description": "Page id that should keep the merged content."
+                    },
+                    "proposedLoserPageId": {
+                      "type": "string",
+                      "description": "Page id that should be archived."
+                    },
+                    "proposedTitle": {
+                      "type": "string",
+                      "description": "Title of the winner page."
+                    },
+                    "proposedBody": {
+                      "type": "string",
+                      "description": "Concatenated body suitable for update_page."
+                    },
+                    "reasoning": {
+                      "type": "string",
+                      "description": "Why one page was chosen as the winner."
+                    },
+                    "nextSteps": {
+                      "type": "array",
+                      "description": "What the caller should do to apply the merge.",
+                      "items": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "One or both pages not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/merge-duplicate-pages)"
+          },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "internal-wiki",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_spaces" },
+                { "file": "./config/routes.oas.json", "id": "get_space" },
+                { "file": "./config/routes.oas.json", "id": "create_space" },
+                { "file": "./config/routes.oas.json", "id": "list_pages" },
+                { "file": "./config/routes.oas.json", "id": "get_page" },
+                { "file": "./config/routes.oas.json", "id": "search_pages" },
+                { "file": "./config/routes.oas.json", "id": "create_page" },
+                { "file": "./config/routes.oas.json", "id": "update_page" },
+                { "file": "./config/routes.oas.json", "id": "publish_page" },
+                { "file": "./config/routes.oas.json", "id": "archive_page" },
+                { "file": "./config/routes.oas.json", "id": "list_revisions" },
+                { "file": "./config/routes.oas.json", "id": "list_comments" },
+                { "file": "./config/routes.oas.json", "id": "add_comment" },
+                { "file": "./config/routes.oas.json", "id": "set_permission" },
+                { "file": "./config/routes.oas.json", "id": "find_canonical_page_for_topic" },
+                { "file": "./config/routes.oas.json", "id": "flag_outdated_pages" },
+                { "file": "./config/routes.oas.json", "id": "merge_duplicate_pages" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Space": {
+        "type": "object",
+        "description": "A space — a top-level page namespace.",
+        "required": [
+          "id",
+          "tenantId",
+          "slug",
+          "name",
+          "description",
+          "ownerEmail",
+          "visibility",
+          "createdAt"
+        ],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the space belongs to." },
+          "slug": { "type": "string", "description": "URL-safe slug." },
+          "name": { "type": "string", "description": "Display name." },
+          "description": { "type": "string", "description": "Optional description." },
+          "ownerEmail": {
+            "type": "string",
+            "description": "Email of the space's owner."
+          },
+          "visibility": {
+            "type": "string",
+            "enum": ["public", "team", "private"],
+            "description": "Default visibility for pages in the space."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO-8601 creation timestamp."
+          }
+        }
+      },
+      "SpaceCreate": {
+        "type": "object",
+        "description": "Payload to create a space.",
+        "required": ["slug", "name", "ownerEmail"],
+        "properties": {
+          "slug": { "type": "string", "description": "URL-safe slug." },
+          "name": { "type": "string", "description": "Display name." },
+          "description": { "type": "string", "description": "Optional description." },
+          "ownerEmail": { "type": "string", "description": "Owner email." },
+          "visibility": {
+            "type": "string",
+            "enum": ["public", "team", "private"],
+            "description": "Visibility. Defaults to team."
+          }
+        }
+      },
+      "SpacePage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Page of spaces.",
+            "items": { "$ref": "#/components/schemas/Space" }
+          },
+          "nextCursor": {
+            "type": ["string", "null"],
+            "description": "Pagination cursor."
+          }
+        }
+      },
+      "Page": {
+        "type": "object",
+        "description": "A wiki page.",
+        "required": [
+          "id",
+          "tenantId",
+          "spaceSlug",
+          "slug",
+          "title",
+          "body",
+          "status",
+          "authorEmail",
+          "lastEditedBy",
+          "lastEditedAt",
+          "viewCount"
+        ],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the page belongs to." },
+          "spaceSlug": { "type": "string", "description": "Slug of the parent space." },
+          "slug": { "type": "string", "description": "URL-safe slug within the space." },
+          "title": { "type": "string", "description": "Page title." },
+          "body": { "type": "string", "description": "Markdown body." },
+          "parentPageId": {
+            "type": ["string", "null"],
+            "description": "Optional parent page id, for hierarchical nav."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "published", "archived"],
+            "description": "Lifecycle status."
+          },
+          "authorEmail": {
+            "type": "string",
+            "description": "Email of the original author."
+          },
+          "lastEditedBy": {
+            "type": "string",
+            "description": "Email of the most recent editor."
+          },
+          "lastEditedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the page was last edited."
+          },
+          "viewCount": {
+            "type": "integer",
+            "description": "Total page views — used as a popularity signal."
+          }
+        }
+      },
+      "PageCreate": {
+        "type": "object",
+        "description": "Payload to create a page.",
+        "required": ["spaceSlug", "slug", "title", "body", "authorEmail"],
+        "properties": {
+          "spaceSlug": { "type": "string", "description": "Parent space slug." },
+          "slug": { "type": "string", "description": "URL-safe slug within the space." },
+          "title": { "type": "string", "description": "Page title." },
+          "body": { "type": "string", "description": "Markdown body." },
+          "authorEmail": { "type": "string", "description": "Author email." },
+          "parentPageId": {
+            "type": ["string", "null"],
+            "description": "Optional parent page id."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "published", "archived"],
+            "description": "Initial status. Defaults to draft."
+          }
+        }
+      },
+      "PageUpdate": {
+        "type": "object",
+        "description": "Payload to update a page.",
+        "required": ["editorEmail"],
+        "properties": {
+          "title": { "type": "string", "description": "New title." },
+          "body": { "type": "string", "description": "New markdown body." },
+          "parentPageId": {
+            "type": ["string", "null"],
+            "description": "New parent page id, or null to detach."
+          },
+          "editorEmail": {
+            "type": "string",
+            "description": "Email of the user making the edit."
+          }
+        }
+      },
+      "PagePage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Page of pages.",
+            "items": { "$ref": "#/components/schemas/Page" }
+          },
+          "nextCursor": {
+            "type": ["string", "null"],
+            "description": "Pagination cursor."
+          }
+        }
+      },
+      "Revision": {
+        "type": "object",
+        "description": "An edit-history entry on a page.",
+        "required": ["id", "tenantId", "pageId", "body", "savedBy", "savedAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the revision belongs to." },
+          "pageId": { "type": "string", "description": "Parent page id." },
+          "body": { "type": "string", "description": "The body as it was at this revision." },
+          "savedBy": { "type": "string", "description": "Editor email at save time." },
+          "savedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the revision was captured."
+          }
+        }
+      },
+      "RevisionPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Page of revisions.",
+            "items": { "$ref": "#/components/schemas/Revision" }
+          },
+          "nextCursor": {
+            "type": ["string", "null"],
+            "description": "Pagination cursor."
+          }
+        }
+      },
+      "Comment": {
+        "type": "object",
+        "description": "A discussion comment on a page.",
+        "required": [
+          "id",
+          "tenantId",
+          "pageId",
+          "body",
+          "authorEmail",
+          "postedAt"
+        ],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the comment belongs to." },
+          "pageId": { "type": "string", "description": "Parent page id." },
+          "body": { "type": "string", "description": "Comment body." },
+          "authorEmail": {
+            "type": "string",
+            "description": "Email of the comment author."
+          },
+          "postedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the comment was posted."
+          },
+          "resolvedAt": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "When (or whether) the comment thread was resolved."
+          }
+        }
+      },
+      "CommentCreate": {
+        "type": "object",
+        "description": "Payload to add a comment.",
+        "required": ["body", "authorEmail"],
+        "properties": {
+          "body": { "type": "string", "description": "Comment body." },
+          "authorEmail": { "type": "string", "description": "Email of the author." }
+        }
+      },
+      "CommentPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Page of comments.",
+            "items": { "$ref": "#/components/schemas/Comment" }
+          },
+          "nextCursor": {
+            "type": ["string", "null"],
+            "description": "Pagination cursor."
+          }
+        }
+      },
+      "Permission": {
+        "type": "object",
+        "description": "A per-employee role on a Space.",
+        "required": [
+          "id",
+          "tenantId",
+          "spaceSlug",
+          "employeeEmail",
+          "role",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the permission belongs to." },
+          "spaceSlug": { "type": "string", "description": "Space slug." },
+          "employeeEmail": {
+            "type": "string",
+            "description": "Email of the employee."
+          },
+          "role": {
+            "type": "string",
+            "enum": ["viewer", "editor", "admin"],
+            "description": "Role granted on the space."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the row was last upserted."
+          }
+        }
+      },
+      "PermissionSet": {
+        "type": "object",
+        "description": "Payload to upsert a permission row.",
+        "required": ["spaceSlug", "employeeEmail", "role"],
+        "properties": {
+          "spaceSlug": { "type": "string", "description": "Space slug." },
+          "employeeEmail": { "type": "string", "description": "Employee email." },
+          "role": {
+            "type": "string",
+            "enum": ["viewer", "editor", "admin"],
+            "description": "Role to grant."
+          }
+        }
+      }
+    }
+  }
+}

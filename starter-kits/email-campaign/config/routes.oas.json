@@ -1,0 +1,689 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Email Campaign API",
+    "version": "1.0.0",
+    "description": "Headless email marketing API — manage subscribers, segments, templates, schedule and send campaigns, track engagement. Replaces Mailchimp, Customer.io, ConvertKit. Ships with orchestrator MCP tools that summarize campaign performance, surface at-risk subscribers, and propose optimal send times."
+  },
+  "paths": {
+    "/campaigns": {
+      "get": {
+        "operationId": "list_campaigns",
+        "summary": "List campaigns",
+        "description": "Returns a paginated list of campaigns in the current tenant. Use `cursor` to fetch subsequent pages.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum campaigns to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of campaigns.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CampaignPage" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-campaigns)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_campaign",
+        "summary": "Create a draft campaign",
+        "description": "Creates a campaign in `draft` state. Use `schedule_campaign` to queue it for sending.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CampaignCreate" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "The created campaign.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Campaign" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-campaign)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/campaigns/{id}": {
+      "get": {
+        "operationId": "get_campaign",
+        "summary": "Get a campaign by id",
+        "description": "Fetch a single campaign from the current tenant.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Campaign id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The campaign.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Campaign" } } } },
+          "404": { "description": "Campaign not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-campaign)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/campaigns/{id}/schedule": {
+      "patch": {
+        "operationId": "schedule_campaign",
+        "summary": "Schedule a campaign for sending",
+        "description": "Move a campaign from `draft` to `scheduled` and stamp `scheduledFor`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Campaign id.", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["scheduledFor"],
+                "properties": {
+                  "scheduledFor": { "type": "string", "format": "date-time", "description": "ISO-8601 timestamp when the campaign should send." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The updated campaign.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Campaign" } } } },
+          "404": { "description": "Campaign not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/schedule-campaign)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/campaigns/{id}/cancel": {
+      "patch": {
+        "operationId": "cancel_campaign",
+        "summary": "Cancel a campaign",
+        "description": "Cancel a scheduled or sending campaign. Once a campaign is `sent`, it cannot be canceled.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Campaign id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The canceled campaign.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Campaign" } } } },
+          "404": { "description": "Campaign not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/cancel-campaign)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "destructiveHint": true } }
+        }
+      }
+    },
+    "/subscribers": {
+      "get": {
+        "operationId": "list_subscribers",
+        "summary": "List subscribers",
+        "description": "Returns a paginated list of subscribers in the current tenant.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum subscribers to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of subscribers.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SubscriberPage" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-subscribers)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "subscribe",
+        "summary": "Subscribe a new contact",
+        "description": "Add a subscriber. Sets status to `subscribed` and stamps `subscribedAt`.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SubscriberCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created subscriber.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Subscriber" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/subscribe)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/subscribers/{id}/unsubscribe": {
+      "patch": {
+        "operationId": "unsubscribe",
+        "summary": "Unsubscribe a contact",
+        "description": "Marks a subscriber as `unsubscribed` and stamps `unsubscribedAt`. Idempotent.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Subscriber id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The unsubscribed subscriber.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Subscriber" } } } },
+          "404": { "description": "Subscriber not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/unsubscribe)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/segments": {
+      "get": {
+        "operationId": "list_segments",
+        "summary": "List segments",
+        "description": "Returns a paginated list of segments — saved subscriber filters.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum segments to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of segments.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SegmentPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-segments)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_segment",
+        "summary": "Create a segment",
+        "description": "Create a saved segment — a named filter over subscribers.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SegmentCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created segment.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Segment" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-segment)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/templates": {
+      "get": {
+        "operationId": "list_templates",
+        "summary": "List email templates",
+        "description": "Returns a paginated list of email templates.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum templates to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of templates.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TemplatePage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-templates)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_template",
+        "summary": "Create an email template",
+        "description": "Save an HTML/text email template that campaigns can reference.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TemplateCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created template.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Template" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-template)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/suppressions": {
+      "get": {
+        "operationId": "list_suppressions",
+        "summary": "List suppressions",
+        "description": "Returns a paginated list of suppressed email addresses (bounces, complaints, manual blocks).",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum suppressions to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of suppressions.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuppressionPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-suppressions)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "add_suppression",
+        "summary": "Add a suppression",
+        "description": "Block an email address from receiving any future campaigns. Reasons typically include `bounce`, `complaint`, `manual`.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuppressionCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created suppression.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Suppression" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/add-suppression)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/summarize-campaign-performance": {
+      "post": {
+        "operationId": "summarize_campaign_performance",
+        "summary": "Summarize campaign performance (orchestrator)",
+        "description": "Orchestrator MCP tool. Loads a campaign and computes engagement metrics (open rate, click rate, bounce rate). Returns a structured summary plus a one-paragraph plain-English narrative an LLM can quote in a status update.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["campaignId"],
+                "properties": {
+                  "campaignId": { "type": "string", "description": "Id of the campaign to summarize." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Performance summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "campaign": { "$ref": "#/components/schemas/Campaign" },
+                    "metrics": {
+                      "type": "object",
+                      "properties": {
+                        "openRate": { "type": "number", "description": "Opens / sent." },
+                        "clickRate": { "type": "number", "description": "Clicks / sent." },
+                        "bounceRate": { "type": "number", "description": "Bounces / sent." },
+                        "estimatedSent": { "type": "integer", "description": "Sum of opens + bounces (best effort when no separate sent counter is tracked)." }
+                      }
+                    },
+                    "narrative": { "type": "string", "description": "Plain-English summary." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/summarize-campaign-performance)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/find-at-risk-subscribers": {
+      "post": {
+        "operationId": "find_at_risk_subscribers",
+        "summary": "Find at-risk subscribers (orchestrator)",
+        "description": "Orchestrator MCP tool. Scans recent send history and surfaces subscribers who have not opened the last `lookbackSends` campaigns sent to them. Returns each at-risk subscriber with their last-engagement timestamp and a draft win-back subject line.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lookbackSends": { "type": "integer", "description": "How many recent sends to consider per subscriber. Defaults to 5.", "minimum": 1, "maximum": 50 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "At-risk subscriber list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": { "type": "integer", "description": "Number of at-risk subscribers found." },
+                    "subscribers": {
+                      "type": "array",
+                      "description": "Per-subscriber rows.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "subscriber": { "$ref": "#/components/schemas/Subscriber" },
+                          "sendsConsidered": { "type": "integer", "description": "Number of sends evaluated." },
+                          "opens": { "type": "integer", "description": "Number of opens within the lookback window." },
+                          "lastEngagementAt": { "type": ["string", "null"], "description": "Last open or click timestamp, if any." },
+                          "draftWinBackSubject": { "type": "string", "description": "A draft subject line for a win-back email." }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/find-at-risk-subscribers)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/propose-send-time": {
+      "post": {
+        "operationId": "propose_send_time",
+        "summary": "Propose an optimal send time (orchestrator)",
+        "description": "Orchestrator MCP tool. Examines recent send history and recommends the day-of-week + hour with the highest historical open rate. Returns the proposed slot plus the supporting hourly histogram.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lookbackDays": { "type": "integer", "description": "How many days of send history to consider. Defaults to 30.", "minimum": 1, "maximum": 365 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recommended send slot plus rationale.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "proposedDayOfWeek": { "type": "integer", "description": "0=Sunday, 6=Saturday." },
+                    "proposedHourUtc": { "type": "integer", "description": "Hour (0-23) in UTC." },
+                    "openRate": { "type": "number", "description": "Historical open rate for the proposed slot." },
+                    "sampleSize": { "type": "integer", "description": "Number of historical sends in the proposed slot." },
+                    "histogram": {
+                      "type": "array",
+                      "description": "All slots considered, ranked by open rate desc.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "dayOfWeek": { "type": "integer" },
+                          "hourUtc": { "type": "integer" },
+                          "sends": { "type": "integer" },
+                          "opens": { "type": "integer" },
+                          "openRate": { "type": "number" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/propose-send-time)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "email-campaign-server",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_campaigns" },
+                { "file": "./config/routes.oas.json", "id": "create_campaign" },
+                { "file": "./config/routes.oas.json", "id": "get_campaign" },
+                { "file": "./config/routes.oas.json", "id": "schedule_campaign" },
+                { "file": "./config/routes.oas.json", "id": "cancel_campaign" },
+                { "file": "./config/routes.oas.json", "id": "list_subscribers" },
+                { "file": "./config/routes.oas.json", "id": "subscribe" },
+                { "file": "./config/routes.oas.json", "id": "unsubscribe" },
+                { "file": "./config/routes.oas.json", "id": "list_segments" },
+                { "file": "./config/routes.oas.json", "id": "create_segment" },
+                { "file": "./config/routes.oas.json", "id": "list_templates" },
+                { "file": "./config/routes.oas.json", "id": "create_template" },
+                { "file": "./config/routes.oas.json", "id": "list_suppressions" },
+                { "file": "./config/routes.oas.json", "id": "add_suppression" },
+                { "file": "./config/routes.oas.json", "id": "summarize_campaign_performance" },
+                { "file": "./config/routes.oas.json", "id": "find_at_risk_subscribers" },
+                { "file": "./config/routes.oas.json", "id": "propose_send_time" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Campaign": {
+        "type": "object",
+        "description": "A planned or executed email campaign send.",
+        "required": ["id", "tenantId", "name", "subject", "fromName", "fromEmail", "status", "openCount", "clickCount", "bounceCount"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique campaign id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the campaign belongs to. Set automatically from the API key." },
+          "name": { "type": "string", "description": "Human-readable campaign name (internal)." },
+          "subject": { "type": "string", "description": "Email subject line." },
+          "fromName": { "type": "string", "description": "Display name on the From header." },
+          "fromEmail": { "type": "string", "format": "email", "description": "Email address on the From header." },
+          "status": { "type": "string", "enum": ["draft", "scheduled", "sending", "sent", "canceled"], "description": "Lifecycle state." },
+          "scheduledFor": { "type": ["string", "null"], "format": "date-time", "description": "When the campaign is scheduled to send." },
+          "sentAt": { "type": ["string", "null"], "format": "date-time", "description": "When the last send completed." },
+          "segmentId": { "type": ["string", "null"], "description": "Optional segment id this campaign targets." },
+          "templateId": { "type": ["string", "null"], "description": "Optional template id this campaign uses." },
+          "openCount": { "type": "integer", "description": "Total opens recorded." },
+          "clickCount": { "type": "integer", "description": "Total clicks recorded." },
+          "bounceCount": { "type": "integer", "description": "Total bounces recorded." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "CampaignCreate": {
+        "type": "object",
+        "description": "Payload to create a draft campaign.",
+        "required": ["name", "subject", "fromName", "fromEmail"],
+        "properties": {
+          "name": { "type": "string", "description": "Internal campaign name." },
+          "subject": { "type": "string", "description": "Subject line." },
+          "fromName": { "type": "string", "description": "From display name." },
+          "fromEmail": { "type": "string", "format": "email", "description": "From email address." },
+          "segmentId": { "type": "string", "description": "Optional segment id this campaign should target." },
+          "templateId": { "type": "string", "description": "Optional template id to use." }
+        }
+      },
+      "CampaignPage": {
+        "type": "object",
+        "description": "A page of campaigns.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Campaigns on this page.", "items": { "$ref": "#/components/schemas/Campaign" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor. Null when no more results." }
+        }
+      },
+      "Subscriber": {
+        "type": "object",
+        "description": "A contact who can be sent campaigns.",
+        "required": ["id", "tenantId", "email", "status"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique subscriber id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the subscriber belongs to." },
+          "email": { "type": "string", "format": "email", "description": "Email address (unique per tenant in well-behaved deployments)." },
+          "firstName": { "type": "string", "description": "First name, if known." },
+          "lastName": { "type": "string", "description": "Last name, if known." },
+          "status": { "type": "string", "enum": ["subscribed", "unsubscribed", "bounced"], "description": "Subscription state." },
+          "attributes": { "type": "object", "description": "Free-form key/value attributes (plan, country, etc.) used for segmentation." },
+          "subscribedAt": { "type": ["string", "null"], "format": "date-time", "description": "When the contact opted in." },
+          "unsubscribedAt": { "type": ["string", "null"], "format": "date-time", "description": "When the contact opted out." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "SubscriberCreate": {
+        "type": "object",
+        "description": "Payload to subscribe a new contact.",
+        "required": ["email"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "description": "Email address." },
+          "firstName": { "type": "string", "description": "First name." },
+          "lastName": { "type": "string", "description": "Last name." },
+          "attributes": { "type": "object", "description": "Free-form attributes." }
+        }
+      },
+      "SubscriberPage": {
+        "type": "object",
+        "description": "A page of subscribers.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Subscribers on this page.", "items": { "$ref": "#/components/schemas/Subscriber" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Segment": {
+        "type": "object",
+        "description": "A saved subscriber filter.",
+        "required": ["id", "tenantId", "name", "criteria"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique segment id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the segment belongs to." },
+          "name": { "type": "string", "description": "Human-readable segment name." },
+          "criteria": { "type": "object", "description": "Segment filter expression — free-form attribute matchers." },
+          "subscriberCount": { "type": "integer", "description": "Approximate number of subscribers in the segment." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "SegmentCreate": {
+        "type": "object",
+        "description": "Payload to create a segment.",
+        "required": ["name", "criteria"],
+        "properties": {
+          "name": { "type": "string", "description": "Segment name." },
+          "criteria": { "type": "object", "description": "Filter criteria." }
+        }
+      },
+      "SegmentPage": {
+        "type": "object",
+        "description": "A page of segments.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Segments on this page.", "items": { "$ref": "#/components/schemas/Segment" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Template": {
+        "type": "object",
+        "description": "An email template — re-usable subject/body shell.",
+        "required": ["id", "tenantId", "name", "subjectTemplate", "htmlBody"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique template id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the template belongs to." },
+          "name": { "type": "string", "description": "Human-readable template name." },
+          "subjectTemplate": { "type": "string", "description": "Subject line template (may contain merge tokens like `{{firstName}}`)." },
+          "htmlBody": { "type": "string", "description": "HTML email body." },
+          "textBody": { "type": "string", "description": "Plain-text fallback." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "TemplateCreate": {
+        "type": "object",
+        "description": "Payload to create an email template.",
+        "required": ["name", "subjectTemplate", "htmlBody"],
+        "properties": {
+          "name": { "type": "string", "description": "Template name." },
+          "subjectTemplate": { "type": "string", "description": "Subject template." },
+          "htmlBody": { "type": "string", "description": "HTML body." },
+          "textBody": { "type": "string", "description": "Plain-text body." }
+        }
+      },
+      "TemplatePage": {
+        "type": "object",
+        "description": "A page of templates.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Templates on this page.", "items": { "$ref": "#/components/schemas/Template" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Suppression": {
+        "type": "object",
+        "description": "An email address that is blocked from receiving any campaign.",
+        "required": ["id", "tenantId", "email", "reason"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique suppression id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the suppression belongs to." },
+          "email": { "type": "string", "format": "email", "description": "Suppressed email address." },
+          "reason": { "type": "string", "description": "Why the address is suppressed (`bounce`, `complaint`, `manual`, ...)." },
+          "addedAt": { "type": "string", "format": "date-time", "description": "When the suppression was recorded." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "SuppressionCreate": {
+        "type": "object",
+        "description": "Payload to add a suppression.",
+        "required": ["email", "reason"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "description": "Email address to suppress." },
+          "reason": { "type": "string", "description": "Reason." }
+        }
+      },
+      "SuppressionPage": {
+        "type": "object",
+        "description": "A page of suppressions.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Suppressions on this page.", "items": { "$ref": "#/components/schemas/Suppression" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      }
+    }
+  }
+}

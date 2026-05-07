@@ -1,0 +1,556 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sales Engagement / Cadence API",
+    "version": "1.0.0",
+    "description": "Headless cadence API for outbound sales. Replaces Outreach, SalesLoft, and Apollo sequences. Cadences are reusable templates of touch steps; enrollments bind a Prospect to a Cadence under a single rep, and orchestrator MCP tools personalize, brief, and auto-pause."
+  },
+  "paths": {
+    "/cadences": {
+      "get": {
+        "operationId": "list_cadences",
+        "summary": "List cadences in the current tenant",
+        "description": "Returns a paginated list of cadences (templated outbound sequences) belonging to the authenticated tenant.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of cadences to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of cadences.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CadencePage" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-cadences)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_cadence",
+        "summary": "Create a cadence",
+        "description": "Create a templated outbound sequence — a list of steps (email/call/task) keyed by day offset.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CadenceCreate" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "The created cadence.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Cadence" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-cadence)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/cadences/{id}": {
+      "get": {
+        "operationId": "get_cadence",
+        "summary": "Get a cadence",
+        "description": "Fetch a single cadence and its full step list.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Cadence id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "The cadence.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Cadence" } } }
+          },
+          "404": { "description": "Cadence not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-cadence)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/prospects": {
+      "get": {
+        "operationId": "list_prospects",
+        "summary": "List prospects",
+        "description": "Returns the tenant's prospects — the contacts being engaged.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of prospects to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of prospects.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProspectPage" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-prospects)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_prospect",
+        "summary": "Create a prospect",
+        "description": "Add a new prospect to the tenant in 'new' status. Use enroll_prospect to start outreach.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProspectCreate" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "The created prospect.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Prospect" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-prospect)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/enrollments": {
+      "get": {
+        "operationId": "list_enrollments",
+        "summary": "List enrollments",
+        "description": "Returns the tenant's enrollments ordered by recent activity.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of enrollments.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of enrollments.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EnrollmentPage" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-enrollments)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "enroll_prospect",
+        "summary": "Enroll a prospect into a cadence",
+        "description": "Bind a prospect to a cadence under a rep. Creates the Enrollment in 'active' status at step 0.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EnrollmentCreate" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "The created enrollment.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Enrollment" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/enroll-prospect)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/enrollments/{id}/pause": {
+      "patch": {
+        "operationId": "pause_enrollment",
+        "summary": "Pause an enrollment",
+        "description": "Transition the enrollment's status to 'paused' — used by reps to stop sending while waiting on signal, or by orchestrators when a reply is detected.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Enrollment id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "The updated enrollment.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Enrollment" } } }
+          },
+          "404": { "description": "Enrollment not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/pause-enrollment)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/enrollments/{id}/complete-step": {
+      "post": {
+        "operationId": "complete_step",
+        "summary": "Mark the current step complete",
+        "description": "Increment the enrollment's currentStep counter and update lastActivityAt. Use after sending a personalized email or finishing a call.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Enrollment id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "The updated enrollment.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Enrollment" } } }
+          },
+          "404": { "description": "Enrollment not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/complete-step)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/emails": {
+      "get": {
+        "operationId": "list_emails",
+        "summary": "List sent / scheduled emails",
+        "description": "Returns the tenant's email records — used by orchestrators to detect replies and engagement.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of emails.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of emails.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EmailPage" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-emails)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/personalize-step-for-prospect": {
+      "post": {
+        "operationId": "personalize_step_for_prospect",
+        "summary": "Render a cadence step for a specific enrollment (orchestrator)",
+        "description": "Reads the enrollment, parent cadence, and prospect, then renders the requested step's template with `{{firstName}}`-style placeholders. Returns subject + body for sending.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["enrollmentId", "stepIndex"],
+                "properties": {
+                  "enrollmentId": { "type": "string", "description": "Enrollment id." },
+                  "stepIndex": { "type": "integer", "minimum": 0, "description": "Step index within the cadence." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rendered step.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enrollmentId": { "type": "string", "description": "Enrollment id." },
+                    "cadenceId": { "type": "string", "description": "Cadence id." },
+                    "stepIndex": { "type": "integer", "description": "Index rendered." },
+                    "stepKind": { "type": "string", "description": "email | call | task." },
+                    "subject": { "type": "string", "description": "Rendered subject." },
+                    "body": { "type": "string", "description": "Rendered body." },
+                    "tokensUsed": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Token map used during rendering." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/personalize-step-for-prospect)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/daily-task-brief": {
+      "post": {
+        "operationId": "daily_task_brief",
+        "summary": "Build the rep's daily task brief (orchestrator)",
+        "description": "Lists pending CadenceTasks owned by `repEmail`, sorted overdue-first. Used by the AM/PM reps' inbox view.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["repEmail"],
+                "properties": {
+                  "repEmail": { "type": "string", "description": "Rep email to brief." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The brief.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "repEmail": { "type": "string", "description": "Rep email." },
+                    "total": { "type": "integer", "description": "Total tasks." },
+                    "tasks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string", "description": "Task id." },
+                          "enrollmentId": { "type": "string", "description": "Enrollment id." },
+                          "stepIndex": { "type": "integer", "description": "Step index." },
+                          "kind": { "type": "string", "description": "Task kind." },
+                          "dueAt": { "type": "string", "format": "date-time", "description": "Due timestamp." },
+                          "overdue": { "type": "boolean", "description": "Whether the task is overdue." }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/daily-task-brief)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/pause-engaged-replies": {
+      "post": {
+        "operationId": "pause_engaged_replies",
+        "summary": "Auto-pause enrollments where the prospect replied (orchestrator)",
+        "description": "Walks emails for any with `repliedAt`, finds the matching active enrollments, and pauses them so the rep can respond manually. Returns the count and the paused enrollment ids.",
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "type": "object" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Pause result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pausedCount": { "type": "integer", "description": "Number of enrollments paused." },
+                    "pausedEnrollmentIds": { "type": "array", "items": { "type": "string" }, "description": "Paused enrollment ids." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/pause-engaged-replies)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "sales-engagement-cadence-server",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_cadences" },
+                { "file": "./config/routes.oas.json", "id": "get_cadence" },
+                { "file": "./config/routes.oas.json", "id": "create_cadence" },
+                { "file": "./config/routes.oas.json", "id": "list_prospects" },
+                { "file": "./config/routes.oas.json", "id": "create_prospect" },
+                { "file": "./config/routes.oas.json", "id": "list_enrollments" },
+                { "file": "./config/routes.oas.json", "id": "enroll_prospect" },
+                { "file": "./config/routes.oas.json", "id": "pause_enrollment" },
+                { "file": "./config/routes.oas.json", "id": "complete_step" },
+                { "file": "./config/routes.oas.json", "id": "list_emails" },
+                { "file": "./config/routes.oas.json", "id": "personalize_step_for_prospect" },
+                { "file": "./config/routes.oas.json", "id": "daily_task_brief" },
+                { "file": "./config/routes.oas.json", "id": "pause_engaged_replies" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Cadence": {
+        "type": "object",
+        "description": "A templated outbound sequence — a list of touch steps with day offsets.",
+        "required": ["id", "tenantId", "name", "steps"],
+        "properties": {
+          "id": { "type": "string", "description": "Cadence id." },
+          "tenantId": { "type": "string", "description": "Tenant id; set from the API key." },
+          "name": { "type": "string", "description": "Human-readable cadence name." },
+          "steps": {
+            "type": "array",
+            "description": "Ordered steps in the cadence.",
+            "items": { "$ref": "#/components/schemas/CadenceStep" }
+          }
+        }
+      },
+      "CadenceStep": {
+        "type": "object",
+        "description": "A single step in a cadence.",
+        "required": ["dayOffset", "kind", "template"],
+        "properties": {
+          "dayOffset": { "type": "integer", "description": "Days from enrollment start." },
+          "kind": { "type": "string", "enum": ["email", "call", "task"], "description": "Step kind." },
+          "template": { "type": "string", "description": "Template body. For emails, the first line is the subject and the rest is body. Supports {{firstName}}-style tokens." }
+        }
+      },
+      "CadenceCreate": {
+        "type": "object",
+        "description": "Payload to create a cadence.",
+        "required": ["name", "steps"],
+        "properties": {
+          "name": { "type": "string", "description": "Name." },
+          "steps": { "type": "array", "items": { "$ref": "#/components/schemas/CadenceStep" }, "description": "Step list." }
+        }
+      },
+      "CadencePage": {
+        "type": "object",
+        "description": "A page of cadences.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Cadence" }, "description": "Cadences on this page." },
+          "nextCursor": { "type": "string", "nullable": true, "description": "Pagination cursor or null." }
+        }
+      },
+      "Prospect": {
+        "type": "object",
+        "description": "A prospect — the contact being engaged.",
+        "required": ["id", "tenantId", "firstName", "lastName", "email", "company", "status"],
+        "properties": {
+          "id": { "type": "string", "description": "Prospect id." },
+          "tenantId": { "type": "string", "description": "Tenant id; set from the API key." },
+          "firstName": { "type": "string", "description": "First name." },
+          "lastName": { "type": "string", "description": "Last name." },
+          "email": { "type": "string", "description": "Email." },
+          "company": { "type": "string", "description": "Company." },
+          "title": { "type": "string", "description": "Title." },
+          "status": { "type": "string", "enum": ["new", "engaged", "replied", "opted_out"], "description": "Engagement state." }
+        }
+      },
+      "ProspectCreate": {
+        "type": "object",
+        "description": "Payload to create a prospect.",
+        "required": ["firstName", "lastName", "email", "company"],
+        "properties": {
+          "firstName": { "type": "string", "description": "First name." },
+          "lastName": { "type": "string", "description": "Last name." },
+          "email": { "type": "string", "description": "Email." },
+          "company": { "type": "string", "description": "Company." },
+          "title": { "type": "string", "description": "Title." }
+        }
+      },
+      "ProspectPage": {
+        "type": "object",
+        "description": "A page of prospects.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Prospect" }, "description": "Prospects on this page." },
+          "nextCursor": { "type": "string", "nullable": true, "description": "Pagination cursor or null." }
+        }
+      },
+      "Enrollment": {
+        "type": "object",
+        "description": "An enrollment — Prospect ↔ Cadence binding.",
+        "required": ["id", "tenantId", "prospectId", "cadenceId", "repEmail", "status", "currentStep", "startedAt", "lastActivityAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Enrollment id." },
+          "tenantId": { "type": "string", "description": "Tenant id; set from the API key." },
+          "prospectId": { "type": "string", "description": "Prospect id." },
+          "cadenceId": { "type": "string", "description": "Cadence id." },
+          "repEmail": { "type": "string", "description": "Rep email." },
+          "status": {
+            "type": "string",
+            "enum": ["active", "paused", "completed", "replied", "opted_out"],
+            "description": "Engagement status."
+          },
+          "currentStep": { "type": "integer", "description": "Index of the next step to run." },
+          "startedAt": { "type": "string", "format": "date-time", "description": "When enrollment started." },
+          "lastActivityAt": { "type": "string", "format": "date-time", "description": "Last meaningful activity timestamp." }
+        }
+      },
+      "EnrollmentCreate": {
+        "type": "object",
+        "description": "Payload to start an enrollment.",
+        "required": ["prospectId", "cadenceId", "repEmail"],
+        "properties": {
+          "prospectId": { "type": "string", "description": "Prospect id." },
+          "cadenceId": { "type": "string", "description": "Cadence id." },
+          "repEmail": { "type": "string", "description": "Rep email." }
+        }
+      },
+      "EnrollmentPage": {
+        "type": "object",
+        "description": "A page of enrollments.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Enrollment" }, "description": "Enrollments on this page." },
+          "nextCursor": { "type": "string", "nullable": true, "description": "Pagination cursor or null." }
+        }
+      },
+      "Email": {
+        "type": "object",
+        "description": "An outbound email tied to a step in an enrollment.",
+        "required": ["id", "tenantId", "enrollmentId", "stepIndex", "subject", "body"],
+        "properties": {
+          "id": { "type": "string", "description": "Email id." },
+          "tenantId": { "type": "string", "description": "Tenant id; set from the API key." },
+          "enrollmentId": { "type": "string", "description": "Parent enrollment id." },
+          "stepIndex": { "type": "integer", "description": "Cadence step index." },
+          "subject": { "type": "string", "description": "Rendered subject." },
+          "body": { "type": "string", "description": "Rendered body." },
+          "sentAt": { "type": "string", "format": "date-time", "nullable": true, "description": "When sent (null if unsent)." },
+          "openedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "When opened." },
+          "repliedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "When the prospect replied." }
+        }
+      },
+      "EmailPage": {
+        "type": "object",
+        "description": "A page of emails.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Email" }, "description": "Emails on this page." },
+          "nextCursor": { "type": "string", "nullable": true, "description": "Pagination cursor or null." }
+        }
+      }
+    }
+  }
+}

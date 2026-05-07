@@ -1,0 +1,546 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Restaurant Reservations API",
+    "version": "1.0.0",
+    "description": "Open-source restaurant reservation API + MCP server. Replaces OpenTable, Resy, and Tock. Manages reservations, tables, guests, shifts, and waitlists, with orchestrator MCP tools for floor-plan optimization, VIP recognition, and no-show revenue recovery."
+  },
+  "paths": {
+    "/reservations": {
+      "get": {
+        "operationId": "list_reservations",
+        "summary": "List reservations in the current tenant",
+        "description": "Returns a paginated list of reservations. Supports filtering by date range (`from`/`to` ISO timestamps), guest, table, and status.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of reservations to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } },
+          { "name": "from", "in": "query", "description": "Inclusive lower bound on `scheduledFor` (ISO-8601).", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "to", "in": "query", "description": "Exclusive upper bound on `scheduledFor` (ISO-8601).", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "guestId", "in": "query", "description": "Filter to a single guest.", "schema": { "type": "string" } },
+          { "name": "tableId", "in": "query", "description": "Filter to a single table.", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "description": "Filter by reservation status.", "schema": { "type": "string", "enum": ["confirmed", "seated", "completed", "no_show", "canceled"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of reservations.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReservationPage" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-reservations)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_reservation",
+        "summary": "Create a reservation",
+        "description": "Books a reservation for a guest at a specific time. Defaults `status` to 'confirmed' and stamps `confirmedAt`.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReservationCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created reservation.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Reservation" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-reservation)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/reservations/{id}": {
+      "get": {
+        "operationId": "get_reservation",
+        "summary": "Get a reservation",
+        "description": "Fetch a single reservation by id.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "Reservation id.", "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "The reservation.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Reservation" } } } },
+          "404": { "description": "Not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-reservation)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/reservations/{id}/seat": {
+      "post": {
+        "operationId": "seat_reservation",
+        "summary": "Seat a reservation",
+        "description": "Mark a confirmed reservation as 'seated' — the guest has arrived and been seated. Stamps `seatedAt`.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "Reservation id.", "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "The updated reservation.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Reservation" } } } },
+          "404": { "description": "Not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/seat-reservation)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/reservations/{id}/no-show": {
+      "post": {
+        "operationId": "mark_no_show",
+        "summary": "Mark a reservation as a no-show",
+        "description": "Mark a confirmed reservation as a no-show. Stamps the status transition.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "Reservation id.", "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "The updated reservation.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Reservation" } } } },
+          "404": { "description": "Not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/mark-no-show)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "destructiveHint": true } }
+        }
+      }
+    },
+    "/tables": {
+      "get": {
+        "operationId": "list_tables",
+        "summary": "List tables in the current tenant",
+        "description": "Returns the floor plan — every table with capacity, location, and status.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of tables to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of tables.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TablePage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-tables)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_table",
+        "summary": "Create a table",
+        "description": "Add a table to the floor plan.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TableCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created table.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Table" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-table)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/guests": {
+      "get": {
+        "operationId": "list_guests",
+        "summary": "List guests in the current tenant",
+        "description": "Returns a paginated list of guests in the CRM. Supports filtering by `vip` and free-text `q` over name/email.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of guests to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } },
+          { "name": "vip", "in": "query", "description": "Filter to VIP guests only when true.", "schema": { "type": "boolean" } },
+          { "name": "q", "in": "query", "description": "Case-insensitive substring match on name or email.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of guests.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GuestPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-guests)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_guest",
+        "summary": "Create a guest",
+        "description": "Create a new guest profile in the CRM.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GuestCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created guest.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Guest" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-guest)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/shifts": {
+      "get": {
+        "operationId": "list_shifts",
+        "summary": "List shifts",
+        "description": "Returns shifts (lunch/dinner/brunch/event blocks) for the tenant. Filter by date range using `from`/`to`.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of shifts to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } },
+          { "name": "from", "in": "query", "description": "Inclusive lower bound on `startsAt` (ISO-8601).", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "to", "in": "query", "description": "Exclusive upper bound on `startsAt` (ISO-8601).", "schema": { "type": "string", "format": "date-time" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of shifts.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ShiftPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-shifts)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/waitlist": {
+      "get": {
+        "operationId": "list_waitlist",
+        "summary": "List the active waitlist",
+        "description": "Returns waitlist parties for the current tenant. Use `status=waiting` to see only active parties.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of waitlist entries to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "description": "Filter by waitlist status.", "schema": { "type": "string", "enum": ["waiting", "seated", "left"] } }
+        ],
+        "responses": {
+          "200": { "description": "Page of waitlist entries.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WaitlistPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-waitlist)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "add_to_waitlist",
+        "summary": "Add a party to the waitlist",
+        "description": "Adds a walk-in party to the waitlist with a quoted wait time.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WaitlistCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created waitlist entry.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WaitlistEntry" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/add-to-waitlist)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/optimize-floor-plan-for-shift": {
+      "post": {
+        "operationId": "optimize_floor_plan_for_shift",
+        "summary": "Optimize floor plan for a shift (orchestrator)",
+        "description": "Greedy floor-plan optimizer. Given a shift, walks every confirmed reservation in time order, assigns each to the smallest table that fits its party with a duration buffer, and reports the assignments plus any unassigned (overflow) parties so the host can rebalance.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["shiftId"],
+                "properties": {
+                  "shiftId": { "type": "string", "description": "Shift id to plan against." },
+                  "bufferMinutes": { "type": "integer", "minimum": 0, "maximum": 120, "description": "Turnaround buffer added to each reservation's duration. Defaults to 15." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Plan with per-table assignments + overflow.", "content": { "application/json": { "schema": { "type": "object" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/optimize-floor-plan-for-shift)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/recognize-vip-guest": {
+      "post": {
+        "operationId": "recognize_vip_guest",
+        "summary": "Recognize VIP guest from reservation (orchestrator)",
+        "description": "Given a reservation id, hydrates the guest profile (allergies, preferences, totalVisits, vip flag), pulls reservation history, and returns a briefing the host can use to greet the guest.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reservationId"],
+                "properties": {
+                  "reservationId": { "type": "string", "description": "Reservation id to brief on." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Briefing payload.", "content": { "application/json": { "schema": { "type": "object" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/recognize-vip-guest)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/recover-no-show-revenue": {
+      "post": {
+        "operationId": "recover_no_show_revenue",
+        "summary": "Recover no-show revenue (orchestrator)",
+        "description": "Walks no-show reservations in a window, finds matching waitlist parties of the same size, and produces a list of suggested seatings — turning canceled covers into recovered revenue.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "windowMinutes": { "type": "integer", "minimum": 5, "maximum": 240, "description": "How long after the reserved time to consider matching a waitlist party. Defaults to 30." },
+                  "from": { "type": "string", "format": "date-time", "description": "Inclusive lower bound on reservation `scheduledFor`. Defaults to now - 24h." },
+                  "to": { "type": "string", "format": "date-time", "description": "Exclusive upper bound on reservation `scheduledFor`. Defaults to now." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Suggested matches.", "content": { "application/json": { "schema": { "type": "object" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/recover-no-show-revenue)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "restaurant-reservations",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_reservations" },
+                { "file": "./config/routes.oas.json", "id": "create_reservation" },
+                { "file": "./config/routes.oas.json", "id": "get_reservation" },
+                { "file": "./config/routes.oas.json", "id": "seat_reservation" },
+                { "file": "./config/routes.oas.json", "id": "mark_no_show" },
+                { "file": "./config/routes.oas.json", "id": "list_tables" },
+                { "file": "./config/routes.oas.json", "id": "create_table" },
+                { "file": "./config/routes.oas.json", "id": "list_guests" },
+                { "file": "./config/routes.oas.json", "id": "create_guest" },
+                { "file": "./config/routes.oas.json", "id": "list_shifts" },
+                { "file": "./config/routes.oas.json", "id": "list_waitlist" },
+                { "file": "./config/routes.oas.json", "id": "add_to_waitlist" },
+                { "file": "./config/routes.oas.json", "id": "optimize_floor_plan_for_shift" },
+                { "file": "./config/routes.oas.json", "id": "recognize_vip_guest" },
+                { "file": "./config/routes.oas.json", "id": "recover_no_show_revenue" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Reservation": {
+        "type": "object",
+        "description": "A booking for a guest at a specific time.",
+        "required": ["id", "tenantId", "guestId", "scheduledFor", "partySize", "durationMinutes", "status", "source", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique reservation id." },
+          "tenantId": { "type": "string", "description": "Tenant id, set from the API key." },
+          "guestId": { "type": "string", "description": "Guest who booked." },
+          "scheduledFor": { "type": "string", "format": "date-time", "description": "Booked seating time (ISO-8601)." },
+          "partySize": { "type": "integer", "minimum": 1, "description": "Number of guests in the party." },
+          "durationMinutes": { "type": "integer", "minimum": 15, "description": "Expected dining duration." },
+          "tableId": { "type": "string", "nullable": true, "description": "Assigned table, if any." },
+          "status": { "type": "string", "enum": ["confirmed", "seated", "completed", "no_show", "canceled"], "description": "Lifecycle state." },
+          "specialRequests": { "type": "string", "nullable": true, "description": "Free text from the guest (allergies, occasion, etc.)." },
+          "source": { "type": "string", "enum": ["web", "phone", "walk_in"], "description": "How the reservation was placed." },
+          "confirmedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "When the reservation became confirmed." },
+          "seatedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "When the party was seated." },
+          "completedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "When the seating ended." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "ISO-8601 record creation timestamp." }
+        }
+      },
+      "ReservationCreate": {
+        "type": "object",
+        "required": ["guestId", "scheduledFor", "partySize"],
+        "properties": {
+          "guestId": { "type": "string", "description": "Guest who booked." },
+          "scheduledFor": { "type": "string", "format": "date-time", "description": "Booked seating time." },
+          "partySize": { "type": "integer", "minimum": 1, "description": "Number of guests in the party." },
+          "durationMinutes": { "type": "integer", "minimum": 15, "description": "Expected dining duration. Defaults to 90." },
+          "tableId": { "type": "string", "description": "Pre-assigned table, if known." },
+          "specialRequests": { "type": "string", "description": "Free text — allergies, occasion, etc." },
+          "source": { "type": "string", "enum": ["web", "phone", "walk_in"], "description": "Booking channel. Defaults to 'web'." }
+        }
+      },
+      "ReservationPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Reservation" } },
+          "nextCursor": { "type": "string", "nullable": true, "description": "Pagination cursor; null when no more results." }
+        }
+      },
+      "Table": {
+        "type": "object",
+        "required": ["id", "tenantId", "number", "capacity", "location", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "number": { "type": "string", "description": "Table number, e.g. '12'." },
+          "capacity": { "type": "integer", "minimum": 1, "description": "Maximum party size." },
+          "location": { "type": "string", "enum": ["main", "bar", "patio", "private"], "description": "Where the table sits." },
+          "status": { "type": "string", "enum": ["available", "occupied", "reserved", "out_of_service"], "description": "Current state of the table." }
+        }
+      },
+      "TableCreate": {
+        "type": "object",
+        "required": ["number", "capacity"],
+        "properties": {
+          "number": { "type": "string", "description": "Table number." },
+          "capacity": { "type": "integer", "minimum": 1, "description": "Maximum party size." },
+          "location": { "type": "string", "enum": ["main", "bar", "patio", "private"], "description": "Where the table sits. Defaults to 'main'." },
+          "status": { "type": "string", "enum": ["available", "occupied", "reserved", "out_of_service"], "description": "Initial status. Defaults to 'available'." }
+        }
+      },
+      "TablePage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Table" } },
+          "nextCursor": { "type": "string", "nullable": true }
+        }
+      },
+      "Guest": {
+        "type": "object",
+        "required": ["id", "tenantId", "firstName", "lastName"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "email": { "type": "string", "nullable": true },
+          "phone": { "type": "string", "nullable": true },
+          "totalVisits": { "type": "integer", "description": "Lifetime visit count." },
+          "lastVisitAt": { "type": "string", "format": "date-time", "nullable": true },
+          "vip": { "type": "boolean", "description": "VIP flag." },
+          "allergies": { "type": "array", "items": { "type": "string" }, "description": "Known dietary restrictions." },
+          "preferences": { "type": "string", "nullable": true, "description": "Free-text preferences (table location, wine, etc.)." },
+          "notes": { "type": "string", "nullable": true, "description": "Internal staff notes." }
+        }
+      },
+      "GuestCreate": {
+        "type": "object",
+        "required": ["firstName", "lastName"],
+        "properties": {
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "email": { "type": "string" },
+          "phone": { "type": "string" },
+          "vip": { "type": "boolean", "description": "Defaults to false." },
+          "allergies": { "type": "array", "items": { "type": "string" } },
+          "preferences": { "type": "string" },
+          "notes": { "type": "string" }
+        }
+      },
+      "GuestPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Guest" } },
+          "nextCursor": { "type": "string", "nullable": true }
+        }
+      },
+      "Shift": {
+        "type": "object",
+        "required": ["id", "tenantId", "startsAt", "endsAt", "kind", "expectedCovers"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "startsAt": { "type": "string", "format": "date-time" },
+          "endsAt": { "type": "string", "format": "date-time" },
+          "kind": { "type": "string", "enum": ["lunch", "dinner", "brunch", "event"] },
+          "expectedCovers": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "ShiftPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Shift" } },
+          "nextCursor": { "type": "string", "nullable": true }
+        }
+      },
+      "WaitlistEntry": {
+        "type": "object",
+        "required": ["id", "tenantId", "guestName", "partySize", "addedAt", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "guestName": { "type": "string", "description": "Free-form name; the guest may not have a profile yet." },
+          "partySize": { "type": "integer", "minimum": 1 },
+          "addedAt": { "type": "string", "format": "date-time" },
+          "quotedWaitMinutes": { "type": "integer", "minimum": 0, "description": "Quoted wait at sign-up." },
+          "status": { "type": "string", "enum": ["waiting", "seated", "left"] },
+          "quotedReadyAt": { "type": "string", "format": "date-time", "nullable": true, "description": "Computed addedAt + quotedWaitMinutes." }
+        }
+      },
+      "WaitlistCreate": {
+        "type": "object",
+        "required": ["guestName", "partySize", "quotedWaitMinutes"],
+        "properties": {
+          "guestName": { "type": "string" },
+          "partySize": { "type": "integer", "minimum": 1 },
+          "quotedWaitMinutes": { "type": "integer", "minimum": 0, "description": "Wait time quoted to the party at sign-up." }
+        }
+      },
+      "WaitlistPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/WaitlistEntry" } },
+          "nextCursor": { "type": "string", "nullable": true }
+        }
+      }
+    }
+  }
+}

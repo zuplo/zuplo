@@ -1,0 +1,302 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Starter Kit Template API",
+    "version": "1.0.0",
+    "description": "Canonical Zuplo Starter Kit. Demonstrates CRUD + MCP + tenant scoping for one example resource (`Item`). Copy this directory and replace `Item` with your kit's domain entity."
+  },
+  "paths": {
+    "/items": {
+      "get": {
+        "operationId": "list_items",
+        "summary": "List items in the current tenant",
+        "description": "Returns a paginated list of items belonging to the authenticated API key's tenant. Use `cursor` to fetch subsequent pages.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of items to return. Defaults to 50.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque pagination cursor from a previous response.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of items.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ItemPage" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-items)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": true }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_item",
+        "summary": "Create an item",
+        "description": "Create a new item in the current tenant. The `tenantId` is set from the authenticated API key — clients do not pass it.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ItemCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created item.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Item" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-item)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": false }
+          }
+        }
+      }
+    },
+    "/items/{id}": {
+      "get": {
+        "operationId": "get_item",
+        "summary": "Get an item by id",
+        "description": "Fetch a single item from the current tenant by its id.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Item id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The item.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Item" }
+              }
+            }
+          },
+          "404": { "description": "Item not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-item)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": true }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete_item",
+        "summary": "Delete an item",
+        "description": "Permanently delete an item from the current tenant.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Item id.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Deleted." },
+          "404": { "description": "Item not found in this tenant." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/delete-item)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "destructiveHint": true }
+          }
+        }
+      }
+    },
+    "/summarize-items": {
+      "post": {
+        "operationId": "summarize_items",
+        "summary": "Summarize items by status (orchestrator)",
+        "description": "Orchestrator MCP tool. Calls list_items internally, groups by status, and returns counts plus the most recent items in each status. This is the canonical 'AI angle' tool — replace it with your kit's domain-specific orchestration.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "topPerStatus": {
+                    "type": "integer",
+                    "description": "How many recent items to include per status. Defaults to 3.",
+                    "minimum": 1,
+                    "maximum": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Summary keyed by status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "count": { "type": "integer" },
+                      "recent": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/Item" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/summarize-items)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": true }
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "starter-kit-template",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_items" },
+                { "file": "./config/routes.oas.json", "id": "get_item" },
+                { "file": "./config/routes.oas.json", "id": "create_item" },
+                { "file": "./config/routes.oas.json", "id": "delete_item" },
+                { "file": "./config/routes.oas.json", "id": "summarize_items" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Item": {
+        "type": "object",
+        "description": "An example domain entity. Replace this schema with your kit's primary entity (Invoice, Ticket, Employee, etc.).",
+        "required": ["id", "tenantId", "name", "status", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the item belongs to. Set automatically from the API key — never accepted from clients." },
+          "name": { "type": "string", "description": "Human-readable name." },
+          "status": {
+            "type": "string",
+            "enum": ["open", "in_progress", "done", "archived"],
+            "description": "Workflow state."
+          },
+          "createdAt": { "type": "string", "format": "date-time", "description": "ISO-8601 creation timestamp." }
+        }
+      },
+      "ItemCreate": {
+        "type": "object",
+        "description": "Payload to create a new item.",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "description": "Human-readable name." },
+          "status": {
+            "type": "string",
+            "enum": ["open", "in_progress", "done", "archived"],
+            "description": "Initial status. Defaults to 'open'."
+          }
+        }
+      },
+      "ItemPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Item" }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true,
+            "description": "Pagination cursor. Pass back as `cursor` for the next page. Null when no more results."
+          }
+        }
+      }
+    }
+  }
+}

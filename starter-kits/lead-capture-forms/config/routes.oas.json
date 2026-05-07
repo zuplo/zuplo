@@ -1,0 +1,603 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Lead Capture & Forms API",
+    "version": "1.0.0",
+    "description": "Headless form-backend API — public submit endpoint, form definitions, webhook delivery, and spam rules. Replaces Typeform, Formspree, HubSpot Forms. Ships with orchestrator MCP tools that score leads, route submissions to owners, and propose new spam rules from suspicious patterns."
+  },
+  "paths": {
+    "/forms": {
+      "get": {
+        "operationId": "list_forms",
+        "summary": "List forms",
+        "description": "Returns a paginated list of form definitions in the current tenant.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum forms to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of forms.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FormPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-forms)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_form",
+        "summary": "Create a form",
+        "description": "Define a new form with a slug, fields, and optional webhook + redirect URL.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FormCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created form.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Form" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-form)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/forms/{id}": {
+      "get": {
+        "operationId": "get_form",
+        "summary": "Get a form by id",
+        "description": "Fetch a single form definition.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Form id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The form.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Form" } } } },
+          "404": { "description": "Form not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-form)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/submissions": {
+      "get": {
+        "operationId": "list_submissions",
+        "summary": "List submissions",
+        "description": "Returns a paginated list of form submissions in the current tenant. Use `cursor` for the next page.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum submissions to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of submissions.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SubmissionPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-submissions)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_submission",
+        "summary": "Submit a form",
+        "description": "Records a form submission. Captures IP and user-agent automatically and runs spam rules over the payload.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SubmissionCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created submission.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Submission" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-submission)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/submissions/{id}": {
+      "get": {
+        "operationId": "get_submission",
+        "summary": "Get a submission by id",
+        "description": "Fetch a single submission from the current tenant.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Submission id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The submission.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Submission" } } } },
+          "404": { "description": "Submission not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-submission)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/submissions/{id}/route": {
+      "patch": {
+        "operationId": "set_submission_owner",
+        "summary": "Assign a submission to an owner",
+        "description": "Routes a submission to a specific owner (user, queue, or rep).",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Submission id.", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["routedTo"],
+                "properties": {
+                  "routedTo": { "type": "string", "description": "Owner identifier (user id, email, or queue name)." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The updated submission.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Submission" } } } },
+          "404": { "description": "Submission not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/set-submission-owner)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/webhooks": {
+      "get": {
+        "operationId": "list_webhooks",
+        "summary": "List webhook subscriptions",
+        "description": "Returns a paginated list of webhook delivery targets configured for the current tenant.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum webhooks to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of webhooks.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WebhookPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-webhooks)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_webhook",
+        "summary": "Create a webhook subscription",
+        "description": "Register a webhook target — every submission to the matching form is POSTed here.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WebhookCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created webhook.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Webhook" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-webhook)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/spam-rules": {
+      "get": {
+        "operationId": "list_spam_rules",
+        "summary": "List spam rules",
+        "description": "Returns a paginated list of spam rules — patterns that flag or block submissions.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum rules to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of spam rules.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SpamRulePage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-spam-rules)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_spam_rule",
+        "summary": "Create a spam rule",
+        "description": "Add a regex pattern that either `block`s or `flag`s submissions whose payload matches.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SpamRuleCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "The created rule.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SpamRule" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-spam-rule)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/score-lead": {
+      "post": {
+        "operationId": "score_lead",
+        "summary": "Score a lead from a submission (orchestrator)",
+        "description": "Orchestrator MCP tool. Loads a submission, examines its payload (email domain, presence of company/title fields, submitted-at recency), and returns a 0-100 fit score plus per-signal breakdown the LLM can quote.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["submissionId"],
+                "properties": {
+                  "submissionId": { "type": "string", "description": "Id of the submission to score." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Score plus signal breakdown.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "submissionId": { "type": "string" },
+                    "score": { "type": "integer", "description": "0-100 fit score." },
+                    "signals": {
+                      "type": "array",
+                      "description": "Per-signal contributions.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": { "type": "string" },
+                          "weight": { "type": "integer" },
+                          "reason": { "type": "string" }
+                        }
+                      }
+                    },
+                    "narrative": { "type": "string", "description": "Plain-English summary of the score." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/score-lead)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/route-submission-to-owner": {
+      "post": {
+        "operationId": "route_submission_to_owner",
+        "summary": "Route a submission to an owner (orchestrator)",
+        "description": "Orchestrator MCP tool. Loads the submission and the form's defined owners (or a round-robin pool), picks an owner using a deterministic hash, then PATCHes the submission via `set_submission_owner`. Returns the chosen owner + a trace.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["submissionId"],
+                "properties": {
+                  "submissionId": { "type": "string", "description": "Id of the submission to route." },
+                  "owners": {
+                    "type": "array",
+                    "description": "Optional pool of owner identifiers to round-robin against. Defaults to `['unassigned']`.",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Routing result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "submissionId": { "type": "string" },
+                    "routedTo": { "type": "string" },
+                    "trace": { "type": "string", "description": "Why this owner was chosen." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/route-submission-to-owner)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/flag-spam-pattern": {
+      "post": {
+        "operationId": "flag_spam_pattern",
+        "summary": "Propose a new spam rule from suspicious patterns (orchestrator)",
+        "description": "Orchestrator MCP tool. Scans recent submissions marked `spam` (or matching the supplied substring), surfaces the most common shared substring or email-domain, and returns a draft `SpamRuleCreate` payload for human review.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lookbackHours": { "type": "integer", "description": "How many recent hours to scan. Defaults to 24.", "minimum": 1, "maximum": 720 },
+                  "substring": { "type": "string", "description": "Optional explicit substring to evaluate. If omitted the tool derives one." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Proposed spam rule.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "matchCount": { "type": "integer", "description": "Number of recent submissions that match the proposed pattern." },
+                    "totalConsidered": { "type": "integer", "description": "Total submissions evaluated." },
+                    "proposedRule": {
+                      "type": ["object", "null"],
+                      "description": "Suggested SpamRule payload — null if no clear pattern emerged.",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "pattern": { "type": "string" },
+                        "action": { "type": "string", "enum": ["block", "flag"] }
+                      }
+                    },
+                    "narrative": { "type": "string", "description": "Plain-English explanation." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/flag-spam-pattern)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "lead-capture-forms-server",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_forms" },
+                { "file": "./config/routes.oas.json", "id": "create_form" },
+                { "file": "./config/routes.oas.json", "id": "get_form" },
+                { "file": "./config/routes.oas.json", "id": "list_submissions" },
+                { "file": "./config/routes.oas.json", "id": "create_submission" },
+                { "file": "./config/routes.oas.json", "id": "get_submission" },
+                { "file": "./config/routes.oas.json", "id": "set_submission_owner" },
+                { "file": "./config/routes.oas.json", "id": "list_webhooks" },
+                { "file": "./config/routes.oas.json", "id": "create_webhook" },
+                { "file": "./config/routes.oas.json", "id": "list_spam_rules" },
+                { "file": "./config/routes.oas.json", "id": "create_spam_rule" },
+                { "file": "./config/routes.oas.json", "id": "score_lead" },
+                { "file": "./config/routes.oas.json", "id": "route_submission_to_owner" },
+                { "file": "./config/routes.oas.json", "id": "flag_spam_pattern" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Form": {
+        "type": "object",
+        "description": "A form definition — fields, slug, and optional delivery configuration.",
+        "required": ["id", "tenantId", "name", "slug", "fields", "active"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique form id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the form belongs to. Set automatically from the API key." },
+          "name": { "type": "string", "description": "Human-readable form name." },
+          "slug": { "type": "string", "description": "URL-safe slug used as the form's public key." },
+          "fields": {
+            "type": "array",
+            "description": "Ordered list of fields.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "type": { "type": "string" },
+                "required": { "type": "boolean" },
+                "label": { "type": "string" }
+              }
+            }
+          },
+          "webhookUrl": { "type": ["string", "null"], "description": "Optional webhook URL invoked on each submission." },
+          "redirectUrl": { "type": ["string", "null"], "description": "Optional success-redirect URL for HTML clients." },
+          "active": { "type": "boolean", "description": "Whether the form accepts new submissions." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "FormCreate": {
+        "type": "object",
+        "description": "Payload to create a form.",
+        "required": ["name", "slug", "fields"],
+        "properties": {
+          "name": { "type": "string", "description": "Form name." },
+          "slug": { "type": "string", "description": "URL-safe slug." },
+          "fields": {
+            "type": "array",
+            "description": "Ordered list of fields.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "type": { "type": "string" },
+                "required": { "type": "boolean" },
+                "label": { "type": "string" }
+              }
+            }
+          },
+          "webhookUrl": { "type": "string", "description": "Optional webhook URL." },
+          "redirectUrl": { "type": "string", "description": "Optional redirect URL." },
+          "active": { "type": "boolean", "description": "Whether the form is active. Defaults to true." }
+        }
+      },
+      "FormPage": {
+        "type": "object",
+        "description": "A page of forms.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Forms on this page.", "items": { "$ref": "#/components/schemas/Form" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Submission": {
+        "type": "object",
+        "description": "A single form submission.",
+        "required": ["id", "tenantId", "formId", "payload", "submittedAt", "processed", "spam"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique submission id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the submission belongs to." },
+          "formId": { "type": "string", "description": "Id of the form being submitted." },
+          "payload": { "type": "object", "description": "Free-form key/value field data." },
+          "submitterEmail": { "type": ["string", "null"], "description": "Best-effort email pulled from the payload." },
+          "ip": { "type": ["string", "null"], "description": "Submitter IP, captured by the gateway." },
+          "userAgent": { "type": ["string", "null"], "description": "Submitter user-agent, captured by the gateway." },
+          "submittedAt": { "type": "string", "format": "date-time", "description": "When the submission was received." },
+          "score": { "type": ["integer", "null"], "description": "Optional 0-100 lead score (set by the score_lead orchestrator)." },
+          "routedTo": { "type": ["string", "null"], "description": "Owner the submission has been routed to, if any." },
+          "processed": { "type": "boolean", "description": "Whether the submission has been processed (webhook delivered, etc.)." },
+          "spam": { "type": "boolean", "description": "Whether spam rules flagged this submission." }
+        }
+      },
+      "SubmissionCreate": {
+        "type": "object",
+        "description": "Payload to submit a form.",
+        "required": ["formId", "payload"],
+        "properties": {
+          "formId": { "type": "string", "description": "Id of the form being submitted." },
+          "payload": { "type": "object", "description": "Field data keyed by field name." }
+        }
+      },
+      "SubmissionPage": {
+        "type": "object",
+        "description": "A page of submissions.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Submissions on this page.", "items": { "$ref": "#/components/schemas/Submission" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "Webhook": {
+        "type": "object",
+        "description": "A webhook delivery target for one or more forms.",
+        "required": ["id", "tenantId", "formId", "url", "active"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique webhook id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the webhook belongs to." },
+          "formId": { "type": "string", "description": "Form whose submissions trigger this webhook." },
+          "url": { "type": "string", "description": "Target URL." },
+          "secret": { "type": "string", "description": "Shared secret used to sign deliveries." },
+          "active": { "type": "boolean", "description": "Whether the webhook is currently delivering." },
+          "lastDeliveredAt": { "type": ["string", "null"], "format": "date-time", "description": "When the most recent delivery succeeded." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "WebhookCreate": {
+        "type": "object",
+        "description": "Payload to register a webhook.",
+        "required": ["formId", "url"],
+        "properties": {
+          "formId": { "type": "string", "description": "Form whose submissions trigger this webhook." },
+          "url": { "type": "string", "description": "Target URL." },
+          "secret": { "type": "string", "description": "Shared signing secret." },
+          "active": { "type": "boolean", "description": "Whether the webhook is active. Defaults to true." }
+        }
+      },
+      "WebhookPage": {
+        "type": "object",
+        "description": "A page of webhooks.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Webhooks on this page.", "items": { "$ref": "#/components/schemas/Webhook" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "SpamRule": {
+        "type": "object",
+        "description": "A pattern that flags or blocks submissions.",
+        "required": ["id", "tenantId", "name", "pattern", "action", "active"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique rule id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant the rule belongs to." },
+          "name": { "type": "string", "description": "Human-readable rule name." },
+          "pattern": { "type": "string", "description": "Regex (or substring) evaluated against the JSON payload." },
+          "action": { "type": "string", "enum": ["block", "flag"], "description": "What to do when the pattern matches." },
+          "active": { "type": "boolean", "description": "Whether the rule is currently enforced." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+        }
+      },
+      "SpamRuleCreate": {
+        "type": "object",
+        "description": "Payload to create a spam rule.",
+        "required": ["name", "pattern", "action"],
+        "properties": {
+          "name": { "type": "string", "description": "Rule name." },
+          "pattern": { "type": "string", "description": "Regex or substring to match." },
+          "action": { "type": "string", "enum": ["block", "flag"], "description": "Action on match." },
+          "active": { "type": "boolean", "description": "Whether the rule is active. Defaults to true." }
+        }
+      },
+      "SpamRulePage": {
+        "type": "object",
+        "description": "A page of spam rules.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Spam rules on this page.", "items": { "$ref": "#/components/schemas/SpamRule" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      }
+    }
+  }
+}

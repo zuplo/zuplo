@@ -1,0 +1,947 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Patient Intake API",
+    "version": "1.0.0",
+    "description": "Zuplo Starter Kit: Patient Intake. Multi-tenant via API-key metadata. MCP server at POST /mcp."
+  },
+  "paths": {
+    "/insurance": {
+      "post": {
+        "operationId": "create_insurance",
+        "summary": "Create Insurance",
+        "description": "Create Insurance.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-insurance)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "list_insurance",
+        "summary": "List Insurance",
+        "description": "List Insurance.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-insurance)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/intake-form": {
+      "post": {
+        "operationId": "create_intake_form",
+        "summary": "Create Intake Form",
+        "description": "Create Intake Form.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-intake-form)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/patient": {
+      "post": {
+        "operationId": "create_patient",
+        "summary": "Create Patient",
+        "description": "Create Patient.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-patient)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/intake-submission/{id}": {
+      "get": {
+        "operationId": "get_intake_submission",
+        "summary": "Get Intake Submission",
+        "description": "Get Intake Submission.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-intake-submission)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/patient/{id}": {
+      "get": {
+        "operationId": "get_patient",
+        "summary": "Get Patient",
+        "description": "Get Patient.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-patient)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/appointments": {
+      "get": {
+        "operationId": "list_appointments",
+        "summary": "List Appointments",
+        "description": "List Appointments.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-appointments)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/consents": {
+      "get": {
+        "operationId": "list_consents",
+        "summary": "List Consents",
+        "description": "List Consents.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-consents)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/intake-forms": {
+      "get": {
+        "operationId": "list_intake_forms",
+        "summary": "List Intake Forms",
+        "description": "List Intake Forms.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-intake-forms)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/intake-submissions": {
+      "get": {
+        "operationId": "list_intake_submissions",
+        "summary": "List Intake Submissions",
+        "description": "List Intake Submissions.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-intake-submissions)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/patients": {
+      "get": {
+        "operationId": "list_patients",
+        "summary": "List Patients",
+        "description": "List Patients.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-patients)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/consent": {
+      "post": {
+        "operationId": "record_consent",
+        "summary": "Record Consent",
+        "description": "Record Consent.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/record-consent)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/review-intake-submission": {
+      "post": {
+        "operationId": "review_intake_submission",
+        "summary": "Review Intake Submission",
+        "description": "Review Intake Submission.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/review-intake-submission)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/appointment/{id}/schedule": {
+      "post": {
+        "operationId": "schedule_appointment",
+        "summary": "Schedule Appointment",
+        "description": "Schedule Appointment.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/schedule-appointment)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/intake/{id}/submit": {
+      "post": {
+        "operationId": "submit_intake",
+        "summary": "Submit Intake",
+        "description": "Submit Intake.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/submit-intake)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/flag-missing-consents": {
+      "post": {
+        "operationId": "flag_missing_consents",
+        "summary": "Flag Missing Consents",
+        "description": "Flag Missing Consents.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/flag-missing-consents)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/summarize-intake-for-provider": {
+      "post": {
+        "operationId": "summarize_intake_for_provider",
+        "summary": "Summarize Intake For Provider",
+        "description": "Summarize Intake For Provider.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/summarize-intake-for-provider)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/verify-insurance-pre-visit": {
+      "post": {
+        "operationId": "verify_insurance_pre_visit",
+        "summary": "Verify Insurance Pre Visit",
+        "description": "Verify Insurance Pre Visit.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/verify-insurance-pre-visit)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "patient-intake-server",
+              "version": "1.0.0",
+              "operations": [
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "create_insurance"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "create_intake_form"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "create_patient"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "get_intake_submission"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "get_patient"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_appointments"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_consents"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_insurance"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_intake_forms"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_intake_submissions"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_patients"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "record_consent"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "review_intake_submission"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "schedule_appointment"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "submit_intake"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "flag_missing_consents"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "summarize_intake_for_provider"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "verify_insurance_pre_visit"
+                }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ],
+            "outbound": [
+              "prompt-injection-outbound",
+              "secret-masking-outbound"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

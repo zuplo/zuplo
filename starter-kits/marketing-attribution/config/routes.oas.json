@@ -1,0 +1,530 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Marketing Attribution API",
+    "version": "1.0.0",
+    "description": "API + MCP server for first-party marketing attribution. Replaces Dreamdata, Attribution.com, and RollWorks. Records visitor touchpoints, conversions, and channels, and exposes orchestrator MCP tools that explain conversion paths and compare attribution models."
+  },
+  "paths": {
+    "/touchpoints": {
+      "get": {
+        "operationId": "list_touchpoints",
+        "summary": "List touchpoints",
+        "description": "Returns visitor touchpoints, optionally filtered by visitorId or channel.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum touchpoints per page.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } },
+          { "name": "visitorId", "in": "query", "description": "Restrict to a single visitor.", "schema": { "type": "string" } },
+          { "name": "channel", "in": "query", "description": "Restrict to a single channel.", "schema": { "type": "string", "enum": ["paid_search", "organic", "social", "email", "direct", "referral"] } }
+        ],
+        "responses": {
+          "200": { "description": "Page of touchpoints.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TouchpointPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-touchpoints)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "record_touchpoint",
+        "summary": "Record a touchpoint",
+        "description": "Append a new visitor touchpoint. Caller is expected to derive `channel`, `source`, `medium`, and `campaignName` from UTM parameters or referrer.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TouchpointCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "Created touchpoint.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Touchpoint" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/record-touchpoint)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/visitors": {
+      "get": {
+        "operationId": "list_visitors",
+        "summary": "List visitors",
+        "description": "Returns first-party visitor records, ordered by most recent activity.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum per page.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of visitors.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VisitorPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-visitors)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/visitors/{id}": {
+      "get": {
+        "operationId": "get_visitor",
+        "summary": "Get a visitor",
+        "description": "Fetch a visitor by id.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Visitor id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The visitor.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Visitor" } } } },
+          "404": { "description": "Visitor not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-visitor)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "patch": {
+        "operationId": "identify_visitor",
+        "summary": "Identify a visitor",
+        "description": "Attach an email and optional traits to an anonymous visitor. Idempotent — re-identifying just refreshes lastSeenAt.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Visitor id.", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["identifiedEmail"],
+                "properties": {
+                  "identifiedEmail": { "type": "string", "description": "Identified email address." },
+                  "attributes": { "type": "object", "description": "Optional traits to merge.", "additionalProperties": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The updated visitor.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Visitor" } } } },
+          "404": { "description": "Visitor not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/identify-visitor)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/conversions": {
+      "get": {
+        "operationId": "list_conversions",
+        "summary": "List conversions",
+        "description": "Returns conversions, optionally filtered by visitorId.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum per page.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } },
+          { "name": "visitorId", "in": "query", "description": "Restrict to a single visitor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of conversions.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConversionPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-conversions)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "record_conversion",
+        "summary": "Record a conversion",
+        "description": "Append a conversion event for a visitor. Used by attribution computations.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConversionCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "Created conversion.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Conversion" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/record-conversion)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/channels": {
+      "get": {
+        "operationId": "list_channels",
+        "summary": "List channels",
+        "description": "Returns the configured channels (paid_search, organic, social, email, direct, referral) with optional period spend.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum per page.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of channels.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChannelPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-channels)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/attribution-models": {
+      "get": {
+        "operationId": "list_attribution_models",
+        "summary": "List attribution models",
+        "description": "Returns the configured attribution models (first-touch, last-touch, linear, position-based, time-decay).",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum per page.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of attribution models.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AttributionModelPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-attribution-models)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/explain-conversion-path": {
+      "post": {
+        "operationId": "explain_conversion_path",
+        "summary": "Explain a visitor's conversion path (orchestrator)",
+        "description": "Returns the chronological touchpoint list ending in the visitor's most recent conversion, plus the value attributed to each touchpoint under every configured attribution model.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["visitorId"],
+                "properties": {
+                  "visitorId": { "type": "string", "description": "Visitor whose path to explain." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Path explanation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "visitorId": { "type": "string", "description": "Visitor id." },
+                    "touchpointCount": { "type": "integer", "description": "Total touchpoints found." },
+                    "conversionCount": { "type": "integer", "description": "Total conversions found." },
+                    "lastConversion": { "type": ["object", "null"], "description": "The most recent conversion that anchored attribution.", "additionalProperties": true },
+                    "path": { "type": "array", "description": "Chronological touchpoints up to the conversion.", "items": { "type": "object", "additionalProperties": true } },
+                    "attribution": {
+                      "type": "object",
+                      "description": "Per-model attribution: model slug -> array of touchpoint allocations.",
+                      "additionalProperties": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/explain-conversion-path)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/compare-attribution-models": {
+      "post": {
+        "operationId": "compare_attribution_models",
+        "summary": "Compare attribution models side-by-side (orchestrator)",
+        "description": "For every conversion in the date window, computes attribution under each configured model and returns a model x channel breakdown of attributed value.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["dateFrom", "dateTo"],
+                "properties": {
+                  "dateFrom": { "type": "string", "format": "date-time", "description": "Inclusive lower bound on conversion timestamps." },
+                  "dateTo": { "type": "string", "format": "date-time", "description": "Inclusive upper bound on conversion timestamps." },
+                  "channelSlugs": { "type": "array", "description": "Optional channel filter.", "items": { "type": "string" } }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Side-by-side attribution.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "dateFrom": { "type": "string", "description": "Echo of input." },
+                    "dateTo": { "type": "string", "description": "Echo of input." },
+                    "channelSlugs": { "type": ["array", "null"], "description": "Echo of channel filter.", "items": { "type": "string" } },
+                    "conversionCount": { "type": "integer", "description": "Conversions considered." },
+                    "modelCount": { "type": "integer", "description": "Models compared." },
+                    "attributionByModel": {
+                      "type": "object",
+                      "description": "Map: modelSlug -> { channel -> attributed cents }.",
+                      "additionalProperties": { "type": "object", "additionalProperties": { "type": "integer" } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/compare-attribution-models)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/find-underrated-channels": {
+      "post": {
+        "operationId": "find_underrated_channels",
+        "summary": "Find under-credited channels (orchestrator)",
+        "description": "Compares last-touch attribution against linear and position-based attribution and returns channels whose last-touch share is much lower than their blended share. Useful for spotting under-funded assist channels.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "windowDays": { "type": "integer", "description": "Look-back window in days. Defaults to 30.", "minimum": 1, "maximum": 365 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Channel comparison.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "windowDays": { "type": "integer", "description": "Echo of input." },
+                    "cutoff": { "type": "string", "format": "date-time", "description": "Lower bound." },
+                    "conversionCount": { "type": "integer", "description": "Conversions in window." },
+                    "channelCount": { "type": "integer", "description": "Channels considered." },
+                    "underratedChannels": { "type": "array", "description": "Channels flagged as under-credited.", "items": { "type": "object", "additionalProperties": true } },
+                    "allChannelsRanked": { "type": "array", "description": "All channels with the underrated ratio computed.", "items": { "type": "object", "additionalProperties": true } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/find-underrated-channels)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "marketing-attribution",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_touchpoints" },
+                { "file": "./config/routes.oas.json", "id": "record_touchpoint" },
+                { "file": "./config/routes.oas.json", "id": "list_visitors" },
+                { "file": "./config/routes.oas.json", "id": "get_visitor" },
+                { "file": "./config/routes.oas.json", "id": "identify_visitor" },
+                { "file": "./config/routes.oas.json", "id": "list_conversions" },
+                { "file": "./config/routes.oas.json", "id": "record_conversion" },
+                { "file": "./config/routes.oas.json", "id": "list_channels" },
+                { "file": "./config/routes.oas.json", "id": "list_attribution_models" },
+                { "file": "./config/routes.oas.json", "id": "explain_conversion_path" },
+                { "file": "./config/routes.oas.json", "id": "compare_attribution_models" },
+                { "file": "./config/routes.oas.json", "id": "find_underrated_channels" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Touchpoint": {
+        "type": "object",
+        "description": "A single visit/interaction recorded for a visitor.",
+        "required": ["id", "tenantId", "visitorId", "channel", "occurredAt", "url"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id within the tenant." },
+          "tenantId": { "type": "string", "description": "Owning tenant." },
+          "visitorId": { "type": "string", "description": "Visitor id." },
+          "channel": { "type": "string", "enum": ["paid_search", "organic", "social", "email", "direct", "referral"], "description": "Marketing channel classification." },
+          "campaignName": { "type": "string", "description": "Campaign identifier from utm_campaign or platform." },
+          "source": { "type": "string", "description": "utm_source." },
+          "medium": { "type": "string", "description": "utm_medium." },
+          "occurredAt": { "type": "string", "format": "date-time", "description": "When the touch happened." },
+          "url": { "type": "string", "description": "Landing URL." },
+          "sessionId": { "type": "string", "description": "Session this touchpoint belongs to." }
+        }
+      },
+      "TouchpointCreate": {
+        "type": "object",
+        "description": "Payload to record a touchpoint.",
+        "required": ["visitorId", "channel", "url"],
+        "properties": {
+          "visitorId": { "type": "string", "description": "Visitor id." },
+          "channel": { "type": "string", "enum": ["paid_search", "organic", "social", "email", "direct", "referral"], "description": "Channel." },
+          "campaignName": { "type": "string", "description": "Optional campaign name." },
+          "source": { "type": "string", "description": "Optional utm_source." },
+          "medium": { "type": "string", "description": "Optional utm_medium." },
+          "occurredAt": { "type": "string", "format": "date-time", "description": "Defaults to now." },
+          "url": { "type": "string", "description": "Landing URL." },
+          "sessionId": { "type": "string", "description": "Optional session id." }
+        }
+      },
+      "TouchpointPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Page of touchpoints.", "items": { "$ref": "#/components/schemas/Touchpoint" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor or null." }
+        }
+      },
+      "Visitor": {
+        "type": "object",
+        "description": "A first-party visitor record.",
+        "required": ["id", "tenantId", "anonymousId", "firstSeenAt", "lastSeenAt", "attributes"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id." },
+          "tenantId": { "type": "string", "description": "Owning tenant." },
+          "anonymousId": { "type": "string", "description": "Cookie or device id." },
+          "firstSeenAt": { "type": "string", "format": "date-time", "description": "First sighting." },
+          "lastSeenAt": { "type": "string", "format": "date-time", "description": "Most recent sighting." },
+          "identifiedEmail": { "type": ["string", "null"], "description": "Identified email or null." },
+          "attributes": { "type": "object", "description": "Free-form trait bag.", "additionalProperties": true }
+        }
+      },
+      "VisitorPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Page of visitors.", "items": { "$ref": "#/components/schemas/Visitor" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor or null." }
+        }
+      },
+      "Conversion": {
+        "type": "object",
+        "description": "A revenue or pipeline event tied to a visitor.",
+        "required": ["id", "tenantId", "visitorId", "kind", "valueCents", "occurredAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id." },
+          "tenantId": { "type": "string", "description": "Owning tenant." },
+          "visitorId": { "type": "string", "description": "Visitor id." },
+          "kind": { "type": "string", "enum": ["signup", "purchase", "trial", "demo"], "description": "Conversion type." },
+          "valueCents": { "type": "integer", "description": "Conversion value in cents." },
+          "occurredAt": { "type": "string", "format": "date-time", "description": "When it happened." },
+          "dealId": { "type": ["string", "null"], "description": "External CRM deal id, or null." }
+        }
+      },
+      "ConversionCreate": {
+        "type": "object",
+        "description": "Payload to record a conversion.",
+        "required": ["visitorId", "kind"],
+        "properties": {
+          "visitorId": { "type": "string", "description": "Visitor id." },
+          "kind": { "type": "string", "enum": ["signup", "purchase", "trial", "demo"], "description": "Conversion kind." },
+          "valueCents": { "type": "integer", "description": "Optional value in cents." },
+          "occurredAt": { "type": "string", "format": "date-time", "description": "Optional timestamp; defaults to now." },
+          "dealId": { "type": ["string", "null"], "description": "Optional CRM deal id." }
+        }
+      },
+      "ConversionPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Page of conversions.", "items": { "$ref": "#/components/schemas/Conversion" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor or null." }
+        }
+      },
+      "Channel": {
+        "type": "object",
+        "description": "A marketing channel with optional period spend.",
+        "required": ["id", "tenantId", "slug", "name"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id." },
+          "tenantId": { "type": "string", "description": "Owning tenant." },
+          "slug": { "type": "string", "description": "URL-safe identifier." },
+          "name": { "type": "string", "description": "Display name." },
+          "costCents": { "type": "integer", "description": "Total spend for the period in cents." },
+          "costPeriodStart": { "type": "string", "format": "date", "description": "Period start (YYYY-MM-DD)." },
+          "costPeriodEnd": { "type": "string", "format": "date", "description": "Period end (YYYY-MM-DD)." }
+        }
+      },
+      "ChannelPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Page of channels.", "items": { "$ref": "#/components/schemas/Channel" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor or null." }
+        }
+      },
+      "AttributionModel": {
+        "type": "object",
+        "description": "Defines how conversion credit is split across touchpoints.",
+        "required": ["id", "tenantId", "slug", "name", "kind"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique id." },
+          "tenantId": { "type": "string", "description": "Owning tenant." },
+          "slug": { "type": "string", "description": "URL-safe identifier." },
+          "name": { "type": "string", "description": "Display name." },
+          "weights": { "type": "object", "description": "Position-based weights, position label -> weight 0..1.", "additionalProperties": { "type": "number" } },
+          "kind": { "type": "string", "enum": ["first", "last", "linear", "position_based", "time_decay"], "description": "Attribution algorithm." }
+        }
+      },
+      "AttributionModelPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Page of attribution models.", "items": { "$ref": "#/components/schemas/AttributionModel" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor or null." }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,991 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Student Course Management API",
+    "version": "1.0.0",
+    "description": "Zuplo Starter Kit: Student Course Management. Multi-tenant via API-key metadata. MCP server at POST /mcp."
+  },
+  "paths": {
+    "/course": {
+      "post": {
+        "operationId": "create_course",
+        "summary": "Create Course",
+        "description": "Create Course.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-course)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/enrollment": {
+      "post": {
+        "operationId": "create_enrollment",
+        "summary": "Create Enrollment",
+        "description": "Create Enrollment.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-enrollment)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/lesson": {
+      "post": {
+        "operationId": "create_lesson",
+        "summary": "Create Lesson",
+        "description": "Create Lesson.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-lesson)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/student": {
+      "post": {
+        "operationId": "create_student",
+        "summary": "Create Student",
+        "description": "Create Student.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/create-student)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/course/{id}": {
+      "get": {
+        "operationId": "get_course",
+        "summary": "Get Course",
+        "description": "Get Course.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-course)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/enrollment/{id}": {
+      "get": {
+        "operationId": "get_enrollment",
+        "summary": "Get Enrollment",
+        "description": "Get Enrollment.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-enrollment)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/student/{id}": {
+      "get": {
+        "operationId": "get_student",
+        "summary": "Get Student",
+        "description": "Get Student.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/get-student)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/attendance": {
+      "get": {
+        "operationId": "list_attendance",
+        "summary": "List Attendance",
+        "description": "List Attendance.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-attendance)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/courses": {
+      "get": {
+        "operationId": "list_courses",
+        "summary": "List Courses",
+        "description": "List Courses.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-courses)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/enrollments": {
+      "get": {
+        "operationId": "list_enrollments",
+        "summary": "List Enrollments",
+        "description": "List Enrollments.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-enrollments)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/grades": {
+      "get": {
+        "operationId": "list_grades",
+        "summary": "List Grades",
+        "description": "List Grades.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-grades)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/lessons": {
+      "get": {
+        "operationId": "list_lessons",
+        "summary": "List Lessons",
+        "description": "List Lessons.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-lessons)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/students": {
+      "get": {
+        "operationId": "list_students",
+        "summary": "List Students",
+        "description": "List Students.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/list-students)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": true
+            }
+          }
+        }
+      }
+    },
+    "/mark-attendance": {
+      "post": {
+        "operationId": "mark_attendance",
+        "summary": "Mark Attendance",
+        "description": "Mark Attendance.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/mark-attendance)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/grade": {
+      "post": {
+        "operationId": "record_grade",
+        "summary": "Record Grade",
+        "description": "Record Grade.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/record-grade)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/enrollment-status/{id}": {
+      "patch": {
+        "operationId": "update_enrollment_status",
+        "summary": "Update Enrollment Status",
+        "description": "Update Enrollment Status.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/update-enrollment-status)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/draft-progress-report": {
+      "post": {
+        "operationId": "draft_progress_report",
+        "summary": "Draft Progress Report",
+        "description": "Draft Progress Report.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/draft-progress-report)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/flag-at-risk-students": {
+      "post": {
+        "operationId": "flag_at_risk_students",
+        "summary": "Flag At Risk Students",
+        "description": "Flag At Risk Students.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/flag-at-risk-students)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/recommend-remediation": {
+      "post": {
+        "operationId": "recommend_remediation",
+        "summary": "Recommend Remediation",
+        "description": "Recommend Remediation.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Operation payload — see handler for schema."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/recommend-remediation)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "student-course-management-server",
+              "version": "1.0.0",
+              "operations": [
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "create_course"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "create_enrollment"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "create_lesson"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "create_student"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "get_course"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "get_enrollment"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "get_student"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_attendance"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_courses"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_enrollments"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_grades"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_lessons"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "list_students"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "mark_attendance"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "record_grade"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "update_enrollment_status"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "draft_progress_report"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "flag_at_risk_students"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "recommend_remediation"
+                }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ],
+            "outbound": [
+              "prompt-injection-outbound",
+              "secret-masking-outbound"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

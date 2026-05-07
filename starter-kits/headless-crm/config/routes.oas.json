@@ -1,0 +1,549 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Headless CRM API",
+    "version": "1.0.0",
+    "description": "Headless CRM API. Replaces Salesforce/HubSpot CRM/Pipedrive. Models accounts, contacts, deals, activities, and notes — and exposes orchestrators for account timeline, warm intros, and pipeline roll-ups."
+  },
+  "paths": {
+    "/accounts": {
+      "get": {
+        "operationId": "list_accounts",
+        "summary": "List accounts",
+        "description": "Returns a paginated list of accounts in the current tenant, newest first.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of accounts to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Page of accounts.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AccountPage" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-accounts)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_account",
+        "summary": "Create an account",
+        "description": "Create a new account record.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateAccountRequest" } } } },
+        "responses": { "201": { "description": "Created account.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Account" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-account)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/accounts/{id}": {
+      "get": {
+        "operationId": "get_account",
+        "summary": "Get an account by id",
+        "description": "Fetch an account by id from the current tenant.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Account id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The account.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Account" } } } },
+          "404": { "description": "Account not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-account)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/contacts": {
+      "get": {
+        "operationId": "list_contacts",
+        "summary": "List contacts",
+        "description": "Returns a paginated list of contacts in the current tenant, newest first.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of contacts to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Page of contacts.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ContactPage" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-contacts)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_contact",
+        "summary": "Create a contact",
+        "description": "Create a new contact attached to an account.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateContactRequest" } } } },
+        "responses": { "201": { "description": "Created contact.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Contact" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-contact)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/contacts/{id}": {
+      "get": {
+        "operationId": "get_contact",
+        "summary": "Get a contact",
+        "description": "Fetch a contact by id from the current tenant.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Contact id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The contact.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Contact" } } } },
+          "404": { "description": "Contact not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-contact)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/deals": {
+      "get": {
+        "operationId": "list_deals",
+        "summary": "List deals",
+        "description": "Returns a paginated list of deals in the current tenant, sorted by recency of update.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of deals to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Page of deals.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DealPage" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-deals)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "create_deal",
+        "summary": "Create a deal",
+        "description": "Create a new deal/opportunity.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateDealRequest" } } } },
+        "responses": { "201": { "description": "Created deal.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Deal" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/create-deal)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/deals/{id}": {
+      "get": {
+        "operationId": "get_deal",
+        "summary": "Get a deal",
+        "description": "Fetch a deal by id.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Deal id.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The deal.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Deal" } } } },
+          "404": { "description": "Deal not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/get-deal)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/deals/{id}/stage": {
+      "patch": {
+        "operationId": "progress_deal_stage",
+        "summary": "Progress a deal's stage",
+        "description": "Update the deal's stage and optional probability. Stamps `updatedAt`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Deal id.", "schema": { "type": "string" } }
+        ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProgressStageRequest" } } } },
+        "responses": {
+          "200": { "description": "Updated deal.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Deal" } } } },
+          "404": { "description": "Deal not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/progress-deal-stage)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false, "idempotentHint": true } }
+        }
+      }
+    },
+    "/activities": {
+      "get": {
+        "operationId": "list_activities",
+        "summary": "List activities",
+        "description": "Returns a paginated list of activities (emails/calls/meetings/notes), newest first.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Maximum number of activities to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Opaque pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Page of activities.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActivityPage" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-activities)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
+      "post": {
+        "operationId": "log_activity",
+        "summary": "Log an activity",
+        "description": "Log an email, call, meeting, or note against a deal/contact/account.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LogActivityRequest" } } } },
+        "responses": { "201": { "description": "Created activity.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Activity" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/log-activity)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/account-timeline": {
+      "post": {
+        "operationId": "account_timeline",
+        "summary": "Account timeline (orchestrator)",
+        "description": "Returns a merged chronological list of activities, notes, and deal events for an account — including those attached to its contacts.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AccountTimelineRequest" } } } },
+        "responses": { "200": { "description": "Timeline.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AccountTimelineResponse" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/account-timeline)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/find-warm-intro": {
+      "post": {
+        "operationId": "find_warm_intro",
+        "summary": "Find warm intro paths (orchestrator)",
+        "description": "Surfaces owners on your team who have touched both the target account and other accounts — candidates for a warm intro.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FindWarmIntroRequest" } } } },
+        "responses": { "200": { "description": "Intro paths.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FindWarmIntroResponse" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/find-warm-intro)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/pipeline-summary-by-owner": {
+      "post": {
+        "operationId": "pipeline_summary_by_owner",
+        "summary": "Pipeline summary by owner (orchestrator)",
+        "description": "Sums open-deal value by stage per owner. Optionally filtered to a single ownerEmail.",
+        "requestBody": { "required": false, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PipelineSummaryRequest" } } } },
+        "responses": { "200": { "description": "Per-owner summary.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PipelineSummaryResponse" } } } } },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/pipeline-summary-by-owner)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcp_handler",
+        "summary": "MCP server endpoint",
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "headless-crm",
+              "version": "1.0.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "list_accounts" },
+                { "file": "./config/routes.oas.json", "id": "get_account" },
+                { "file": "./config/routes.oas.json", "id": "create_account" },
+                { "file": "./config/routes.oas.json", "id": "list_contacts" },
+                { "file": "./config/routes.oas.json", "id": "get_contact" },
+                { "file": "./config/routes.oas.json", "id": "create_contact" },
+                { "file": "./config/routes.oas.json", "id": "list_deals" },
+                { "file": "./config/routes.oas.json", "id": "get_deal" },
+                { "file": "./config/routes.oas.json", "id": "create_deal" },
+                { "file": "./config/routes.oas.json", "id": "progress_deal_stage" },
+                { "file": "./config/routes.oas.json", "id": "list_activities" },
+                { "file": "./config/routes.oas.json", "id": "log_activity" },
+                { "file": "./config/routes.oas.json", "id": "account_timeline" },
+                { "file": "./config/routes.oas.json", "id": "find_warm_intro" },
+                { "file": "./config/routes.oas.json", "id": "pipeline_summary_by_owner" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"],
+            "outbound": ["prompt-injection-outbound", "secret-masking-outbound"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Account": {
+        "type": "object",
+        "description": "A B2B account / company record.",
+        "required": ["id", "tenantId", "name", "sizeBucket", "ownerEmail", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Account id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant id." },
+          "name": { "type": "string", "description": "Account display name." },
+          "domain": { "type": ["string", "null"], "description": "Primary web domain." },
+          "industry": { "type": ["string", "null"], "description": "Industry classification." },
+          "sizeBucket": { "type": "string", "enum": ["smb", "midmarket", "enterprise"], "description": "Coarse-grained size bucket." },
+          "ownerEmail": { "type": "string", "format": "email", "description": "Email of the account owner (AE)." },
+          "annualRevenueCents": { "type": ["integer", "null"], "description": "Estimated annual revenue in cents." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "When the account was created." }
+        }
+      },
+      "AccountPage": { "type": "object", "description": "A page of accounts.", "required": ["items"], "properties": { "items": { "type": "array", "description": "Accounts on this page.", "items": { "$ref": "#/components/schemas/Account" } }, "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." } } },
+      "Contact": {
+        "type": "object",
+        "description": "A person at an account.",
+        "required": ["id", "tenantId", "firstName", "lastName", "email", "accountId", "ownerEmail", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Contact id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant id." },
+          "firstName": { "type": "string", "description": "First name." },
+          "lastName": { "type": "string", "description": "Last name." },
+          "email": { "type": "string", "format": "email", "description": "Email." },
+          "phone": { "type": ["string", "null"], "description": "Phone number." },
+          "title": { "type": ["string", "null"], "description": "Job title." },
+          "accountId": { "type": "string", "description": "Account this contact belongs to." },
+          "ownerEmail": { "type": "string", "format": "email", "description": "Email of the contact owner." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "When the contact was created." }
+        }
+      },
+      "ContactPage": { "type": "object", "description": "A page of contacts.", "required": ["items"], "properties": { "items": { "type": "array", "description": "Contacts on this page.", "items": { "$ref": "#/components/schemas/Contact" } }, "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." } } },
+      "Deal": {
+        "type": "object",
+        "description": "A sales opportunity.",
+        "required": ["id", "tenantId", "accountId", "name", "ownerEmail", "stage", "amountCents", "currency", "expectedCloseDate", "probability", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string", "description": "Deal id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant id." },
+          "accountId": { "type": "string", "description": "Account this deal belongs to." },
+          "contactId": { "type": ["string", "null"], "description": "Primary contact on the deal." },
+          "name": { "type": "string", "description": "Display name." },
+          "ownerEmail": { "type": "string", "format": "email", "description": "Email of the deal owner (AE)." },
+          "stage": { "type": "string", "enum": ["prospect", "qualified", "proposal", "negotiation", "closed_won", "closed_lost"], "description": "Pipeline stage." },
+          "amountCents": { "type": "integer", "description": "Deal amount in cents." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code." },
+          "expectedCloseDate": { "type": "string", "format": "date", "description": "Forecasted close date." },
+          "probability": { "type": "number", "minimum": 0, "maximum": 100, "description": "Probability the deal closes (percent)." },
+          "source": { "type": ["string", "null"], "description": "Lead source (inbound, outbound, referral, etc.)." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "When the deal was created." },
+          "updatedAt": { "type": "string", "format": "date-time", "description": "When the deal last changed." }
+        }
+      },
+      "DealPage": { "type": "object", "description": "A page of deals.", "required": ["items"], "properties": { "items": { "type": "array", "description": "Deals on this page.", "items": { "$ref": "#/components/schemas/Deal" } }, "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." } } },
+      "Activity": {
+        "type": "object",
+        "description": "A logged interaction (email/call/meeting/note).",
+        "required": ["id", "tenantId", "kind", "subject", "body", "occurredAt", "ownerEmail"],
+        "properties": {
+          "id": { "type": "string", "description": "Activity id within the tenant." },
+          "tenantId": { "type": "string", "description": "Tenant id." },
+          "kind": { "type": "string", "enum": ["email", "call", "meeting", "note"], "description": "Type of interaction." },
+          "subject": { "type": "string", "description": "Short subject line." },
+          "body": { "type": "string", "description": "Free-text body / transcript / summary." },
+          "dealId": { "type": ["string", "null"], "description": "Associated deal." },
+          "contactId": { "type": ["string", "null"], "description": "Associated contact." },
+          "accountId": { "type": ["string", "null"], "description": "Associated account." },
+          "occurredAt": { "type": "string", "format": "date-time", "description": "When the interaction happened." },
+          "ownerEmail": { "type": "string", "format": "email", "description": "Email of the rep." }
+        }
+      },
+      "ActivityPage": { "type": "object", "description": "A page of activities.", "required": ["items"], "properties": { "items": { "type": "array", "description": "Activities on this page.", "items": { "$ref": "#/components/schemas/Activity" } }, "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." } } },
+      "CreateAccountRequest": {
+        "type": "object",
+        "description": "Payload to create an account.",
+        "required": ["name", "ownerEmail"],
+        "properties": {
+          "name": { "type": "string", "description": "Display name." },
+          "domain": { "type": "string", "description": "Web domain." },
+          "industry": { "type": "string", "description": "Industry classification." },
+          "sizeBucket": { "type": "string", "enum": ["smb", "midmarket", "enterprise"], "description": "Account size bucket. Defaults to 'smb'." },
+          "ownerEmail": { "type": "string", "format": "email", "description": "Owner email." },
+          "annualRevenueCents": { "type": "integer", "description": "Annual revenue in cents." }
+        }
+      },
+      "CreateContactRequest": {
+        "type": "object",
+        "description": "Payload to create a contact.",
+        "required": ["firstName", "lastName", "email", "accountId", "ownerEmail"],
+        "properties": {
+          "firstName": { "type": "string", "description": "First name." },
+          "lastName": { "type": "string", "description": "Last name." },
+          "email": { "type": "string", "format": "email", "description": "Email." },
+          "phone": { "type": "string", "description": "Phone." },
+          "title": { "type": "string", "description": "Job title." },
+          "accountId": { "type": "string", "description": "Account id." },
+          "ownerEmail": { "type": "string", "format": "email", "description": "Contact owner email." }
+        }
+      },
+      "CreateDealRequest": {
+        "type": "object",
+        "description": "Payload to create a deal.",
+        "required": ["accountId", "name", "ownerEmail", "amountCents", "currency", "expectedCloseDate"],
+        "properties": {
+          "accountId": { "type": "string", "description": "Account id." },
+          "contactId": { "type": "string", "description": "Primary contact id." },
+          "name": { "type": "string", "description": "Display name." },
+          "ownerEmail": { "type": "string", "format": "email", "description": "Owner email." },
+          "stage": { "type": "string", "enum": ["prospect", "qualified", "proposal", "negotiation", "closed_won", "closed_lost"], "description": "Initial stage. Defaults to 'prospect'." },
+          "amountCents": { "type": "integer", "description": "Deal amount in cents." },
+          "currency": { "type": "string", "description": "ISO 4217 currency code." },
+          "expectedCloseDate": { "type": "string", "format": "date", "description": "Forecast close date." },
+          "probability": { "type": "number", "minimum": 0, "maximum": 100, "description": "Probability percent. Defaults to 10." },
+          "source": { "type": "string", "description": "Lead source." }
+        }
+      },
+      "ProgressStageRequest": {
+        "type": "object",
+        "description": "Payload to progress a deal stage.",
+        "required": ["stage"],
+        "properties": {
+          "stage": { "type": "string", "enum": ["prospect", "qualified", "proposal", "negotiation", "closed_won", "closed_lost"], "description": "New stage." },
+          "probability": { "type": "number", "minimum": 0, "maximum": 100, "description": "Optional probability override." }
+        }
+      },
+      "LogActivityRequest": {
+        "type": "object",
+        "description": "Payload to log an activity.",
+        "required": ["kind", "subject", "body", "ownerEmail"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["email", "call", "meeting", "note"], "description": "Activity type." },
+          "subject": { "type": "string", "description": "Short subject." },
+          "body": { "type": "string", "description": "Body / transcript / summary." },
+          "dealId": { "type": "string", "description": "Optional deal id." },
+          "contactId": { "type": "string", "description": "Optional contact id." },
+          "accountId": { "type": "string", "description": "Optional account id." },
+          "occurredAt": { "type": "string", "format": "date-time", "description": "Defaults to now." },
+          "ownerEmail": { "type": "string", "format": "email", "description": "Owner email." }
+        }
+      },
+      "AccountTimelineRequest": {
+        "type": "object",
+        "description": "Input to account_timeline.",
+        "required": ["accountId"],
+        "properties": {
+          "accountId": { "type": "string", "description": "Account id to build the timeline for." }
+        }
+      },
+      "AccountTimelineResponse": {
+        "type": "object",
+        "description": "Output of account_timeline.",
+        "required": ["accountId", "count", "events"],
+        "properties": {
+          "accountId": { "type": "string", "description": "Account id." },
+          "count": { "type": "integer", "description": "Number of events returned." },
+          "events": {
+            "type": "array",
+            "description": "Events sorted newest first.",
+            "items": {
+              "type": "object",
+              "required": ["kind", "occurredAt", "ownerEmail", "summary", "refId"],
+              "properties": {
+                "kind": { "type": "string", "enum": ["activity", "note", "deal_created", "deal_updated"], "description": "Event source." },
+                "occurredAt": { "type": "string", "format": "date-time", "description": "Event timestamp." },
+                "ownerEmail": { "type": "string", "format": "email", "description": "Who acted." },
+                "summary": { "type": "string", "description": "Short summary line." },
+                "refId": { "type": "string", "description": "Underlying entity id." }
+              }
+            }
+          }
+        }
+      },
+      "FindWarmIntroRequest": {
+        "type": "object",
+        "description": "Input to find_warm_intro.",
+        "required": ["targetAccountId"],
+        "properties": {
+          "targetAccountId": { "type": "string", "description": "Account to find a warm intro for." }
+        }
+      },
+      "FindWarmIntroResponse": {
+        "type": "object",
+        "description": "Output of find_warm_intro.",
+        "required": ["targetAccountId", "count", "paths"],
+        "properties": {
+          "targetAccountId": { "type": "string", "description": "Target account." },
+          "count": { "type": "integer", "description": "Number of paths returned." },
+          "paths": {
+            "type": "array",
+            "description": "Top intro paths ranked by activity volume.",
+            "items": {
+              "type": "object",
+              "required": ["ownerEmail", "alsoWorkedWithAccountId", "contactCountAtTarget", "contactCountAtOther", "totalActivities"],
+              "properties": {
+                "ownerEmail": { "type": "string", "format": "email", "description": "Email of someone on your team who has touched both accounts." },
+                "alsoWorkedWithAccountId": { "type": "string", "description": "Other account id this owner is active in." },
+                "contactCountAtTarget": { "type": "integer", "description": "Activity count at the target account." },
+                "contactCountAtOther": { "type": "integer", "description": "Activity count at the other account." },
+                "totalActivities": { "type": "integer", "description": "Total activities across both." }
+              }
+            }
+          }
+        }
+      },
+      "PipelineSummaryRequest": {
+        "type": "object",
+        "description": "Input to pipeline_summary_by_owner.",
+        "properties": {
+          "ownerEmail": { "type": "string", "format": "email", "description": "Optional — limit to a single owner." }
+        }
+      },
+      "PipelineSummaryResponse": {
+        "type": "object",
+        "description": "Output of pipeline_summary_by_owner.",
+        "required": ["owners"],
+        "properties": {
+          "ownerEmail": { "type": ["string", "null"], "description": "Filter that was applied, or null." },
+          "owners": {
+            "type": "array",
+            "description": "Per-owner totals.",
+            "items": {
+              "type": "object",
+              "required": ["ownerEmail", "totalCents", "dealCount", "byStage"],
+              "properties": {
+                "ownerEmail": { "type": "string", "format": "email", "description": "Owner email." },
+                "totalCents": { "type": "integer", "description": "Total open pipeline in cents." },
+                "dealCount": { "type": "integer", "description": "Open deal count." },
+                "byStage": {
+                  "type": "object",
+                  "description": "Per-stage rollups keyed by stage name.",
+                  "additionalProperties": {
+                    "type": "object",
+                    "required": ["totalCents", "dealCount"],
+                    "properties": {
+                      "totalCents": { "type": "integer", "description": "Open value at this stage in cents." },
+                      "dealCount": { "type": "integer", "description": "Open deals at this stage." }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

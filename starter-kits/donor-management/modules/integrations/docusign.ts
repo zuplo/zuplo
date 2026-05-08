@@ -56,8 +56,9 @@ export async function sendPledgeEnvelope(
   const base = requireBaseUri();
 
   const total = (args.amountCents / 100).toFixed(2);
+  // btoa requires Latin-1; use ASCII-only punctuation in the placeholder to avoid InvalidCharacterError.
   const placeholder = btoa(
-    `Pledge Agreement\n\nDonor: ${args.donorName} <${args.donorEmail}>\nAmount: ${args.currency} ${total}\nTerm: ${args.termYears} year(s)\n\nThe donor agrees to fulfill this pledge in equal installments over the term above. This is a placeholder — pass documentBase64 in the request to attach a real document.`,
+    `Pledge Agreement\n\nDonor: ${args.donorName} <${args.donorEmail}>\nAmount: ${args.currency} ${total}\nTerm: ${args.termYears} year(s)\n\nThe donor agrees to fulfill this pledge in equal installments over the term above. This is a placeholder - pass documentBase64 in the request to attach a real document.`,
   );
 
   const body = {

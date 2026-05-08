@@ -1,21 +1,35 @@
 # Performance Review & 360 API
 
-Review cycles, goals, and 360 feedback with MCP tools to request peer feedback, summarize themes, and track goal progress.
+A Zuplo Starter Kit that runs review cycles like a real product: a single MCP call invites peer reviewers via Resend with a templated email, and another single MCP call asks Claude to read every submitted narrative and cluster it into named themes — the calibration write-up the manager actually delivers.
 
-**Replaces:** Lattice, 15Five, Culture Amp.
-**SEO target:** "performance review api".
+Replaces: Lattice, 15Five, Culture Amp.
+
+## Wires up
+
+- **Resend** — sends per-reviewer feedback request emails with a templated subject + body
+- **Claude** (Anthropic Messages API, optionally routed through Zuplo AI Gateway) — clusters peer/manager/self narratives into 3-6 themes with verbatim evidence quotes and a recommended manager action per theme
+
+## Architecture at a glance
+
+```
+Inbound ──▶ Zuplo Gateway ──▶ Integration handlers
+                │                  ├── Resend  (per-reviewer feedback request emails)
+                │                  └── Claude  (theme clustering for calibration)
+                ▼
+          Database adapter (Supabase / Firestore / Neon / Upstash)
+```
 
 ## Quickstart
 
 ```bash
-npx create-zuplo-api@latest --example starter-kits/performance-review
-cd performance-review
+cd starter-kits/performance-review
 cp env.example .env
 npm install
 npm run dev
+# Gateway boots at http://localhost:9000
 ```
 
-The gateway boots at `http://localhost:9000`. To explore the MCP server:
+To explore the MCP server:
 
 ```bash
 npx @modelcontextprotocol/inspector
@@ -24,59 +38,78 @@ npx @modelcontextprotocol/inspector
 
 ## Choosing a database
 
-This kit ships with HTTP-only adapters (the kits run in Zuplo's edge runtime — no TCP drivers). Set `DB_PROVIDER` in `.env` to one of:
+This kit ships with HTTP-only adapters (Zuplo's edge runtime — no TCP drivers). Set `DB_PROVIDER` in `.env` to one of:
 
 | `DB_PROVIDER` | Adapter |
 |---|---|
-| `in-memory` | In-Memory (tests/local) |
+| `in-memory` | In-memory (tests/local) — default |
 | `supabase` | Supabase (PostgREST) |
 | `firestore` | Firestore (REST) |
 | `neon` | Neon (HTTP serverless) |
 | `upstash-redis` | Upstash Redis (REST) |
 
-`in-memory` is the default — the kit boots without any credentials so you can try it before wiring up storage.
+`in-memory` is the default so you can try it before wiring up storage.
 
 ## Environment variables
 
-See [env.example](./env.example).
+See [env.example](./env.example). Beyond `DB_PROVIDER`:
+
+- `RESEND_API_KEY` + `RESEND_FROM_EMAIL` — required if `request_peer_feedback` should actually send invites
+- `ANTHROPIC_API_KEY` — required for theme clustering (`AI_GATEWAY_URL` optional)
+
+The kit boots fine with just `DB_PROVIDER=in-memory`. `request_peer_feedback` will still create draft Reviews without sending if Resend isn't configured (pass `sendInvites: false`), and `summarize_feedback_themes` returns the aggregate stats without the themed write-up if Claude isn't configured.
 
 ## API surface
 
-| Method | Path | Operation ID | Description | MCP |
-|---|---|---|---|---|
-| POST | `/cycle` | `create_cycle` | Create Cycle | tool |
-| GET | `/cycles` | `list_cycles` | List Cycles | tool |
-| POST | `/goal` | `create_goal` | Create Goal | tool |
-| PATCH | `/goal-progress/{id}` | `update_goal_progress` | Update Goal Progress | tool |
-| GET | `/goals` | `list_goals` | List Goals | tool |
-| POST | `/request-peer-feedback` | `request_peer_feedback` | Request Peer Feedback | tool |
-| POST | `/review` | `create_review` | Create Review | tool |
-| GET | `/review/{id}` | `get_review` | Get Review | tool |
-| POST | `/review/{id}/submit` | `submit_review` | Submit Review | tool |
-| GET | `/reviews` | `list_reviews` | List Reviews | tool |
-| POST | `/summarize-feedback-themes` | `summarize_feedback_themes` | Summarize Feedback Themes | tool |
-| POST | `/track-goal-progress` | `track_goal_progress` | Track Goal Progress | tool |
-| POST | `/mcp` | `mcp_handler` | MCP server endpoint | — |
+| Method | Path | Operation ID | Description |
+|---|---|---|---|
+| POST | `/cycle` | `create_cycle` | Create review cycle |
+| GET | `/cycles` | `list_cycles` | List cycles |
+| POST | `/goal` | `create_goal` | Create goal |
+| PATCH | `/goal-progress/{id}` | `update_goal_progress` | Update goal progress |
+| GET | `/goals` | `list_goals` | List goals |
+| POST | `/review` | `create_review` | Create review |
+| GET | `/review/{id}` | `get_review` | Get review |
+| POST | `/review/{id}/submit` | `submit_review` | Submit review |
+| GET | `/reviews` | `list_reviews` | List reviews |
+| POST | `/request-peer-feedback` | `request_peer_feedback` | Orchestrator: create draft peer reviews + email reviewers via Resend |
+| POST | `/summarize-feedback-themes` | `summarize_feedback_themes` | Orchestrator: aggregate ratings + Claude theme clustering |
+| POST | `/track-goal-progress` | `track_goal_progress` | Orchestrator: goal progress rollup |
+| POST | `/mcp` | `mcp_handler` | MCP server endpoint |
 
 OpenAPI: [`config/routes.oas.json`](./config/routes.oas.json).
 
 ## MCP tools
 
-12 tools registered: `create_cycle`, `create_goal`, `create_review`, `get_review`, `list_cycles`, `list_goals`, `list_reviews`, `submit_review`, `update_goal_progress`, `request_peer_feedback`, `summarize_feedback_themes`, `track_goal_progress`.
+| Tool | Type | Read-only | Calls | Description |
+|---|---|---|---|---|
+| `create_cycle` | tool | no | DB | Create a review cycle |
+| `list_cycles` | tool | yes | DB | List cycles |
+| `create_goal` | tool | no | DB | Create a goal |
+| `update_goal_progress` | tool | idempotent | DB | Update goal progress |
+| `list_goals` | tool | yes | DB | List goals |
+| `create_review` | tool | no | DB | Create a review |
+| `get_review` | tool | yes | DB | Get a review |
+| `submit_review` | tool | idempotent | DB | Submit (move from draft to submitted) |
+| `list_reviews` | tool | yes | DB | List reviews |
+| `request_peer_feedback` | tool | no | DB + Resend | Create draft peer reviews and email each reviewer (orchestrator) |
+| `summarize_feedback_themes` | tool | yes | DB + Claude | Aggregate ratings + Claude theme clustering (orchestrator) |
+| `track_goal_progress` | tool | yes | DB | Goal progress rollup (orchestrator) |
 
-Both layers of Zuplo's MCP wiring agree:
-- Per-route `mcp: { type: "tool" }` annotations on each operation in `config/routes.oas.json`
-- The `/mcp` route's `options.operations: [...]` array lists every `operationId` exposed
+Both MCP wiring layers agree: each operation has `mcp: { type: "tool" }` and the `/mcp` route's `options.operations: [...]` lists every `operationId` exposed.
 
 ## The AI angle
 
-The orchestrator MCP tools shipped with this kit are where the agentic value compounds — they read multi-source signals through `context.invokeRoute()` and shape the response for an LLM, rather than dumping raw rows. Agents work best when they can call a few purposeful tools (`triage_x`, `summarize_x`, `flag_x`) instead of every CRUD endpoint.
+Two orchestrators carry this kit:
 
-Per the [conventions doc](../CLAUDE.md), every CRUD endpoint inherits `api-key-inbound` + `rate-limit` policies, and the `/mcp` route adds `prompt-injection-outbound` + `secret-masking-outbound` defenses for AI traffic.
+- **`request_peer_feedback`** turns the most-skipped step in a review cycle (sending the actual reviewer invites) into one MCP call. Pass `revieweeEmail`, `peerEmails`, `cycleId`, and `sendInvites: true` and it creates one draft Review per peer in the DB *and* fires a templated Resend email to each reviewer with `{{name}}`, `{{revieweeName}}`, `{{deadline}}`, and `{{reviewLink}}` filled in. Override `messageBody` / `messageSubject` to use your own template.
+- **`summarize_feedback_themes`** is the calibration tool. Pass `clusterThemes: true` and it pulls every submitted Review for the (reviewee, cycle) pair and asks Claude (Sonnet 4.7) to cluster the narratives into 3-6 named themes with verbatim quotes, evidence counts, and a one-line manager action per theme — the document the manager pastes into their delivery prep.
 
 ## Extending
 
-- **New entity:** add a repository in `modules/repositories/` (follow the factory pattern keyed by `DB_PROVIDER`).
+- **Swap Resend for Postmark / SES:** replace `modules/integrations/resend.ts`. The orchestrator code stays identical.
+- **Slack reminders:** add a `notify_outstanding_reviewers` orchestrator that lists Reviews with status=draft past the deadline and DMs each reviewer in Slack.
+- **Calibration meeting prep:** chain `summarize_feedback_themes` for every reviewee on a manager's team into a single brief.
+- **Route Claude through Zuplo's AI Gateway:** set `AI_GATEWAY_URL` and every Claude call inherits caching, budgets, and prompt-injection scanning.
 - **New endpoint:** add a handler in `modules/handlers/`, append the route to `config/routes.oas.json` with `mcp: { type: "tool" }`, and add the `operationId` to the `/mcp` route's `options.operations: [...]` array. Both layers must agree.
-- **New orchestrator MCP tool:** drop a file in `modules/mcp-tools/` that uses `invokeJson` from `@zuplo/starter-kit-shared/mcp` to compose existing endpoints. Pass the inbound `authorization` header through so the inner calls re-run policies.
-- **Switch databases:** change `DB_PROVIDER` in `.env` — the handlers don't change.
+- **Switch databases:** change `DB_PROVIDER` in `.env`. The handler code never changes.

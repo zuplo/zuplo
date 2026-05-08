@@ -466,8 +466,8 @@
     "/draft-status-letter-to-client": {
       "post": {
         "operationId": "draft_status_letter_to_client",
-        "summary": "Draft a client status letter (orchestrator)",
-        "description": "Orchestrator MCP tool. Builds a structured draft letter body to the client, summarising recent non-privileged documents, upcoming deadlines, and billable hours to date. The agent can then refine the prose.",
+        "summary": "Draft (and optionally send) a client status letter (orchestrator)",
+        "description": "Orchestrator MCP tool. Builds a structured draft letter body to the client, summarising recent non-privileged documents, upcoming deadlines, and billable hours to date. With `send: true`, ships the letter via Resend to the client (or `toEmail` override).",
         "requestBody": {
           "required": true,
           "content": {
@@ -476,7 +476,11 @@
                 "type": "object",
                 "required": ["matterId"],
                 "properties": {
-                  "matterId": { "type": "string", "description": "Id of the matter to draft a letter for." }
+                  "matterId": { "type": "string", "description": "Id of the matter to draft a letter for." },
+                  "send": { "type": "boolean", "description": "When true, send via Resend after drafting. Defaults to false (draft only)." },
+                  "toEmail": { "type": "string", "format": "email", "description": "Override recipient. Defaults to the client.email on file." },
+                  "cc": { "type": "array", "items": { "type": "string", "format": "email" }, "description": "Optional CC list." },
+                  "subject": { "type": "string", "description": "Override the email subject." }
                 }
               }
             }
@@ -507,6 +511,96 @@
           "handler": { "export": "default", "module": "$import(./modules/mcp-tools/draft-status-letter-to-client)" },
           "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
           "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/send-for-signature": {
+      "post": {
+        "operationId": "send_for_signature",
+        "summary": "Send a document to a client for e-signature (orchestrator)",
+        "description": "Orchestrator MCP tool. Creates a DocuSign envelope from a base64 document and a matter, with the client as primary signer and any additional signers added in routing order. Tracks the envelopeId in `signature_envelopes` so the inbound DocuSign webhook can update its status without re-querying DocuSign.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["matterId", "documentBase64", "documentName", "fileExtension"],
+                "properties": {
+                  "matterId": { "type": "string", "description": "Matter the envelope belongs to." },
+                  "documentId": { "type": "string", "description": "Optional reference to an existing MatterDocument record." },
+                  "documentBase64": { "type": "string", "description": "Base64-encoded document bytes." },
+                  "documentName": { "type": "string", "description": "Name shown to signers (include extension)." },
+                  "fileExtension": { "type": "string", "description": "Lowercase extension: pdf | docx | txt | html." },
+                  "emailSubject": { "type": "string", "description": "Override the email subject." },
+                  "emailBlurb": { "type": "string", "description": "Optional email body shown by DocuSign." },
+                  "signHerePlaceholder": { "type": "string", "description": "Anchor text DocuSign should replace with a sign-here tab (e.g. '\\\\s1\\\\')." },
+                  "extraSigners": {
+                    "type": "array",
+                    "description": "Additional signers added after the client, in routing order.",
+                    "items": {
+                      "type": "object",
+                      "required": ["email", "name"],
+                      "properties": {
+                        "email": { "type": "string" },
+                        "name": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "DocuSign envelope created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "matterId": { "type": "string", "description": "Echo of the matter id." },
+                    "clientName": { "type": "string", "description": "Name of the primary signer (the client)." },
+                    "envelopeId": { "type": "string", "description": "DocuSign envelope id." },
+                    "docusignStatus": { "type": "string", "description": "DocuSign-reported status (sent, created, etc)." },
+                    "sentAt": { "type": "string", "format": "date-time", "description": "DocuSign-reported send timestamp." },
+                    "tracker": { "type": "object", "description": "The tracker row stored in the kit." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/send-for-signature)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/webhooks/docusign": {
+      "post": {
+        "operationId": "docusign_webhook",
+        "summary": "Inbound DocuSign Connect webhook",
+        "description": "Verifies the DocuSign Connect HMAC signature (header X-DocuSign-Signature-1, secret in DOCUSIGN_CONNECT_SECRET), then updates the matching `signature_envelopes` row with the new envelope status (and completedAt when the envelope is signed).",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "description": "DocuSign Connect envelope event payload — see https://developers.docusign.com/platform/webhooks/connect/json-events/" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Acknowledged.",
+            "content": {
+              "application/json": { "schema": { "type": "object", "properties": { "ok": { "type": "boolean" } } } }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/docusign-webhook)" },
+          "policies": { "inbound": [] }
         }
       }
     },
@@ -541,7 +635,8 @@
                 { "file": "./config/routes.oas.json", "id": "run_conflict_check" },
                 { "file": "./config/routes.oas.json", "id": "check_conflict_before_intake" },
                 { "file": "./config/routes.oas.json", "id": "summarize_matter_status" },
-                { "file": "./config/routes.oas.json", "id": "draft_status_letter_to_client" }
+                { "file": "./config/routes.oas.json", "id": "draft_status_letter_to_client" },
+                { "file": "./config/routes.oas.json", "id": "send_for_signature" }
               ]
             }
           },
@@ -683,21 +778,24 @@
           "tenantId": { "type": "string", "description": "Tenant scope." },
           "matterId": { "type": "string", "description": "Id of the matter the deadline belongs to." },
           "title": { "type": "string", "description": "Short label for the deadline." },
-          "dueDate": { "type": "string", "format": "date", "description": "Date the deadline is due." },
+          "dueDate": { "type": "string", "description": "Date or date-time the deadline is due (ISO-8601)." },
           "kind": { "type": "string", "enum": ["court", "client", "internal"], "description": "Court, client, or internal deadline." },
           "status": { "type": "string", "enum": ["upcoming", "completed", "missed"], "description": "Current status." },
+          "calendarEventId": { "type": ["string", "null"], "description": "Google Calendar event id when the kit provisioned one." },
           "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
         }
       },
       "DeadlineCreate": {
         "type": "object",
-        "description": "Payload to add a deadline.",
+        "description": "Payload to add a deadline. Creates a Google Calendar event with the kind prefix unless `silent: true`.",
         "required": ["matterId", "title", "dueDate", "kind"],
         "properties": {
           "matterId": { "type": "string", "description": "Id of the matter." },
           "title": { "type": "string", "description": "Short label." },
-          "dueDate": { "type": "string", "format": "date", "description": "Date the deadline is due." },
-          "kind": { "type": "string", "enum": ["court", "client", "internal"], "description": "Type of deadline." }
+          "dueDate": { "type": "string", "description": "Date or date-time the deadline is due (ISO-8601). All-day if a YYYY-MM-DD." },
+          "kind": { "type": "string", "enum": ["court", "client", "internal"], "description": "Type of deadline." },
+          "attendees": { "type": "array", "items": { "type": "string", "format": "email" }, "description": "Optional emails to invite to the calendar event." },
+          "silent": { "type": "boolean", "description": "When true, skip Google Calendar event creation." }
         }
       },
       "DeadlinePage": {

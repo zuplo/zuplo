@@ -236,7 +236,7 @@
       "post": {
         "operationId": "score_lead",
         "summary": "Score a lead from a submission (orchestrator)",
-        "description": "Orchestrator MCP tool. Loads a submission, examines its payload (email domain, presence of company/title fields, submitted-at recency), and returns a 0-100 fit score plus per-signal breakdown the LLM can quote.",
+        "description": "Orchestrator MCP tool. Loads a submission, runs heuristic signals over its payload, optionally grades it via Claude, and (when flags are set) notifies Slack and sends a Resend confirmation email. Returns a 0-100 fit score, per-signal breakdown, Claude grade, and the side-effect status.",
         "requestBody": {
           "required": true,
           "content": {
@@ -245,7 +245,11 @@
                 "type": "object",
                 "required": ["submissionId"],
                 "properties": {
-                  "submissionId": { "type": "string", "description": "Id of the submission to score." }
+                  "submissionId": { "type": "string", "description": "Id of the submission to score." },
+                  "useClaude": { "type": "boolean", "description": "Blend a Claude grade into the score and surface its reasoning. Requires ANTHROPIC_API_KEY." },
+                  "notifySlack": { "type": "boolean", "description": "Post a `New lead` card to Slack via SLACK_WEBHOOK_URL or SLACK_BOT_TOKEN." },
+                  "confirmEmail": { "type": "boolean", "description": "Send a Resend confirmation email back to the submitter (no-op if no email present)." },
+                  "formName": { "type": "string", "description": "Display name for the form, used in Slack/Resend templates." }
                 }
               }
             }
@@ -387,6 +391,30 @@
           "handler": { "export": "default", "module": "$import(./modules/mcp-tools/flag-spam-pattern)" },
           "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
           "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/webhooks/resend": {
+      "post": {
+        "operationId": "resend_webhook",
+        "summary": "Resend bounce/complaint webhook",
+        "description": "Inbound webhook for Resend events (delivered, bounced, complained, opened, clicked). Verifies the Svix-style signature using RESEND_WEBHOOK_SECRET. Bounce + complaint addresses are logged so callers can suppress future sends.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true, "description": "Resend event envelope." }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Event accepted." },
+          "401": { "description": "Invalid signature." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/resend-webhook)" },
+          "policies": { "inbound": ["rate-limit"] }
         }
       }
     },

@@ -385,6 +385,64 @@
         }
       }
     },
+    "/webhooks/stripe": {
+      "post": {
+        "operationId": "webhook_stripe",
+        "summary": "Stripe webhook receiver",
+        "description": "Verifies the Stripe-Signature HMAC and dispatches: payment_intent.succeeded → order paid; charge.refunded → order returned. Not exposed to MCP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "description": "Stripe event payload." }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event acknowledged.",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/webhook-stripe)"
+          },
+          "policies": { "inbound": ["rate-limit"] }
+        }
+      }
+    },
+    "/webhooks/shipengine": {
+      "post": {
+        "operationId": "webhook_shipengine",
+        "summary": "ShipEngine tracking webhook receiver",
+        "description": "Verifies the configured shared secret and updates the matching shipment's tracking status. On `delivered`/`exception` fires a Twilio SMS to the buyer if a phone is on file. Not exposed to MCP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "description": "ShipEngine tracking event payload." }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event acknowledged.",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/webhook-shipengine)"
+          },
+          "policies": { "inbound": ["rate-limit"] }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -457,7 +515,17 @@
             "type": "string",
             "enum": ["web", "marketplace", "phone"],
             "description": "Where the order originated."
-          }
+          },
+          "stripePaymentIntentId": { "type": ["string", "null"], "description": "Stripe PaymentIntent id when checkout uses Stripe." },
+          "buyerPhone": { "type": ["string", "null"], "description": "Buyer phone in E.164 — used for tracking SMS via Twilio." },
+          "shipToName": { "type": ["string", "null"], "description": "Recipient name on the shipping label." },
+          "shipToAddressLine1": { "type": ["string", "null"], "description": "Ship-to street line 1." },
+          "shipToAddressLine2": { "type": ["string", "null"], "description": "Ship-to street line 2." },
+          "shipToCityLocality": { "type": ["string", "null"], "description": "Ship-to city." },
+          "shipToStateProvince": { "type": ["string", "null"], "description": "Ship-to state/province." },
+          "shipToPostalCode": { "type": ["string", "null"], "description": "Ship-to postal code." },
+          "shipToCountryCode": { "type": ["string", "null"], "description": "Ship-to ISO-3166 country code." },
+          "parcelWeightOz": { "type": ["number", "null"], "description": "Parcel weight in ounces — used by ShipEngine rate shop." }
         }
       },
       "OrderCreate": {
@@ -473,7 +541,16 @@
           "totalCents": { "type": "integer", "minimum": 0, "description": "Total in cents." },
           "currency": { "type": "string", "description": "ISO-4217 currency. Defaults to USD." },
           "fraudScore": { "type": "number", "description": "Initial fraud score (0-100)." },
-          "channel": { "type": "string", "enum": ["web", "marketplace", "phone"], "description": "Origin." }
+          "channel": { "type": "string", "enum": ["web", "marketplace", "phone"], "description": "Origin." },
+          "buyerPhone": { "type": "string", "description": "Buyer phone in E.164 (for tracking SMS)." },
+          "shipToName": { "type": "string", "description": "Recipient name." },
+          "shipToAddressLine1": { "type": "string", "description": "Street line 1." },
+          "shipToAddressLine2": { "type": "string", "description": "Street line 2." },
+          "shipToCityLocality": { "type": "string", "description": "City." },
+          "shipToStateProvince": { "type": "string", "description": "State/province." },
+          "shipToPostalCode": { "type": "string", "description": "Postal code." },
+          "shipToCountryCode": { "type": "string", "description": "ISO-3166 country code." },
+          "parcelWeightOz": { "type": "number", "description": "Parcel weight in ounces." }
         }
       },
       "OrderPage": {
@@ -498,18 +575,23 @@
           "trackingNumber": { "type": "string", "description": "Carrier tracking number." },
           "status": { "type": "string", "enum": ["label_purchased", "in_transit", "delivered", "exception"], "description": "Shipment lifecycle state." },
           "shippedAt": { "type": ["string", "null"], "format": "date-time", "description": "When the package picked up. Null until in transit." },
-          "deliveredAt": { "type": ["string", "null"], "format": "date-time", "description": "When delivered. Null until delivered." }
+          "deliveredAt": { "type": ["string", "null"], "format": "date-time", "description": "When delivered. Null until delivered." },
+          "shipengineLabelId": { "type": ["string", "null"], "description": "ShipEngine label id when the label was bought via ShipEngine." },
+          "labelUrl": { "type": ["string", "null"], "description": "Public URL to the label PDF." },
+          "trackingUrl": { "type": ["string", "null"], "description": "Carrier-specific tracking URL." }
         }
       },
       "ShipmentCreate": {
         "type": "object",
-        "description": "Payload to create a shipment.",
-        "required": ["orderId", "carrier", "service", "trackingNumber"],
+        "description": "Payload to create a shipment. Pass `rateId` to buy a label through ShipEngine; otherwise supply `carrier`/`service`/`trackingNumber` directly.",
+        "required": ["orderId"],
         "properties": {
           "orderId": { "type": "string", "description": "Order to fulfil." },
-          "carrier": { "type": "string", "description": "Carrier name." },
+          "rateId": { "type": "string", "description": "ShipEngine rate id from `pick_carrier_for_destination`. When supplied, the kit purchases the label." },
+          "carrier": { "type": "string", "description": "Carrier name (when not using ShipEngine rate purchase)." },
           "service": { "type": "string", "description": "Service level." },
-          "trackingNumber": { "type": "string", "description": "Tracking number." }
+          "trackingNumber": { "type": "string", "description": "Tracking number (when not using ShipEngine rate purchase)." },
+          "testLabel": { "type": "boolean", "description": "Buy a test label that won't be charged. Defaults to false." }
         }
       },
       "ShipmentPage": {

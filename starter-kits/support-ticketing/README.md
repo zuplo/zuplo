@@ -1,8 +1,33 @@
 # Customer Support Ticketing Starter Kit
 
-Headless customer support ticketing API. Tickets, conversations, macros, SLAs, and customers, with orchestrator MCP tools that triage incoming tickets, prepare escalation summaries, and surface recurring issues.
+A real, runnable support function: inbound email becomes tickets, Claude triages them, agents are notified in Slack, and replies go back out as email — all behind one Zuplo gateway with MCP exposed.
 
 Replaces: Zendesk, Intercom, Freshdesk.
+
+## Wires up
+
+- **Postmark** parses inbound customer email and POSTs the structured payload to `/webhooks/postmark/inbound`. The handler creates a ticket.
+- **Claude** classifies category, suggests tags + priority + likely owner, and drafts a first reply (`triage_incoming_ticket` MCP tool).
+- **Slack** DMs the assignee when a ticket is assigned, or posts to a fallback channel.
+- **Resend** sends outbound replies to the customer when an agent replies on a ticket.
+
+## Architecture at a glance
+
+```
+Customer email ─▶ Postmark inbound parse ─▶ POST /webhooks/postmark/inbound
+                                                  │
+                                                  ▼
+                                      Zuplo Gateway (this kit)
+                                                  │
+              ┌───────────────────────────────────┼───────────────────────────────────┐
+              ▼                                   ▼                                   ▼
+        Tickets API                   triage_incoming_ticket                   Slack notify
+   (CRUD + assign + reply)            (Claude classify + draft)            (DM agent on assign)
+              │                                   │                                   │
+              └─────────────► Database adapter ◄──┘                                   ▼
+                          (in-memory / Supabase /                                Resend send
+                           Firestore / Upstash / Neon)                       (outbound replies)
+```
 
 ## Quickstart
 
@@ -26,7 +51,7 @@ npx @modelcontextprotocol/inspector
 
 | Adapter | Status |
 |---|---|
-| `in-memory` | Default - boots without any credentials |
+| `in-memory` | Default — boots without any credentials |
 | `supabase` | Supported |
 | `firestore` | Supported |
 | `upstash-redis` | Supported |
@@ -36,9 +61,14 @@ Pick one via `DB_PROVIDER` and fill in the matching credentials in `.env`.
 
 ## Environment variables
 
-See [env.example](./env.example).
+See [env.example](./env.example). Beyond `DB_PROVIDER`, you'll want credentials for:
 
-The kit boots with `DB_PROVIDER=in-memory` if no env vars are set, so the smoke test path is zero-config.
+- **Postmark** (`POSTMARK_WEBHOOK_USERNAME`, `POSTMARK_WEBHOOK_PASSWORD`) for the inbound email webhook
+- **Claude** (`ANTHROPIC_API_KEY`) for triage + drafting
+- **Slack** (`SLACK_BOT_TOKEN` or `SLACK_WEBHOOK_URL`) for assignment notifications
+- **Resend** (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`) for outbound replies
+
+The kit boots with `DB_PROVIDER=in-memory` and no credentials — handlers that hit external services will throw a clear error until those env vars are set.
 
 ## API surface
 
@@ -48,45 +78,60 @@ The kit boots with `DB_PROVIDER=in-memory` if no env vars are set, so the smoke 
 | POST | `/tickets` | Create a ticket |
 | GET | `/tickets/{id}` | Get a ticket |
 | PATCH | `/tickets/{id}` | Update fields |
-| PATCH | `/tickets/{id}/assign` | Assign agent + move to open |
-| POST | `/tickets/{id}/reply` | Add a public/internal reply |
+| PATCH | `/tickets/{id}/assign` | Assign agent + Slack-notify them |
+| POST | `/tickets/{id}/reply` | Add a reply (sends email via Resend on public replies) |
 | PATCH | `/tickets/{id}/close` | Close ticket |
 | PATCH | `/tickets/{id}/reopen` | Reopen closed ticket |
 | GET | `/macros` | List macros (canned replies) |
 | POST | `/macros` | Create a macro |
 | POST | `/apply-macro` | Apply a macro as a ticket reply |
-| POST | `/triage-incoming-ticket` | Orchestrator: priority + tags + assignee |
+| POST | `/triage-incoming-ticket` | Orchestrator: Claude triage + draft reply |
 | POST | `/escalate-with-summary` | Orchestrator: chronological handoff summary |
 | POST | `/summarize-recurring-issues` | Orchestrator: top recurring tags |
 | POST | `/mcp` | MCP server endpoint |
 
 OpenAPI: [`config/routes.oas.json`](./config/routes.oas.json).
 
+## Webhooks (inbound)
+
+| Path | Provider | Notes |
+|---|---|---|
+| `POST /webhooks/postmark/inbound` | Postmark inbound stream | HTTP Basic Auth (configure user/pass in Postmark UI to match `POSTMARK_WEBHOOK_*` env vars). Creates a ticket from the parsed email. |
+
 ## MCP tools
 
-| Tool | Read-only | Description |
-|---|---|---|
-| `list_tickets` | yes | List tickets in tenant |
-| `get_ticket` | yes | Get ticket by id |
-| `create_ticket` | no | Open a new ticket |
-| `update_ticket` | no | Patch ticket fields |
-| `assign_ticket` | no | Assign agent + move to open |
-| `reply_to_ticket` | no | Add public/internal reply |
-| `close_ticket` | destructive | Close ticket |
-| `reopen_ticket` | no | Reopen closed ticket |
-| `list_macros` | yes | List macros |
-| `create_macro` | no | Add a canned reply |
-| `apply_macro` | no | Apply a macro to a ticket |
-| `triage_incoming_ticket` | yes | Suggest priority/tags/assignee |
-| `escalate_with_summary` | yes | Build chronological handoff summary |
-| `summarize_recurring_issues` | yes | Cluster recent tickets by tag |
+| Tool | Read-only | Calls | Description |
+|---|---|---|---|
+| `list_tickets` | yes | DB | List tickets in tenant |
+| `get_ticket` | yes | DB | Get ticket by id |
+| `create_ticket` | no | DB | Open a new ticket |
+| `update_ticket` | no | DB | Patch ticket fields |
+| `assign_ticket` | no | DB + Slack | Assign agent + DM them |
+| `reply_to_ticket` | no | DB + Resend | Add reply, email customer on public |
+| `close_ticket` | destructive | DB | Close ticket |
+| `reopen_ticket` | no | DB | Reopen closed ticket |
+| `list_macros` | yes | DB | List canned replies |
+| `create_macro` | no | DB | Add a canned reply |
+| `apply_macro` | no | DB | Apply a macro to a ticket |
+| `triage_incoming_ticket` | yes | Claude + DB | Classify, prioritise, suggest owner, draft reply |
+| `escalate_with_summary` | yes | DB | Build chronological handoff summary |
+| `summarize_recurring_issues` | yes | DB | Cluster recent tickets by tag |
 
 ## The AI angle
 
-Three orchestrators turn the API into an autonomous support function. `triage_incoming_ticket` reads a fresh ticket and returns a recommended priority, tag set, and the assignee most often handling similar tagged tickets. `escalate_with_summary` collapses a ticket plus every conversation entry plus the matching customer record into a single chronological summary text suitable for handoff to a senior agent. `summarize_recurring_issues` clusters recent tickets by tag and returns the top recurring complaints with sample subject lines so product can hear the same complaint once a week instead of forty times. All three run inside the gateway via `invokeRoute` and inherit auth, rate-limiting, and tenant scoping automatically.
+`triage_incoming_ticket` is the marquee orchestrator. Given a ticket id it:
+
+1. Pulls the ticket (via `invokeRoute`, inheriting auth + rate-limit + tenant scoping).
+2. Sends the subject + body to Claude with a strict system prompt asking for category, tags, priority, reasoning, and an optional draft reply.
+3. Cross-references recent tickets in the same tenant to recommend the assignee who has handled similar tagged tickets most often.
+4. Returns a single payload an agent (or an MCP client) can act on directly: assign + reply.
+
+The companion path is fully event-driven: Postmark fires the inbound webhook, the kit creates the ticket, your agent runs `triage_incoming_ticket`, then `assign_ticket` (Slack DMs the human) and `reply_to_ticket` (Resend emails the customer). No polling, no cron.
 
 ## Extending
 
-- **Add a ticket field:** edit `Ticket` in `modules/repositories/tickets.ts` and the OpenAPI schema in `routes.oas.json`.
-- **Add a new orchestrator:** create a handler in `modules/mcp-tools/`, register the route + `mcp` annotation in `routes.oas.json`, and add the operationId to the `/mcp` operations array.
-- **Switch databases:** change `DB_PROVIDER` in `.env`. Handler code never changes.
+- **Swap Resend for Postmark outbound**: `modules/integrations/postmark.ts` already exposes `sendPostmarkEmail`. Change the import in `reply-to-ticket.ts` to use it; the request shape is similar.
+- **Replace the Slack notifier with PagerDuty**: drop a `pagerduty.ts` integration alongside `slack.ts` and call it from `assign-ticket.ts` for `urgent` priority tickets only.
+- **Switch the LLM**: `modules/integrations/claude.ts` reads `ANTHROPIC_MODEL` and `AI_GATEWAY_URL`; point those at any OpenAI-compatible gateway and minimal changes to the JSON schema hint will let you swap providers.
+- **Add a new orchestrator**: create a handler in `modules/mcp-tools/`, register the route + `mcp` annotation in `routes.oas.json`, and add the operationId to the `/mcp` operations array.
+- **Switch databases**: change `DB_PROVIDER` in `.env`. Handler code never changes.

@@ -65,7 +65,12 @@
         "check_leave_balance"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "slack",
+        "resend",
+        "claude"
+      ]
     },
     {
       "slug": "time-tracking",
@@ -99,7 +104,12 @@
         "find_unbilled_hours"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "slack",
+        "resend",
+        "claude"
+      ]
     },
     {
       "slug": "applicant-tracking-system",
@@ -138,7 +148,12 @@
         "pipeline_health_for_job"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "google-calendar",
+        "resend",
+        "claude"
+      ]
     },
     {
       "slug": "employee-onboarding",
@@ -173,7 +188,12 @@
         "notify_buddy"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "slack",
+        "resend",
+        "claude"
+      ]
     },
     {
       "slug": "performance-review",
@@ -209,42 +229,11 @@
         "track_goal_progress"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
-    },
-    {
-      "slug": "org-chart-directory",
-      "title": "Org Chart & People Directory API",
-      "description": "People, teams, and reporting lines with MCP tools to traverse the org chart and find owners + skip-level reports.",
-      "domain": "hr",
-      "tier": "M",
-      "replaces": [
-        "ChartHop",
-        "Pingboard",
-        "BambooHR directory"
-      ],
-      "seoQuery": "org chart api",
-      "adapters": [
-        "in-memory",
-        "supabase",
-        "firestore",
-        "neon",
-        "upstash-redis"
-      ],
-      "mcpTools": [
-        "list_people",
-        "create_person",
-        "get_person",
-        "update_person",
-        "list_teams",
-        "create_team",
-        "list_skills",
-        "add_person_skill",
-        "who_reports_to",
-        "find_skip_level_reports",
-        "find_owner_of_team"
-      ],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "resend",
+        "claude"
+      ]
     },
     {
       "slug": "invoicing",
@@ -278,7 +267,11 @@
         "summarize_ar_aging"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "stripe",
+        "resend"
+      ]
     },
     {
       "slug": "expense-tracking",
@@ -312,7 +305,12 @@
         "summarize_pending_approvals"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "mindee",
+        "slack",
+        "resend"
+      ]
     },
     {
       "slug": "subscription-billing",
@@ -348,7 +346,10 @@
         "propose_upgrade_for_customer"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "stripe"
+      ]
     },
     {
       "slug": "accounts-payable",
@@ -384,7 +385,12 @@
         "match_bill_to_po"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "plaid",
+        "mindee",
+        "stripe"
+      ]
     },
     {
       "slug": "corporate-card-spend",
@@ -418,7 +424,11 @@
         "recommend_limit_change"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "ramp",
+        "slack"
+      ]
     },
     {
       "slug": "procurement-po",
@@ -455,7 +465,12 @@
         "match_invoice_to_po"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "docusign",
+        "slack",
+        "resend"
+      ]
     },
     {
       "slug": "donor-management",
@@ -492,7 +507,12 @@
         "generate_year_end_receipts"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "stripe",
+        "docusign",
+        "resend"
+      ]
     },
     {
       "slug": "headless-crm",
@@ -531,44 +551,12 @@
         "pipeline_summary_by_owner"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
-    },
-    {
-      "slug": "sales-pipeline-forecast",
-      "title": "Sales Pipeline / Forecast API",
-      "description": "Deals, forecasts, snapshots, and quotas with MCP tools that roll up forecasts, flag at-risk deals, and compare week over week.",
-      "domain": "sales",
-      "tier": "L",
-      "replaces": [
-        "Clari",
-        "BoostUp",
-        "Salesforce forecasting"
-      ],
-      "seoQuery": "sales forecast api",
-      "adapters": [
-        "in-memory",
-        "supabase",
-        "firestore",
-        "neon",
-        "upstash-redis"
-      ],
-      "mcpTools": [
-        "get_deal",
-        "get_forecast",
-        "list_deals",
-        "list_forecasts",
-        "list_pipeline_snapshots",
-        "list_quotas",
-        "set_quota",
-        "submit_forecast",
-        "take_snapshot",
-        "update_deal_forecast_category",
-        "compare_week_over_week",
-        "flag_at_risk_deals",
-        "roll_up_forecast"
-      ],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "resend",
+        "google-calendar",
+        "claude"
+      ]
     },
     {
       "slug": "quote-cpq",
@@ -605,7 +593,12 @@
         "explain_pricing"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "docusign",
+        "stripe",
+        "resend"
+      ]
     },
     {
       "slug": "lead-routing",
@@ -642,44 +635,11 @@
         "summarize_unworked_leads"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
-    },
-    {
-      "slug": "sales-engagement-cadence",
-      "title": "Sales Engagement / Cadence API",
-      "description": "Cadences, prospects, and engagement tracking with MCP tools that personalize steps, build daily task briefs, and pause engaged replies.",
-      "domain": "sales",
-      "tier": "M",
-      "replaces": [
-        "Outreach",
-        "SalesLoft",
-        "Apollo sequences"
-      ],
-      "seoQuery": "sales engagement api",
-      "adapters": [
-        "in-memory",
-        "supabase",
-        "firestore",
-        "neon",
-        "upstash-redis"
-      ],
-      "mcpTools": [
-        "list_cadences",
-        "create_cadence",
-        "get_cadence",
-        "list_prospects",
-        "create_prospect",
-        "list_enrollments",
-        "enroll_prospect",
-        "pause_enrollment",
-        "complete_step",
-        "list_emails",
-        "personalize_step_for_prospect",
-        "daily_task_brief",
-        "pause_engaged_replies"
-      ],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "slack",
+        "resend"
+      ]
     },
     {
       "slug": "sales-commission",
@@ -716,7 +676,11 @@
         "model_what_if_close"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "slack",
+        "claude"
+      ]
     },
     {
       "slug": "support-ticketing",
@@ -754,7 +718,13 @@
         "summarize_recurring_issues"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "postmark",
+        "slack",
+        "claude",
+        "resend"
+      ]
     },
     {
       "slug": "customer-health",
@@ -793,43 +763,12 @@
         "predict_churn_risk"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
-    },
-    {
-      "slug": "renewal-management",
-      "title": "Renewal Management API",
-      "description": "Contracts, renewal opportunities, and risk factors with MCP tools that prep renewal briefings, calculate uplift, and flag at-risk renewals.",
-      "domain": "customer-success",
-      "tier": "L",
-      "replaces": [
-        "Gainsight Renewals",
-        "Salesforce Renewal Cloud"
-      ],
-      "seoQuery": "renewal management api",
-      "adapters": [
-        "in-memory",
-        "supabase",
-        "firestore",
-        "neon",
-        "upstash-redis"
-      ],
-      "mcpTools": [
-        "list_renewals",
-        "create_renewal",
-        "get_renewal",
-        "update_renewal_status",
-        "list_contracts",
-        "get_contract",
-        "list_risk_factors",
-        "add_risk_factor",
-        "list_negotiations",
-        "log_negotiation",
-        "prep_renewal_briefing",
-        "calculate_uplift_proposal",
-        "flag_at_risk_renewals"
-      ],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "posthog",
+        "stripe",
+        "claude"
+      ]
     },
     {
       "slug": "nps-feedback",
@@ -865,48 +804,13 @@
         "compare_cohorts"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
-    },
-    {
-      "slug": "email-campaign",
-      "title": "Email Campaign API",
-      "description": "Campaigns, subscribers, segments, and templates with MCP tools that summarize campaign performance, find at-risk subscribers, and propose send times.",
-      "domain": "marketing",
-      "tier": "L",
-      "replaces": [
-        "Mailchimp",
-        "Customer.io",
-        "ConvertKit"
-      ],
-      "seoQuery": "api for email campaigns",
-      "adapters": [
-        "in-memory",
-        "supabase",
-        "firestore",
-        "neon",
-        "upstash-redis"
-      ],
-      "mcpTools": [
-        "list_campaigns",
-        "create_campaign",
-        "get_campaign",
-        "schedule_campaign",
-        "cancel_campaign",
-        "list_subscribers",
-        "subscribe",
-        "unsubscribe",
-        "list_segments",
-        "create_segment",
-        "list_templates",
-        "create_template",
-        "list_suppressions",
-        "add_suppression",
-        "summarize_campaign_performance",
-        "find_at_risk_subscribers",
-        "propose_send_time"
-      ],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "resend",
+        "twilio",
+        "slack",
+        "claude"
+      ]
     },
     {
       "slug": "lead-capture-forms",
@@ -944,47 +848,12 @@
         "flag_spam_pattern"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
-    },
-    {
-      "slug": "headless-cms",
-      "title": "Headless CMS API",
-      "description": "Content types, entries, and assets with MCP tools that find stale content, localize entries, and suggest internal links.",
-      "domain": "marketing",
-      "tier": "L",
-      "replaces": [
-        "Contentful",
-        "Sanity",
-        "WordPress (headless)"
-      ],
-      "seoQuery": "headless cms api for blogs",
-      "adapters": [
-        "in-memory",
-        "supabase",
-        "firestore",
-        "neon",
-        "upstash-redis"
-      ],
-      "mcpTools": [
-        "list_content_types",
-        "create_content_type",
-        "get_content_type",
-        "list_entries",
-        "create_entry",
-        "get_entry",
-        "update_entry",
-        "publish_entry",
-        "unpublish_entry",
-        "archive_entry",
-        "list_revisions",
-        "list_assets",
-        "upload_asset",
-        "find_stale_content",
-        "localize_entry",
-        "suggest_internal_links"
-      ],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "slack",
+        "resend",
+        "claude"
+      ]
     },
     {
       "slug": "marketing-attribution",
@@ -1020,7 +889,12 @@
         "find_underrated_channels"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "clickhouse",
+        "meta-ads",
+        "google-ads"
+      ]
     },
     {
       "slug": "ab-testing-flags",
@@ -1059,7 +933,10 @@
         "propose_experiment_for_metric"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "posthog"
+      ]
     },
     {
       "slug": "product-analytics",
@@ -1097,46 +974,11 @@
         "compare_cohorts"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
-    },
-    {
-      "slug": "it-asset-tracking",
-      "title": "IT Asset Tracking API",
-      "description": "Assets, assignments, and maintenance with MCP tools that assign laptops to hires, find unrecovered offboards, and schedule refresh cycles.",
-      "domain": "operations",
-      "tier": "M",
-      "replaces": [
-        "Snipe-IT",
-        "Asset Panda",
-        "Lansweeper"
-      ],
-      "seoQuery": "asset tracking api",
-      "adapters": [
-        "in-memory",
-        "supabase",
-        "firestore",
-        "neon",
-        "upstash-redis"
-      ],
-      "mcpTools": [
-        "list_assets",
-        "create_asset",
-        "get_asset",
-        "update_asset",
-        "retire_asset",
-        "list_assignments",
-        "assign_asset",
-        "return_asset",
-        "list_maintenance",
-        "log_maintenance",
-        "list_licenses",
-        "add_license",
-        "assign_laptop_to_hire",
-        "find_unrecovered_offboards",
-        "schedule_refresh_cycle"
-      ],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "clickhouse",
+        "posthog"
+      ]
     },
     {
       "slug": "it-helpdesk",
@@ -1176,7 +1018,12 @@
         "escalate_breaching_sla"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "slack",
+        "claude",
+        "resend"
+      ]
     },
     {
       "slug": "vendor-contract-management",
@@ -1216,7 +1063,11 @@
         "calc_total_spend"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "docusign",
+        "slack"
+      ]
     },
     {
       "slug": "saas-management",
@@ -1254,7 +1105,12 @@
         "forecast_renewal_cost"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "google-workspace",
+        "microsoft-365",
+        "okta"
+      ]
     },
     {
       "slug": "incident-change-management",
@@ -1295,7 +1151,11 @@
         "summarize_timeline"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "pagerduty",
+        "slack"
+      ]
     },
     {
       "slug": "compliance-audit-evidence",
@@ -1335,7 +1195,11 @@
         "draft_audit_response"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "r2",
+        "datadog"
+      ]
     },
     {
       "slug": "status-page",
@@ -1377,48 +1241,13 @@
         "post_postmortem_summary"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
-    },
-    {
-      "slug": "internal-wiki",
-      "title": "Internal Wiki / Docs API",
-      "description": "Spaces, pages, revisions, and comments with MCP tools that find canonical pages, flag outdated content, and merge duplicates.",
-      "domain": "productivity",
-      "tier": "L",
-      "replaces": [
-        "Notion",
-        "Confluence",
-        "Slab"
-      ],
-      "seoQuery": "api for internal wiki",
-      "adapters": [
-        "in-memory",
-        "supabase",
-        "firestore",
-        "neon",
-        "upstash-redis"
-      ],
-      "mcpTools": [
-        "list_spaces",
-        "create_space",
-        "get_space",
-        "list_pages",
-        "create_page",
-        "search_pages",
-        "get_page",
-        "update_page",
-        "publish_page",
-        "archive_page",
-        "list_revisions",
-        "list_comments",
-        "add_comment",
-        "set_permission",
-        "find_canonical_page_for_topic",
-        "flag_outdated_pages",
-        "merge_duplicate_pages"
-      ],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "datadog",
+        "twilio",
+        "resend",
+        "slack"
+      ]
     },
     {
       "slug": "task-project-management",
@@ -1462,7 +1291,11 @@
         "summarize_sprint"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "slack",
+        "google-calendar"
+      ]
     },
     {
       "slug": "scheduling-booking",
@@ -1499,7 +1332,12 @@
         "enforce_meeting_budget"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "google-calendar",
+        "zoom",
+        "twilio"
+      ]
     },
     {
       "slug": "survey-poll",
@@ -1537,44 +1375,13 @@
         "propose_followup_question"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
-    },
-    {
-      "slug": "announcements-changelog",
-      "title": "Internal Announcements / Changelog API",
-      "description": "Announcements, audiences, and acknowledgements with MCP tools that find unread critical announcements, summarize the week, and draft changelogs.",
-      "domain": "productivity",
-      "tier": "S",
-      "replaces": [
-        "Headway",
-        "Beamer"
-      ],
-      "seoQuery": "api for changelog",
-      "adapters": [
-        "in-memory",
-        "supabase",
-        "firestore",
-        "neon",
-        "upstash-redis"
-      ],
-      "mcpTools": [
-        "list_announcements",
-        "create_announcement",
-        "get_announcement",
-        "schedule_announcement",
-        "publish_announcement",
-        "archive_announcement",
-        "list_audiences",
-        "create_audience",
-        "list_acknowledgements",
-        "acknowledge_announcement",
-        "list_categories",
-        "find_unread_critical_for_user",
-        "summarize_week_for_team",
-        "draft_changelog_from_merged_prs"
-      ],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "resend",
+        "twilio",
+        "slack",
+        "claude"
+      ]
     },
     {
       "slug": "legal-matter-management",
@@ -1617,7 +1424,12 @@
         "draft_status_letter_to_client"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "docusign",
+        "google-calendar",
+        "resend"
+      ]
     },
     {
       "slug": "real-estate-listings",
@@ -1659,7 +1471,12 @@
         "schedule_showing_round"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "google-calendar",
+        "twilio",
+        "resend"
+      ]
     },
     {
       "slug": "student-course-management",
@@ -1702,7 +1519,11 @@
         "recommend_remediation"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "google-calendar",
+        "resend"
+      ]
     },
     {
       "slug": "patient-intake",
@@ -1743,7 +1564,12 @@
         "verify_insurance_pre_visit"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "stedi",
+        "docusign",
+        "twilio"
+      ]
     },
     {
       "slug": "event-ticketing",
@@ -1784,7 +1610,11 @@
         "triage_refund_requests"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "stripe",
+        "resend"
+      ]
     },
     {
       "slug": "ecommerce-order-ops",
@@ -1826,7 +1656,12 @@
         "auto_approve_returns_under_policy"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "stripe",
+        "shipengine",
+        "twilio"
+      ]
     },
     {
       "slug": "restaurant-reservations",
@@ -1865,7 +1700,12 @@
         "recover_no_show_revenue"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "twilio",
+        "google-calendar",
+        "stripe"
+      ]
     },
     {
       "slug": "field-service",
@@ -1904,45 +1744,12 @@
         "draft_estimate_from_inspection"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
-    },
-    {
-      "slug": "community-forum",
-      "title": "Community / Forum API",
-      "description": "Topics, posts, members, and reactions with MCP tools that summarize unread for a user, find unanswered questions, and nominate helpful members.",
-      "domain": "vertical",
-      "tier": "M",
-      "replaces": [
-        "Discourse",
-        "Circle",
-        "Tribe"
-      ],
-      "seoQuery": "api for community forum",
-      "adapters": [
-        "in-memory",
-        "supabase",
-        "firestore",
-        "neon",
-        "upstash-redis"
-      ],
-      "mcpTools": [
-        "close_topic",
-        "create_post",
-        "create_topic",
-        "get_member",
-        "get_topic",
-        "list_categories",
-        "list_members",
-        "list_posts",
-        "list_topics",
-        "react_to_post",
-        "report_post",
-        "find_unanswered_questions",
-        "nominate_helpful_members",
-        "summarize_unread_for_user"
-      ],
-      "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-06"
+      "date": "2026-05-06",
+      "integrations": [
+        "mapbox",
+        "r2",
+        "twilio"
+      ]
     }
   ]
 }

@@ -18,12 +18,17 @@ function requireEnv(name: string): string {
 
 /**
  * The Booking entity — a single scheduled meeting.
+ *
+ * `calendarEventId` / `zoomMeetingId` are populated when book-meeting
+ * created an external calendar event or Zoom meeting, so we can clean up
+ * (or update) them on reschedule/cancel.
  */
 export interface Booking extends Entity {
   eventTypeSlug: string;
   hostEmail: string;
   attendeeEmail: string;
   attendeeName: string;
+  attendeePhone: string | null;
   scheduledFor: string;
   durationMinutes: number;
   status: "confirmed" | "canceled" | "rescheduled" | "completed" | "no_show";
@@ -31,6 +36,9 @@ export interface Booking extends Entity {
   cancelReason: string | null;
   notes: string | null;
   location: string | null;
+  calendarEventId: string | null;
+  zoomMeetingId: string | null;
+  zoomJoinUrl: string | null;
   createdAt: string;
 }
 

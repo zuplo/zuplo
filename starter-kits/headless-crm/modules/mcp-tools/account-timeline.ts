@@ -4,15 +4,23 @@ import type { Activity } from "../repositories/activities.ts";
 import type { Note } from "../repositories/notes.ts";
 import type { Deal } from "../repositories/deals.ts";
 import type { Contact } from "../repositories/contacts.ts";
+import { callClaude } from "../integrations/claude.ts";
+import { listGCalEvents } from "../integrations/google-calendar.ts";
 
 interface Body {
   accountId: string;
+  /** When true, ask Claude to summarize the timeline into a pre-call brief. */
+  summarize?: boolean;
+  /** Optional: pull Google Calendar events for these attendee emails. */
+  calendarAttendees?: string[];
+  /** Days back to pull from calendar. Defaults to 30. */
+  calendarDaysBack?: number;
 }
 
 interface Page<T> { items: T[]; nextCursor: string | null; }
 
 interface TimelineEvent {
-  kind: "activity" | "note" | "deal_created" | "deal_updated";
+  kind: "activity" | "note" | "deal_created" | "deal_updated" | "calendar";
   occurredAt: string;
   ownerEmail: string;
   summary: string;
@@ -20,10 +28,13 @@ interface TimelineEvent {
 }
 
 /**
- * Orchestrator: account_timeline.
+ * Orchestrator: account_timeline (Claude-powered).
  *
- * Returns a merged chronological list of activities, notes, and deal events
- * across the account. The agent can summarize this for a rep before a call.
+ * Returns a merged chronological list of activities, notes, deal events,
+ * and (optionally) Google Calendar meetings across the account. When
+ * `summarize: true`, hands the timeline to Claude and returns a pre-call
+ * brief — the kind of paragraph an AE would scribble before dialing the
+ * customer.
  */
 export default async function (request: ZuploRequest, context: ZuploContext) {
   const body = (await request.json()) as Body;
@@ -127,10 +138,66 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     dCursor = page.nextCursor;
   } while (dCursor);
 
+  // Optional: pull Google Calendar meetings tied to the account's people.
+  const attendees = body.calendarAttendees ?? [];
+  if (attendees.length > 0 && process.env.GOOGLE_CALENDAR_ACCESS_TOKEN) {
+    const daysBack = body.calendarDaysBack ?? 30;
+    const timeMin = new Date(
+      Date.now() - daysBack * 86400000,
+    ).toISOString();
+    for (const email of attendees) {
+      try {
+        const calEvents = await listGCalEvents({
+          attendeeEmail: email,
+          timeMin,
+          maxResults: 50,
+        });
+        for (const ev of calEvents) {
+          events.push({
+            kind: "calendar",
+            occurredAt: ev.start.dateTime,
+            ownerEmail: email,
+            summary: `[meeting] ${ev.summary ?? "(no title)"}`,
+            refId: ev.id,
+          });
+        }
+      } catch (err) {
+        context.log.warn(
+          `Google Calendar lookup failed for ${email}: ${(err as Error).message}`,
+        );
+      }
+    }
+  }
+
   events.sort((a, b) => (a.occurredAt < b.occurredAt ? 1 : -1));
 
+  let summary: string | undefined;
+  if (body.summarize) {
+    const lines = events.slice(0, 80).map(
+      (e) => `- ${e.occurredAt} (${e.ownerEmail}) ${e.kind}: ${e.summary}`,
+    );
+    const claude = await callClaude({
+      system:
+        "You are a sales operations assistant. Summarize an account's recent CRM activity into a short pre-call brief for an AE. Highlight the most recent meaningful interactions, who has been involved, the current deal state, and any silence or risk signals. Keep it under 200 words. Use plain prose, no bullet points.",
+      messages: [
+        {
+          role: "user",
+          content:
+            `Account id: ${body.accountId}\n\nMost recent events (newest first):\n${lines.join("\n")}`,
+        },
+      ],
+      maxTokens: 600,
+    });
+    summary = claude.text.trim();
+  }
+
   return new Response(
-    JSON.stringify({ accountId: body.accountId, count: events.length, events }),
+    JSON.stringify({
+      accountId: body.accountId,
+      count: events.length,
+      events,
+      summary,
+    }),
     { headers: { "content-type": "application/json" } },
   );
 }

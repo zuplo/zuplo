@@ -167,13 +167,13 @@
       "post": {
         "operationId": "place_order",
         "summary": "Place a ticket order",
-        "description": "Create a new pending order. The order moves to `paid` once payment is captured upstream.",
+        "description": "Create a new pending order and mint a Stripe PaymentIntent for the total. Returns the Order plus the PaymentIntent client_secret the frontend uses to confirm payment via Stripe.js. The Stripe webhook flips the order to `paid` and emails the QR ticket via Resend.",
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OrderCreate" } } }
         },
         "responses": {
-          "201": { "description": "The created order.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } } }
+          "201": { "description": "The created order plus PaymentIntent (when STRIPE_SECRET_KEY is set).", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlaceOrderResponse" } } } }
         },
         "x-zuplo-route": {
           "corsPolicy": "anything-goes",
@@ -367,6 +367,39 @@
         }
       }
     },
+    "/webhooks/stripe": {
+      "post": {
+        "operationId": "webhook_stripe",
+        "summary": "Stripe webhook receiver",
+        "description": "Receives Stripe events. Verifies the Stripe-Signature HMAC and dispatches: `payment_intent.succeeded` → flip order to paid + email QR ticket; `charge.refunded` → mark order refunded. Not exposed to MCP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "description": "Stripe event payload." }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event acknowledged.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/webhook-stripe)"
+          },
+          "policies": { "inbound": ["rate-limit"] }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -513,7 +546,9 @@
           },
           "placedAt": { "type": "string", "format": "date-time", "description": "When the order was created." },
           "paidAt": { "type": ["string", "null"], "format": "date-time", "description": "When payment captured. Null until paid." },
-          "refundedAt": { "type": ["string", "null"], "format": "date-time", "description": "When refunded. Null if not refunded." }
+          "refundedAt": { "type": ["string", "null"], "format": "date-time", "description": "When refunded. Null if not refunded." },
+          "stripePaymentIntentId": { "type": ["string", "null"], "description": "Stripe PaymentIntent id minted at order creation." },
+          "stripeRefundId": { "type": ["string", "null"], "description": "Stripe Refund id when the order is refunded." }
         }
       },
       "OrderCreate": {
@@ -535,6 +570,23 @@
         "properties": {
           "items": { "type": "array", "items": { "$ref": "#/components/schemas/Order" } },
           "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
+        }
+      },
+      "PlaceOrderResponse": {
+        "type": "object",
+        "description": "Response from `place_order`: the persisted order plus an optional Stripe PaymentIntent.",
+        "required": ["order"],
+        "properties": {
+          "order": { "$ref": "#/components/schemas/Order" },
+          "paymentIntent": {
+            "type": ["object", "null"],
+            "description": "Stripe PaymentIntent details (null when STRIPE_SECRET_KEY is unset).",
+            "properties": {
+              "id": { "type": "string", "description": "Stripe PaymentIntent id." },
+              "clientSecret": { "type": "string", "description": "Pass to Stripe.js to confirm payment." },
+              "status": { "type": "string", "description": "PaymentIntent status (e.g. `requires_payment_method`)." }
+            }
+          }
         }
       },
       "Ticket": {

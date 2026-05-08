@@ -842,6 +842,152 @@
         }
       }
     },
+    "/intake/start-verification": {
+      "post": {
+        "operationId": "start_intake_verification",
+        "summary": "Start Intake Verification",
+        "description": "Send a Twilio Verify SMS code to the patient. The patient passes the code to /intake/{id}/submit. Submission is rejected without it.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["patientId"],
+                "properties": {
+                  "patientId": {
+                    "type": "string",
+                    "description": "Patient to verify."
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": ["sms", "call", "email"],
+                    "description": "Verification channel. Defaults to sms."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Verification dispatched.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/start-intake-verification)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/consent/send-envelope": {
+      "post": {
+        "operationId": "send_consent_envelope",
+        "summary": "Send Consent Envelope",
+        "description": "Send a DocuSign envelope built from a pre-configured template (HIPAA / treatment / telehealth consent). Returns either an envelope id (email signing) or an embedded signing URL for tablet kiosks.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["patientId", "templateId", "consentKind"],
+                "properties": {
+                  "patientId": { "type": "string", "description": "Patient who needs to sign." },
+                  "templateId": { "type": "string", "description": "DocuSign template id." },
+                  "consentKind": {
+                    "type": "string",
+                    "enum": ["treatment", "hipaa", "telehealth", "research"],
+                    "description": "Consent kind to record on completion."
+                  },
+                  "version": { "type": "string", "description": "Consent version, e.g. \"2.1\". Defaults to 1.0." },
+                  "embeddedSigning": { "type": "boolean", "description": "When true, returns a signingUrl for tablet kiosks." },
+                  "returnUrl": { "type": "string", "description": "Where DocuSign should redirect after embedded signing." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Envelope sent.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/send-consent-envelope)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/docusign": {
+      "post": {
+        "operationId": "webhook_docusign",
+        "summary": "DocuSign Connect webhook",
+        "description": "Receives envelope-completed events from DocuSign Connect. Verifies the HMAC signature and materializes a Consent record from the envelope's prefill metadata. Not exposed to MCP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "description": "DocuSign Connect event payload." }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event acknowledged.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/webhook-docusign)"
+          },
+          "policies": {
+            "inbound": ["rate-limit"]
+          }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -926,6 +1072,14 @@
                 {
                   "file": "./config/routes.oas.json",
                   "id": "verify_insurance_pre_visit"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "start_intake_verification"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "send_consent_envelope"
                 }
               ]
             }

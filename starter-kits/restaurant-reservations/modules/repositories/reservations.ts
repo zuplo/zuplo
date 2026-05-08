@@ -32,6 +32,16 @@ export interface Reservation extends Entity {
   seatedAt: string | null;
   completedAt: string | null;
   createdAt: string;
+  /** Google Calendar event id for this booking, when synced. */
+  calendarEventId?: string | null;
+  /** Stripe Checkout Session id for the optional deposit. */
+  depositSessionId?: string | null;
+  /** Hosted URL for the deposit Checkout — share with the guest. */
+  depositUrl?: string | null;
+  /** Deposit status mirrored from Stripe webhook events. */
+  depositStatus?: "none" | "pending" | "paid" | "refunded" | null;
+  /** Deposit amount in cents. */
+  depositCents?: number | null;
 }
 
 function build(): Repository<Reservation> {

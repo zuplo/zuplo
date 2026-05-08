@@ -21,6 +21,10 @@ export interface RecurringGift extends Entity {
   nextChargeDate: string;
   status: "active" | "paused" | "canceled";
   createdAt: string;
+  /** Stripe subscription id mirroring this gift, when Stripe is configured. */
+  stripeSubscriptionId: string | null;
+  /** Stripe customer id for the donor. */
+  stripeCustomerId: string | null;
 }
 
 function build(): Repository<RecurringGift> {

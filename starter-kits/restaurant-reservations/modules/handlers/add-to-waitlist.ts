@@ -6,6 +6,7 @@ interface Body {
   guestName: string;
   partySize: number;
   quotedWaitMinutes: number;
+  phone?: string;
 }
 
 export default async function (request: ZuploRequest, context: ZuploContext) {
@@ -24,6 +25,7 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     quotedWaitMinutes: body.quotedWaitMinutes,
     status: "waiting",
     quotedReadyAt,
+    phone: body.phone ?? null,
   });
 
   return new Response(JSON.stringify(created), {

@@ -570,7 +570,20 @@
                 "type": "object",
                 "required": ["candidateId"],
                 "properties": {
-                  "candidateId": { "type": "string", "description": "Candidate id to summarise." }
+                  "candidateId": { "type": "string", "description": "Candidate id to summarise." },
+                  "generateBrief": {
+                    "type": "boolean",
+                    "description": "When true, ask Claude to fold the resume + scorecards into a 4-paragraph hiring brief."
+                  },
+                  "resumeText": {
+                    "type": "string",
+                    "description": "Optional resume text to include in the Claude brief. Truncated to ~4k chars."
+                  },
+                  "briefTone": {
+                    "type": "string",
+                    "enum": ["neutral", "advocate", "skeptical"],
+                    "description": "Brief tone — 'neutral' (default), 'advocate' (champion the candidate), 'skeptical' (probe weaknesses)."
+                  }
                 }
               }
             }
@@ -620,6 +633,17 @@
                             }
                           }
                         }
+                      }
+                    },
+                    "brief": {
+                      "type": "object",
+                      "description": "Claude-drafted hiring brief, present only when generateBrief was true.",
+                      "properties": {
+                        "text": { "type": "string", "description": "The brief text (4 paragraphs)." },
+                        "model": { "type": "string", "description": "Claude model that produced it." },
+                        "inputTokens": { "type": "integer", "description": "Input tokens consumed." },
+                        "outputTokens": { "type": "integer", "description": "Output tokens generated." },
+                        "tone": { "type": "string", "description": "Tone used (neutral, advocate, skeptical)." }
                       }
                     }
                   }
@@ -948,18 +972,31 @@
           "scheduledAt": { "type": "string", "format": "date-time", "description": "When the interview is scheduled." },
           "kind": { "type": "string", "enum": ["phone", "onsite", "technical"], "description": "Interview format." },
           "interviewerEmail": { "type": "string", "description": "Interviewer email." },
+          "candidateEmail": { "type": ["string", "null"], "description": "Candidate's email if supplied." },
+          "durationMinutes": { "type": ["integer", "null"], "description": "Length of the interview in minutes." },
+          "calendarEventId": { "type": ["string", "null"], "description": "Google Calendar event id, when an event was created." },
+          "calendarEventLink": { "type": ["string", "null"], "description": "Direct link to the Calendar event." },
+          "meetLink": { "type": ["string", "null"], "description": "Google Meet join URL, when createMeetLink was true." },
+          "calendarError": { "type": ["string", "null"], "description": "Failure reason if the Calendar create call failed." },
           "createdAt": { "type": "string", "format": "date-time", "description": "ISO-8601 creation timestamp." }
         }
       },
       "InterviewCreate": {
         "type": "object",
-        "description": "Payload to schedule an interview.",
+        "description": "Payload to schedule an interview. When candidateEmail is provided and Google Calendar credentials are set, also creates a Calendar event with the candidate + interviewer as attendees and emails the invite.",
         "required": ["applicationId", "scheduledAt", "kind", "interviewerEmail"],
         "properties": {
           "applicationId": { "type": "string", "description": "Application this interview is for." },
-          "scheduledAt": { "type": "string", "format": "date-time", "description": "When the interview is scheduled." },
+          "scheduledAt": { "type": "string", "format": "date-time", "description": "When the interview is scheduled. RFC3339 timestamp." },
           "kind": { "type": "string", "enum": ["phone", "onsite", "technical"], "description": "Interview format." },
-          "interviewerEmail": { "type": "string", "description": "Interviewer email." }
+          "interviewerEmail": { "type": "string", "format": "email", "description": "Interviewer email. Added as a Calendar attendee." },
+          "candidateEmail": { "type": "string", "format": "email", "description": "Candidate's email. When set (and Google Calendar is configured) the candidate is invited and emailed." },
+          "durationMinutes": { "type": "integer", "minimum": 5, "maximum": 480, "description": "Length of the interview in minutes. Defaults to 45." },
+          "title": { "type": "string", "description": "Calendar event title. Defaults to 'Interview — {kind}'." },
+          "description": { "type": "string", "description": "Calendar event description / agenda." },
+          "location": { "type": "string", "description": "Physical location or 'Google Meet' for video." },
+          "timeZone": { "type": "string", "description": "IANA timezone (e.g. 'America/Los_Angeles'). Optional but recommended." },
+          "createMeetLink": { "type": "boolean", "description": "When true, generates a Google Meet link on the event." }
         }
       },
       "InterviewPage": {

@@ -222,7 +222,7 @@
       "post": {
         "operationId": "route_request_for_approval",
         "summary": "Route a request for approval (orchestrator)",
-        "description": "Reads dollar threshold + cost center on a purchase request and builds the right approval chain, inserting ApprovalStep rows.",
+        "description": "Reads dollar threshold + cost center on a purchase request and builds the right approval chain, inserting ApprovalStep rows. If SLACK_BOT_TOKEN is configured, also DMs the first approver (looking them up by email) so the chain starts moving.",
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RouteApprovalRequest" } } }
@@ -363,7 +363,10 @@
             "enum": ["issued", "received", "closed"],
             "description": "PO lifecycle state."
           },
-          "issuedAt": { "type": "string", "format": "date-time", "description": "When the PO was issued." }
+          "issuedAt": { "type": "string", "format": "date-time", "description": "When the PO was issued." },
+          "docusignEnvelopeId": { "type": ["string", "null"], "description": "DocuSign envelope id once sent for vendor signature." },
+          "docusignStatus": { "type": ["string", "null"], "description": "Last-known DocuSign envelope status (sent / delivered / completed / declined)." },
+          "vendorEmailId": { "type": ["string", "null"], "description": "Resend message id for the vendor notification email." }
         }
       },
       "PurchaseOrderPage": {
@@ -446,9 +449,11 @@
       },
       "ConvertToPoRequest": {
         "type": "object",
-        "description": "Payload to convert an approved request to a PO.",
+        "description": "Payload to convert an approved request to a PO. With `sendForSignature=true` and DocuSign + vendor email configured, the gateway sends the PO out for counter-signature and emails the vendor a heads-up.",
         "properties": {
-          "poNumber": { "type": "string", "description": "Optional override PO number. Auto-assigned if omitted." }
+          "poNumber": { "type": "string", "description": "Optional override PO number. Auto-assigned if omitted." },
+          "sendForSignature": { "type": "boolean", "description": "If true, send the PO to the vendor via DocuSign + Resend." },
+          "poPdfBase64": { "type": "string", "description": "Optional inline base64 PDF. If absent, a placeholder is generated." }
         }
       },
       "RecordReceiptRequest": {
@@ -467,7 +472,8 @@
         "description": "Input to route_request_for_approval.",
         "required": ["requestId"],
         "properties": {
-          "requestId": { "type": "string", "description": "Purchase request id to route." }
+          "requestId": { "type": "string", "description": "Purchase request id to route." },
+          "skipSlack": { "type": "boolean", "description": "If true, suppress the first-approver Slack ping even when SLACK_BOT_TOKEN is set." }
         }
       },
       "RouteApprovalResponse": {
@@ -476,7 +482,8 @@
         "required": ["requestId", "steps"],
         "properties": {
           "requestId": { "type": "string", "description": "Request id that was routed." },
-          "steps": { "type": "array", "description": "Created ApprovalStep rows.", "items": { "$ref": "#/components/schemas/ApprovalStep" } }
+          "steps": { "type": "array", "description": "Created ApprovalStep rows.", "items": { "$ref": "#/components/schemas/ApprovalStep" } },
+          "slackTs": { "type": ["string", "null"], "description": "Slack message timestamp for the first-approver ping, if sent." }
         }
       },
       "ApprovalStep": {

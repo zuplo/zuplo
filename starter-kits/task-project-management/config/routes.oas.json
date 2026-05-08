@@ -824,14 +824,19 @@
       "post": {
         "operationId": "chase_stale_tasks",
         "summary": "Chase Stale Tasks",
-        "description": "Chase Stale Tasks.",
+        "description": "Find tasks stuck in 'doing' or 'blocked' for more than `daysWithoutActivity` days, group by assignee, and (optionally) dispatch grouped nudges to Slack.",
         "requestBody": {
           "required": false,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "description": "Operation payload — see handler for schema."
+                "description": "Operation payload.",
+                "properties": {
+                  "assigneeEmail": { "type": "string", "format": "email", "description": "Optional: narrow to a single assignee." },
+                  "daysWithoutActivity": { "type": "integer", "description": "How many days without activity counts as stale. Defaults to 7.", "minimum": 1, "maximum": 365 },
+                  "dispatch": { "type": "boolean", "description": "When true, post grouped nudges to Slack — one message per assignee. Defaults to false." }
+                }
               }
             }
           }

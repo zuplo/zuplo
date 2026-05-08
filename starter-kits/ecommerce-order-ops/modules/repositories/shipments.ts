@@ -27,6 +27,12 @@ export interface Shipment extends Entity {
   status: "label_purchased" | "in_transit" | "delivered" | "exception";
   shippedAt: string | null;
   deliveredAt: string | null;
+  /** ShipEngine label id (when created via ShipEngine). */
+  shipengineLabelId?: string | null;
+  /** Public URL to the label PDF returned by ShipEngine. */
+  labelUrl?: string | null;
+  /** Carrier-specific tracking URL. */
+  trackingUrl?: string | null;
 }
 
 function build(): Repository<Shipment> {

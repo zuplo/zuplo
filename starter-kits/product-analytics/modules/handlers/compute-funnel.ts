@@ -1,18 +1,28 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
+import { environment } from "@zuplo/runtime";
 import { requireTenant } from "@zuplo/starter-kit-shared/auth";
-import { eventRepository, funnelRepository, type Event, type Funnel } from "../repositories/events.ts";
+import {
+  eventRepository,
+  funnelRepository,
+  type Event,
+  type Funnel,
+} from "../repositories/events.ts";
+import { computeFunnelInClickHouse } from "../integrations/clickhouse.ts";
 
 interface Body {
   funnelSlug: string;
   dateFrom?: string;
   dateTo?: string;
+  /** Force in-memory computation even when DB_PROVIDER=clickhouse. Useful for tests. */
+  forceMemory?: boolean;
 }
 
 /**
- * Compute the per-step counts for a funnel over a window. A user is counted
- * for step N if they triggered an event matching step N's eventName at some
- * point after their step N-1 event. Filters on each step do simple equality
- * checks on the event's `properties` object.
+ * Compute funnel step counts. When the kit is on the ClickHouse adapter
+ * (DB_PROVIDER=clickhouse), the computation pushes down into a single
+ * `windowFunnel` SQL query. Otherwise it falls back to an in-memory
+ * algorithm that walks events per user. Filters on each step do simple
+ * equality checks on the event's `properties` object.
  */
 function eventMatchesStep(
   ev: Event,
@@ -54,9 +64,48 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
 
   const fromMs = body.dateFrom ? new Date(body.dateFrom).getTime() : 0;
   const toMs = body.dateTo ? new Date(body.dateTo).getTime() : Date.now();
+  const dateFrom = body.dateFrom ?? new Date(0).toISOString();
+  const dateTo = body.dateTo ?? new Date().toISOString();
 
-  // Pull events into memory. Production analytics adapters (clickhouse) push
-  // this down to SQL — see README.
+  // Push down to ClickHouse when available. Per-tenant scoped via the SQL
+  // WHERE clause in the integration helper.
+  const env = environment as Record<string, string | undefined>;
+  const provider = env.DB_PROVIDER ?? "in-memory";
+  const usingClickHouse =
+    provider === "clickhouse" && Boolean(env.CLICKHOUSE_URL) && !body.forceMemory;
+
+  if (usingClickHouse) {
+    try {
+      const result = await computeFunnelInClickHouse({
+        tenantId,
+        steps: funnel.steps.map((s) => ({
+          eventName: s.eventName,
+          filters: s.filters ?? {},
+        })),
+        dateFrom,
+        dateTo,
+      });
+      return new Response(
+        JSON.stringify({
+          funnelSlug: funnel.slug,
+          dateFrom: body.dateFrom ?? null,
+          dateTo: body.dateTo ?? null,
+          usersConsidered: result.usersConsidered,
+          steps: result.steps,
+          backend: "clickhouse",
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    } catch (err) {
+      context.log.warn("ClickHouse funnel failed, falling back to memory", {
+        err: String(err),
+      });
+      // Intentional fall-through.
+    }
+  }
+
+  // In-memory fallback. Production analytics adapters (clickhouse) push this
+  // down to SQL via the integration above.
   const events: Event[] = [];
   let cursor: string | null | undefined;
   do {
@@ -129,6 +178,7 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
       dateTo: body.dateTo ?? null,
       usersConsidered: Object.keys(byUser).length,
       steps: stepResults,
+      backend: "memory",
     }),
     { headers: { "content-type": "application/json" } },
   );

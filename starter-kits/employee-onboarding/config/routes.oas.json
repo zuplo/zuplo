@@ -384,7 +384,19 @@
                 "required": ["hireId", "templateId"],
                 "properties": {
                   "hireId": { "type": "string", "description": "Hire to attach the tasks to." },
-                  "templateId": { "type": "string", "description": "Template to materialise." }
+                  "templateId": { "type": "string", "description": "Template to materialise." },
+                  "generate306090": {
+                    "type": "boolean",
+                    "description": "When true, ask Claude to draft a personalized 30/60/90 day plan from the hire's role + level."
+                  },
+                  "level": {
+                    "type": "string",
+                    "description": "Optional career level — e.g. 'IC2', 'IC3', 'M1' — used to calibrate the 30/60/90 plan."
+                  },
+                  "teamContext": {
+                    "type": "string",
+                    "description": "Optional 1-2 sentence team / company context to include in the 30/60/90 plan prompt."
+                  }
                 }
               }
             }
@@ -405,6 +417,16 @@
                       "type": "array",
                       "description": "The created OnboardingTask records.",
                       "items": { "$ref": "#/components/schemas/OnboardingTask" }
+                    },
+                    "plan306090": {
+                      "type": "object",
+                      "description": "Claude-drafted 30/60/90 plan, present only when generate306090 was true.",
+                      "properties": {
+                        "text": { "type": "string", "description": "The plan in markdown." },
+                        "model": { "type": "string", "description": "Claude model that produced it." },
+                        "inputTokens": { "type": "integer", "description": "Input tokens consumed." },
+                        "outputTokens": { "type": "integer", "description": "Output tokens generated." }
+                      }
                     }
                   }
                 }
@@ -515,8 +537,8 @@
     "/notify-buddy": {
       "post": {
         "operationId": "notify_buddy",
-        "summary": "Draft a buddy notification (orchestrator)",
-        "description": "Reads the hire + their assigned buddy + the buddy-category tasks scheduled in the first week, and returns a draft notification payload. Does NOT actually send email — agents should review and send via their own email tool.",
+        "summary": "DM the buddy with the new hire's first-week checklist (orchestrator)",
+        "description": "Resolves the buddy's Slack user from their email, opens a DM channel, and posts a formatted first-week checklist with the new hire's buddy-category tasks. Set dryRun=true to return the drafted message without sending.",
         "requestBody": {
           "required": true,
           "content": {
@@ -525,7 +547,9 @@
                 "type": "object",
                 "required": ["hireId"],
                 "properties": {
-                  "hireId": { "type": "string", "description": "Hire whose buddy to notify." }
+                  "hireId": { "type": "string", "description": "Hire whose buddy to notify." },
+                  "dryRun": { "type": "boolean", "description": "When true, return the drafted message without sending it." },
+                  "buddySlackUserId": { "type": "string", "description": "Override the buddy's Slack user id (skip the email lookup)." }
                 }
               }
             }
@@ -533,15 +557,21 @@
         },
         "responses": {
           "200": {
-            "description": "Draft notification.",
+            "description": "Notification result.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "to": { "type": "string", "description": "Buddy email address." },
-                    "subject": { "type": "string", "description": "Suggested subject line." },
-                    "body": { "type": "string", "description": "Plain-text body." },
+                    "buddy": {
+                      "type": "object",
+                      "description": "Resolved buddy details.",
+                      "properties": {
+                        "email": { "type": "string", "description": "Buddy email." },
+                        "slackUserId": { "type": ["string", "null"], "description": "Slack user id, when resolved." },
+                        "dmChannel": { "type": ["string", "null"], "description": "DM channel id, when opened." }
+                      }
+                    },
                     "hire": {
                       "type": "object",
                       "description": "Summary of the hire.",
@@ -559,7 +589,24 @@
                       "description": "Buddy tasks scheduled in the first week.",
                       "items": { "$ref": "#/components/schemas/OnboardingTask" }
                     },
-                    "note": { "type": "string", "description": "Reminder that this tool drafts only." }
+                    "message": {
+                      "type": "object",
+                      "description": "The drafted Slack message.",
+                      "properties": {
+                        "text": { "type": "string", "description": "Slack mrkdwn text." }
+                      }
+                    },
+                    "post": {
+                      "type": ["object", "null"],
+                      "description": "Slack post result (null in dryRun mode).",
+                      "properties": {
+                        "sent": { "type": "boolean", "description": "Whether Slack accepted the message." },
+                        "channel": { "type": "string", "description": "Channel the message was posted to." },
+                        "ts": { "type": "string", "description": "Slack message timestamp for threading." },
+                        "error": { "type": "string", "description": "Failure reason." }
+                      }
+                    },
+                    "dryRun": { "type": "boolean", "description": "Echo of the dryRun flag." }
                   }
                 }
               }
@@ -579,7 +626,7 @@
           },
           "mcp": {
             "type": "tool",
-            "annotations": { "readOnlyHint": true }
+            "annotations": { "readOnlyHint": false }
           }
         }
       }

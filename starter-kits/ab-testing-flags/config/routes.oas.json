@@ -545,6 +545,60 @@
         }
       }
     },
+    "/v1/flags/{key}/decide": {
+      "post": {
+        "operationId": "decide_flag",
+        "summary": "Resolve a flag for a user",
+        "description": "Returns the variant value for a given flag key + distinct id. Resolution order: PostHog /decide if POSTHOG_API_KEY is set and the flag is sourced from PostHog (or `forcePostHog: true`), otherwise local consistent-hash assignment against the kit's flag rollout config or linked experiment variants. When PostHog is configured, the call mirrors a `$feature_flag_called` event so existing PostHog dashboards see the exposure.",
+        "parameters": [
+          { "name": "key", "in": "path", "required": true, "description": "Flag or experiment key.", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["distinctId"],
+                "properties": {
+                  "distinctId": { "type": "string", "description": "User identifier — same value used for /capture and /decide." },
+                  "groups": { "type": "object", "description": "Optional groups bag (e.g. { company: \"acme\" }).", "additionalProperties": { "type": "string" } },
+                  "personProperties": { "type": "object", "description": "Optional person properties for property-based targeting.", "additionalProperties": true },
+                  "groupProperties": { "type": "object", "description": "Optional per-group properties.", "additionalProperties": { "type": "object", "additionalProperties": true } },
+                  "forcePostHog": { "type": "boolean", "description": "Bypass the cascade and always call PostHog." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decided flag value.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "flagKey": { "type": "string" },
+                    "value": { "description": "Variant key, boolean, or null when no value is set.", "type": ["string", "boolean", "null"] },
+                    "payload": { "description": "Optional JSON payload bound to the variant in PostHog.", "type": ["object", "null"], "additionalProperties": true },
+                    "source": { "type": "string", "description": "Where the decision came from: posthog, local-rollout, local-experiment, or local-default." },
+                    "distinctId": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "No flag or experiment with that key." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/decide-flag)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true, "idempotentHint": true } }
+        }
+      }
+    },
     "/flag/{id}": {
       "patch": {
         "operationId": "update_flag",
@@ -812,6 +866,10 @@
                 {
                   "file": "./config/routes.oas.json",
                   "id": "update_flag"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "decide_flag"
                 },
                 {
                   "file": "./config/routes.oas.json",

@@ -1,16 +1,35 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import type { Submission } from "../repositories/submissions.ts";
+import { gradeLeadWithClaude, type LeadGrade } from "../integrations/claude.ts";
+import { sendResendEmail, buildSubmissionConfirmation } from "../integrations/resend.ts";
+import { postToSlack, buildSubmissionAlert } from "../integrations/slack.ts";
 
 /**
  * Orchestrator MCP tool: score_lead.
  *
  * Loads a submission, evaluates a small set of fit signals (business email,
- * presence of company/title/phone, recency, spam status), and returns a
+ * presence of company/title/phone, recency, spam status), then optionally
+ * grades the submission with Claude for intent + spam detection. Returns a
  * 0-100 score plus a per-signal breakdown the LLM can quote in a handoff.
+ *
+ * Side effects (configurable via body flags, default off):
+ *   - notifySlack: post a `New lead` card to Slack with score + payload preview
+ *   - confirmEmail: send a Resend confirmation email back to the submitter
+ *
+ * Failures in either side-effect path are caught and reported in the
+ * response so the caller can see what shipped vs what did not.
  */
 interface Body {
   submissionId: string;
+  /** If true, blend Claude's grade into the score and surface its reasoning. */
+  useClaude?: boolean;
+  /** If true, post the result to Slack via SLACK_WEBHOOK_URL or chat.postMessage. */
+  notifySlack?: boolean;
+  /** If true, send a Resend confirmation email to the submitter. */
+  confirmEmail?: boolean;
+  /** Optional form name to use in Slack/Resend templates. Defaults to "this form". */
+  formName?: string;
 }
 
 interface Signal {
@@ -110,6 +129,34 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     }
   }
 
+  // Optional: Claude grading. Blends 50/50 with the heuristic score and
+  // surfaces an `isSpam` veto.
+  let claudeGrade: LeadGrade | null = null;
+  let claudeError: string | null = null;
+  if (body.useClaude) {
+    try {
+      claudeGrade = await gradeLeadWithClaude({
+        formName: body.formName ?? "this form",
+        payload: submission.payload ?? {},
+        submitterEmail: email,
+      });
+      // Blend: average heuristic (clamped) and Claude scores.
+      const heuristicClamped = Math.max(0, Math.min(100, score));
+      score = Math.round((heuristicClamped + claudeGrade.score) / 2);
+      signals.push({
+        name: "claude_grade",
+        weight: claudeGrade.score - heuristicClamped,
+        reason: `Claude graded ${claudeGrade.score}/100 (${claudeGrade.intent}): ${claudeGrade.reasoning}`,
+      });
+      if (claudeGrade.isSpam) {
+        signals.push({ name: "claude_spam_veto", weight: -100, reason: "Claude flagged this as spam." });
+        score = Math.min(score, 5);
+      }
+    } catch (err) {
+      claudeError = err instanceof Error ? err.message : String(err);
+    }
+  }
+
   const clamped = Math.max(0, Math.min(100, score));
   const narrative = `Lead scored ${clamped}/100 based on ${signals.length} signals. ` +
     `Top signals: ${signals
@@ -119,12 +166,61 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
       .map((s) => s.name)
       .join(", ")}.`;
 
+  const sideEffects: { slack: string | null; email: string | null } = {
+    slack: null,
+    email: null,
+  };
+
+  if (body.notifySlack) {
+    try {
+      const result = await postToSlack(
+        buildSubmissionAlert({
+          formName: body.formName ?? "Unknown form",
+          submitterEmail: email,
+          score: clamped,
+          routedTo: submission.routedTo,
+          payloadPreview: submission.payload ?? {},
+          submissionId: submission.id,
+        }),
+      );
+      sideEffects.slack = result.ok ? "sent" : "failed";
+    } catch (err) {
+      sideEffects.slack = `error: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  }
+
+  if (body.confirmEmail && email) {
+    try {
+      const result = await sendResendEmail(
+        buildSubmissionConfirmation({
+          to: email,
+          formName: body.formName ?? "our website",
+        }),
+      );
+      sideEffects.email = `sent:${result.id}`;
+    } catch (err) {
+      sideEffects.email = `error: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  } else if (body.confirmEmail && !email) {
+    sideEffects.email = "skipped: no email in payload";
+  }
+
   return new Response(
     JSON.stringify({
       submissionId: submission.id,
       score: clamped,
       signals,
       narrative,
+      claude: claudeGrade
+        ? {
+            score: claudeGrade.score,
+            intent: claudeGrade.intent,
+            isSpam: claudeGrade.isSpam,
+            reasoning: claudeGrade.reasoning,
+          }
+        : null,
+      claudeError,
+      sideEffects,
     }),
     { headers: { "content-type": "application/json" } },
   );

@@ -26,6 +26,8 @@ export interface WaitlistEntry extends Entity {
   quotedWaitMinutes: number;
   status: "waiting" | "seated" | "left";
   quotedReadyAt: string | null;
+  /** E.164 phone — used by the no-show recovery orchestrator to text the party. */
+  phone?: string | null;
 }
 
 function build(): Repository<WaitlistEntry> {

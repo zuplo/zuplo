@@ -64,7 +64,8 @@ export interface MatterDocument extends Entity {
 
 /**
  * A Deadline tied to a matter. Court deadlines must not be missed; client and
- * internal deadlines are softer.
+ * internal deadlines are softer. `calendarEventId` is set when the kit
+ * provisioned a Google Calendar event so we can clean it up on completion.
  */
 export interface Deadline extends Entity {
   matterId: string;
@@ -72,6 +73,24 @@ export interface Deadline extends Entity {
   dueDate: string;
   kind: "court" | "client" | "internal";
   status: "upcoming" | "completed" | "missed";
+  calendarEventId: string | null;
+  createdAt: string;
+}
+
+/**
+ * A signature envelope tracked against a matter. Created by the
+ * `send_for_signature` MCP tool, populated from DocuSign responses, and
+ * updated by the inbound DocuSign Connect webhook.
+ */
+export interface SignatureEnvelope extends Entity {
+  matterId: string;
+  documentId: string | null;
+  envelopeId: string;
+  subject: string;
+  signerEmails: string[];
+  status: string;
+  sentAt: string;
+  completedAt: string | null;
   createdAt: string;
 }
 
@@ -161,3 +180,5 @@ export const matterTimeEntryRepository: Repository<MatterTimeEntry> = buildRepo<
   "matter_time_entries",
 );
 export const conflictRepository: Repository<Conflict> = buildRepo<Conflict>("Conflict", "conflicts");
+export const signatureEnvelopeRepository: Repository<SignatureEnvelope> =
+  buildRepo<SignatureEnvelope>("SignatureEnvelope", "signature_envelopes");

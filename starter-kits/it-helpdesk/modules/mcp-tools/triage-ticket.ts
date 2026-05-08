@@ -3,33 +3,36 @@ import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import { categoryRepository } from "../repositories/tickets.ts";
 import type { IncidentTicket } from "../repositories/tickets.ts";
 import { requireTenant } from "@zuplo/starter-kit-shared/auth";
+import { callClaudeJson } from "../integrations/claude.ts";
 
 /**
  * Orchestrator: triage_ticket.
  *
- * Reads a ticket and suggests a category, priority, and assignee based on
- * keyword heuristics in the subject + body. The agent (or human) can then
- * apply via update_ticket / assign_ticket.
+ * Asks Claude to classify category + priority for an inbound IT helpdesk
+ * ticket, then resolves the recommended assignee from the matching category's
+ * default owner.
  */
 
 interface Body {
   ticketId: string;
 }
 
-const CATEGORY_KEYWORDS: Record<IncidentTicket["category"], string[]> = {
-  hardware: ["laptop", "monitor", "keyboard", "mouse", "screen", "battery", "charger", "printer"],
-  software: ["app", "install", "crash", "error", "update", "bug", "license", "office", "outlook"],
-  access: ["password", "login", "sso", "mfa", "2fa", "locked", "permission", "access", "vpn"],
-  network: ["wifi", "ethernet", "internet", "vpn", "slow", "connection", "router", "dns"],
-  other: [],
-};
+interface ClaudeTriage {
+  category: "hardware" | "software" | "access" | "network" | "other";
+  priority: "low" | "med" | "high" | "critical";
+  reasoning: string;
+}
 
-const PRIORITY_KEYWORDS: Record<IncidentTicket["priority"], string[]> = {
-  critical: ["down", "outage", "production", "urgent", "all hands", "blocked entirely"],
-  high: ["asap", "blocked", "important", "deadline", "customer"],
-  med: [],
-  low: ["minor", "whenever", "no rush", "nice to have"],
-};
+const SYSTEM_PROMPT = `You are an internal IT helpdesk triage agent.
+
+Classify the ticket. Return JSON with:
+- category: one of hardware | software | access | network | other
+- priority: one of low | med | high | critical
+- reasoning: one short sentence explaining the priority
+
+Treat outage / "everyone is affected" / production-impact wording as critical.
+Treat "blocked" / "can't work" / VIP requestor wording as at least high.
+Default to med when unsure.`;
 
 export default async function (request: ZuploRequest, context: ZuploContext) {
   const body = (await request.json().catch(() => ({}))) as Body;
@@ -48,38 +51,29 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     { headers: { authorization: auth } },
   );
 
-  const haystack = `${ticket.subject} ${ticket.body}`.toLowerCase();
+  const triage = await callClaudeJson<ClaudeTriage>({
+    system: SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: [
+          `Subject: ${ticket.subject}`,
+          `Requester: ${ticket.requesterEmail}`,
+          "",
+          ticket.body,
+        ].join("\n"),
+      },
+    ],
+    maxTokens: 512,
+    jsonSchemaHint: `{
+  "category": "hardware|software|access|network|other",
+  "priority": "low|med|high|critical",
+  "reasoning": "string"
+}`,
+  });
 
-  // Score categories by keyword hits.
-  let suggestedCategory: IncidentTicket["category"] = "other";
-  let bestCategoryScore = 0;
-  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS) as Array<[
-    IncidentTicket["category"],
-    string[],
-  ]>) {
-    const score = keywords.reduce((acc, kw) => acc + (haystack.includes(kw) ? 1 : 0), 0);
-    if (score > bestCategoryScore) {
-      bestCategoryScore = score;
-      suggestedCategory = cat;
-    }
-  }
-
-  // Score priorities; default med.
-  let suggestedPriority: IncidentTicket["priority"] = "med";
-  for (const [prio, keywords] of Object.entries(PRIORITY_KEYWORDS) as Array<[
-    IncidentTicket["priority"],
-    string[],
-  ]>) {
-    if (keywords.some((kw) => haystack.includes(kw))) {
-      suggestedPriority = prio;
-      // critical > high > med > low: stop on first hit per rank order
-      if (prio === "critical" || prio === "high") break;
-    }
-  }
-
-  // Look up default assignee for the suggested category. Categories live in
-  // the same tenant store; we query directly since /categories is not exposed
-  // on the public API surface.
+  // Resolve the default assignee for the suggested category from the tenant's
+  // own category map.
   let suggestedAssignee: string | null = null;
   let categoryCursor: string | null | undefined;
   do {
@@ -87,7 +81,7 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
       limit: 200,
       cursor: categoryCursor ?? undefined,
     });
-    const match = page.items.find((c) => c.slug === suggestedCategory);
+    const match = page.items.find((c) => c.slug === triage.category);
     if (match) {
       suggestedAssignee = match.defaultAssigneeEmail ?? null;
       break;
@@ -98,13 +92,10 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
   return new Response(
     JSON.stringify({
       ticketId: ticket.id,
-      suggestedCategory,
-      suggestedPriority,
+      suggestedCategory: triage.category,
+      suggestedPriority: triage.priority,
       suggestedAssignee,
-      reasoning: {
-        categoryHits: bestCategoryScore,
-        haystackPreview: haystack.slice(0, 200),
-      },
+      reasoning: triage.reasoning,
     }),
     { headers: { "content-type": "application/json" } },
   );

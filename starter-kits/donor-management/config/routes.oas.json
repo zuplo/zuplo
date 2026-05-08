@@ -219,6 +219,72 @@
         }
       }
     },
+    "/start-donation-checkout": {
+      "post": {
+        "operationId": "start_donation_checkout",
+        "summary": "Start a Stripe Checkout session for a donation (orchestrator)",
+        "description": "Creates a Stripe Checkout Session for a one-off donation or a recurring sustaining gift, and returns the hosted-checkout URL. The donor pays on Stripe's page; the webhook records the donation when payment completes.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["donorId", "amountCents"],
+                "properties": {
+                  "donorId": { "type": "string", "description": "Donor id." },
+                  "amountCents": { "type": "integer", "minimum": 100, "description": "Gift amount in cents." },
+                  "currency": { "type": "string", "description": "ISO 4217 currency code. Defaults to USD." },
+                  "campaignId": { "type": "string", "description": "Optional campaign attribution." },
+                  "recurring": { "type": "boolean", "description": "If true, create a monthly subscription instead of a one-off charge." },
+                  "successUrl": { "type": "string", "format": "uri", "description": "Stripe success_url." },
+                  "cancelUrl": { "type": "string", "format": "uri", "description": "Stripe cancel_url." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The Stripe Checkout Session details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": { "type": "string", "description": "Stripe Checkout Session id." },
+                    "url": { "type": ["string", "null"], "description": "Hosted-checkout URL." },
+                    "recurring": { "type": "boolean", "description": "Whether this is a subscription session." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/start-donation-checkout)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/webhooks/stripe": {
+      "post": {
+        "operationId": "stripe_webhook",
+        "summary": "Stripe webhook receiver",
+        "description": "Inbound webhook for Stripe events. Verifies the Stripe-Signature header. On checkout.session.completed records a Donation (one-off) or upserts a RecurringGift (subscription). On invoice.payment_succeeded records the renewal Donation. On customer.subscription.deleted marks the local RecurringGift canceled. Sends a Resend acknowledgement email after each successful donation.",
+        "responses": {
+          "200": { "description": "Event processed (or ignored)." },
+          "400": { "description": "Missing or invalid signature." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/webhooks/stripe)" },
+          "policies": { "inbound": [] }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -244,7 +310,8 @@
                 { "file": "./config/routes.oas.json", "id": "list_recurring_gifts" },
                 { "file": "./config/routes.oas.json", "id": "identify_lapsed_donors" },
                 { "file": "./config/routes.oas.json", "id": "segment_for_campaign" },
-                { "file": "./config/routes.oas.json", "id": "generate_year_end_receipts" }
+                { "file": "./config/routes.oas.json", "id": "generate_year_end_receipts" },
+                { "file": "./config/routes.oas.json", "id": "start_donation_checkout" }
               ]
             }
           },
@@ -301,7 +368,9 @@
           "paymentMethod": { "type": "string", "description": "Payment method (card, ach, check, stock, dafs, etc.)." },
           "taxDeductibleAmountCents": { "type": "integer", "description": "Tax-deductible portion in cents (after FMV of any benefit)." },
           "anonymous": { "type": "boolean", "description": "If true, donor's identity should be masked in public reports." },
-          "restrictedFund": { "type": ["string", "null"], "description": "Name of a restricted fund if the gift is earmarked." }
+          "restrictedFund": { "type": ["string", "null"], "description": "Name of a restricted fund if the gift is earmarked." },
+          "stripeChargeId": { "type": ["string", "null"], "description": "Stripe charge / payment intent id for donations made via Stripe Checkout." },
+          "acknowledgementEmailId": { "type": ["string", "null"], "description": "Resend message id of the acknowledgement / thank-you email." }
         }
       },
       "DonationPage": {
@@ -350,7 +419,9 @@
           "fulfilledCents": { "type": "integer", "description": "How much of the pledge has been fulfilled in cents." },
           "dueDate": { "type": "string", "format": "date", "description": "Pledge fulfilment deadline." },
           "status": { "type": "string", "enum": ["open", "fulfilled", "defaulted"], "description": "Pledge state." },
-          "createdAt": { "type": "string", "format": "date-time", "description": "When the pledge was recorded." }
+          "createdAt": { "type": "string", "format": "date-time", "description": "When the pledge was recorded." },
+          "docusignEnvelopeId": { "type": ["string", "null"], "description": "DocuSign envelope id once a pledge agreement is sent for signature." },
+          "docusignStatus": { "type": ["string", "null"], "description": "Last-known DocuSign envelope status." }
         }
       },
       "PledgePage": {
@@ -364,7 +435,7 @@
       },
       "RecurringGift": {
         "type": "object",
-        "description": "A sustaining (recurring) gift.",
+        "description": "A sustaining (recurring) gift. When backed by Stripe, the local row mirrors a Stripe subscription — Stripe owns charge schedule and renewal.",
         "required": ["id", "tenantId", "donorId", "amountCents", "currency", "intervalUnit", "nextChargeDate", "status", "createdAt"],
         "properties": {
           "id": { "type": "string", "description": "Recurring gift id within the tenant." },
@@ -374,8 +445,10 @@
           "currency": { "type": "string", "description": "ISO 4217 currency code." },
           "intervalUnit": { "type": "string", "enum": ["monthly", "quarterly", "annual"], "description": "Charge interval." },
           "nextChargeDate": { "type": "string", "format": "date", "description": "Date of the next scheduled charge." },
-          "status": { "type": "string", "enum": ["active", "paused", "canceled"], "description": "Recurring-gift state." },
-          "createdAt": { "type": "string", "format": "date-time", "description": "When the recurring gift was created." }
+          "status": { "type": "string", "enum": ["active", "paused", "canceled"], "description": "Recurring-gift state. Reconciled from Stripe via webhook." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "When the recurring gift was created." },
+          "stripeSubscriptionId": { "type": ["string", "null"], "description": "Stripe sub_xxx id." },
+          "stripeCustomerId": { "type": ["string", "null"], "description": "Stripe cus_xxx id." }
         }
       },
       "RecurringGiftPage": {
@@ -427,20 +500,25 @@
       },
       "CreatePledgeRequest": {
         "type": "object",
-        "description": "Payload to record a pledge.",
+        "description": "Payload to record a pledge. With sendForSignature=true, also sends a DocuSign agreement to the donor.",
         "required": ["donorId", "amountCents", "dueDate"],
         "properties": {
           "donorId": { "type": "string", "description": "Donor id." },
           "amountCents": { "type": "integer", "minimum": 1, "description": "Pledged amount in cents." },
-          "dueDate": { "type": "string", "format": "date", "description": "Pledge fulfilment deadline." }
+          "dueDate": { "type": "string", "format": "date", "description": "Pledge fulfilment deadline." },
+          "sendForSignature": { "type": "boolean", "description": "If true, send a DocuSign pledge agreement to the donor." },
+          "currency": { "type": "string", "description": "Optional currency code for the agreement copy. Defaults to USD." },
+          "termYears": { "type": "integer", "minimum": 1, "maximum": 25, "description": "Optional pledge term in years for the agreement copy." },
+          "documentBase64": { "type": "string", "description": "Optional inline base64 PDF for the pledge document." }
         }
       },
       "LapsedDonorsRequest": {
         "type": "object",
-        "description": "Filter for identify_lapsed_donors.",
+        "description": "Filter for identify_lapsed_donors. With sendReengagement=true, batches a re-engagement email to each lapsed donor via Resend.",
         "properties": {
           "monthsLapsed": { "type": "integer", "minimum": 1, "maximum": 240, "description": "Months without a gift to consider lapsed. Defaults to 12." },
-          "minLifetimeCents": { "type": "integer", "minimum": 0, "description": "Minimum lifetime giving threshold. Defaults to 0." }
+          "minLifetimeCents": { "type": "integer", "minimum": 0, "description": "Minimum lifetime giving threshold. Defaults to 0." },
+          "sendReengagement": { "type": "boolean", "description": "If true, batch a re-engagement email to each lapsed donor (RESEND_API_KEY required)." }
         }
       },
       "LapsedDonorsResponse": {
@@ -451,6 +529,7 @@
           "count": { "type": "integer", "description": "Number of lapsed donors returned." },
           "monthsLapsed": { "type": "integer", "description": "The threshold used." },
           "minLifetimeCents": { "type": "integer", "description": "The threshold used." },
+          "emailed": { "type": "integer", "description": "Number of re-engagement emails sent (only present when sendReengagement=true)." },
           "donors": { "type": "array", "description": "Lapsed donors.", "items": { "$ref": "#/components/schemas/Donor" } }
         }
       },
@@ -483,10 +562,11 @@
       },
       "YearEndRequest": {
         "type": "object",
-        "description": "Input for generate_year_end_receipts.",
+        "description": "Input for generate_year_end_receipts. With email=true, batches receipt emails through Resend.",
         "required": ["year"],
         "properties": {
-          "year": { "type": "integer", "minimum": 1900, "maximum": 2100, "description": "Calendar year to receipt." }
+          "year": { "type": "integer", "minimum": 1900, "maximum": 2100, "description": "Calendar year to receipt." },
+          "email": { "type": "boolean", "description": "If true and RESEND_API_KEY is set, send each receipt by email." }
         }
       },
       "YearEndResponse": {

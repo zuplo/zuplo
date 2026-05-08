@@ -26,6 +26,8 @@ export interface Technician extends Entity {
   skills: string[];
   territory: string | null;
   status: "active" | "on_leave";
+  /** E.164 phone for route + dispatch SMS via Twilio. */
+  phone?: string | null;
 }
 
 function build(): Repository<Technician> {

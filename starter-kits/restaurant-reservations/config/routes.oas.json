@@ -310,7 +310,7 @@
       "post": {
         "operationId": "recover_no_show_revenue",
         "summary": "Recover no-show revenue (orchestrator)",
-        "description": "Walks no-show reservations in a window, finds matching waitlist parties of the same size, and produces a list of suggested seatings — turning canceled covers into recovered revenue.",
+        "description": "Walks no-show reservations in a window, finds matching waitlist parties of the same size, and (when notify=true) sends a Twilio SMS inviting the party to come in now. Turns canceled covers into recovered revenue.",
         "requestBody": {
           "required": false,
           "content": {
@@ -320,7 +320,8 @@
                 "properties": {
                   "windowMinutes": { "type": "integer", "minimum": 5, "maximum": 240, "description": "How long after the reserved time to consider matching a waitlist party. Defaults to 30." },
                   "from": { "type": "string", "format": "date-time", "description": "Inclusive lower bound on reservation `scheduledFor`. Defaults to now - 24h." },
-                  "to": { "type": "string", "format": "date-time", "description": "Exclusive upper bound on reservation `scheduledFor`. Defaults to now." }
+                  "to": { "type": "string", "format": "date-time", "description": "Exclusive upper bound on reservation `scheduledFor`. Defaults to now." },
+                  "notify": { "type": "boolean", "description": "When true, fires a Twilio SMS to each matched waitlist party. Defaults to false." }
                 }
               }
             }
@@ -333,7 +334,36 @@
           "corsPolicy": "anything-goes",
           "handler": { "export": "default", "module": "$import(./modules/mcp-tools/recover-no-show-revenue)" },
           "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
-          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/webhooks/stripe": {
+      "post": {
+        "operationId": "webhook_stripe",
+        "summary": "Stripe Checkout webhook receiver",
+        "description": "Verifies the Stripe-Signature HMAC and updates a reservation's deposit status: checkout.session.completed → paid; checkout.session.expired / charge.refunded → refunded. Not exposed to MCP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "description": "Stripe event payload." }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event acknowledged.",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/webhook-stripe)"
+          },
+          "policies": { "inbound": ["rate-limit"] }
         }
       }
     },
@@ -396,7 +426,12 @@
           "confirmedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "When the reservation became confirmed." },
           "seatedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "When the party was seated." },
           "completedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "When the seating ended." },
-          "createdAt": { "type": "string", "format": "date-time", "description": "ISO-8601 record creation timestamp." }
+          "createdAt": { "type": "string", "format": "date-time", "description": "ISO-8601 record creation timestamp." },
+          "calendarEventId": { "type": "string", "nullable": true, "description": "Google Calendar event id for this booking, when synced." },
+          "depositSessionId": { "type": "string", "nullable": true, "description": "Stripe Checkout Session id for the optional deposit." },
+          "depositUrl": { "type": "string", "nullable": true, "description": "Hosted Checkout URL for the deposit." },
+          "depositStatus": { "type": "string", "enum": ["none", "pending", "paid", "refunded"], "nullable": true, "description": "Deposit status mirrored from Stripe webhooks." },
+          "depositCents": { "type": "integer", "nullable": true, "description": "Deposit amount in cents." }
         }
       },
       "ReservationCreate": {
@@ -409,7 +444,10 @@
           "durationMinutes": { "type": "integer", "minimum": 15, "description": "Expected dining duration. Defaults to 90." },
           "tableId": { "type": "string", "description": "Pre-assigned table, if known." },
           "specialRequests": { "type": "string", "description": "Free text — allergies, occasion, etc." },
-          "source": { "type": "string", "enum": ["web", "phone", "walk_in"], "description": "Booking channel. Defaults to 'web'." }
+          "source": { "type": "string", "enum": ["web", "phone", "walk_in"], "description": "Booking channel. Defaults to 'web'." },
+          "depositCents": { "type": "integer", "minimum": 0, "description": "When > 0, mints a Stripe Checkout deposit session and returns the URL." },
+          "depositSuccessUrl": { "type": "string", "description": "Where Stripe redirects after a successful deposit." },
+          "depositCancelUrl": { "type": "string", "description": "Where Stripe redirects if the guest abandons the deposit flow." }
         }
       },
       "ReservationPage": {
@@ -521,7 +559,8 @@
           "addedAt": { "type": "string", "format": "date-time" },
           "quotedWaitMinutes": { "type": "integer", "minimum": 0, "description": "Quoted wait at sign-up." },
           "status": { "type": "string", "enum": ["waiting", "seated", "left"] },
-          "quotedReadyAt": { "type": "string", "format": "date-time", "nullable": true, "description": "Computed addedAt + quotedWaitMinutes." }
+          "quotedReadyAt": { "type": "string", "format": "date-time", "nullable": true, "description": "Computed addedAt + quotedWaitMinutes." },
+          "phone": { "type": "string", "nullable": true, "description": "E.164 phone — used by the no-show recovery orchestrator to text the party." }
         }
       },
       "WaitlistCreate": {
@@ -530,7 +569,8 @@
         "properties": {
           "guestName": { "type": "string" },
           "partySize": { "type": "integer", "minimum": 1 },
-          "quotedWaitMinutes": { "type": "integer", "minimum": 0, "description": "Wait time quoted to the party at sign-up." }
+          "quotedWaitMinutes": { "type": "integer", "minimum": 0, "description": "Wait time quoted to the party at sign-up." },
+          "phone": { "type": "string", "description": "E.164 phone, e.g. +15555550100." }
         }
       },
       "WaitlistPage": {

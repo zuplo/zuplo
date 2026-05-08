@@ -7,22 +7,39 @@ import type {
   MatterDocument,
   MatterTimeEntry,
 } from "../repositories/matters.ts";
+import { sendResendEmail } from "../integrations/resend.ts";
 
 /**
  * Orchestrator MCP tool: draft_status_letter_to_client.
  *
  * Builds a structured draft letter body summarizing recent activity on a
- * matter — non-privileged docs, deadlines, billable summary. The agent
- * finishes the prose; this tool hands it the facts.
+ * matter — non-privileged docs, deadlines, billable summary. When `send=true`,
+ * actually emails the client via Resend (default = draft only).
  */
 
 interface Body {
   matterId: string;
+  /** When true, send via Resend after drafting. */
+  send?: boolean;
+  /** Optional override of recipient. Defaults to the client.email on file. */
+  toEmail?: string;
+  /** Optional cc list. */
+  cc?: string[];
+  /** Override subject. */
+  subject?: string;
 }
 
 interface DeadlinePage { items: Deadline[]; nextCursor: string | null; }
 interface DocPage { items: MatterDocument[]; nextCursor: string | null; }
 interface TimePage { items: MatterTimeEntry[]; nextCursor: string | null; }
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 export default async function (request: ZuploRequest, context: ZuploContext) {
   const body = (await request.json().catch(() => ({}))) as Body;
@@ -115,13 +132,43 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
   lines.push("Sincerely,");
   lines.push(matter.leadAttorneyEmail);
 
+  const draftLetter = lines.join("\n");
+  const subject = body.subject ?? `Status update — ${matter.title}`;
+
+  let sentMessageId: string | null = null;
+  let sendError: string | null = null;
+  if (body.send) {
+    try {
+      const html = `<div style="font-family:Georgia,serif;max-width:640px;line-height:1.5">${draftLetter
+        .split("\n")
+        .map((l) => `<p style="margin:0 0 0.6em">${escapeHtml(l) || "&nbsp;"}</p>`)
+        .join("")}</div>`;
+      const resp = await sendResendEmail({
+        to: body.toEmail ?? client.email,
+        cc: body.cc,
+        subject,
+        html,
+        text: draftLetter,
+        replyTo: matter.leadAttorneyEmail,
+        idempotencyKey: `status-letter-${matter.id}-${new Date().toISOString().slice(0, 10)}`,
+      });
+      sentMessageId = resp.id;
+    } catch (err) {
+      sendError = (err as Error).message;
+    }
+  }
+
   return new Response(
     JSON.stringify({
       matterId: body.matterId,
       clientName: client.name,
-      draftLetter: lines.join("\n"),
+      subject,
+      draftLetter,
       includedDocumentCount: recentDocs.length,
       upcomingDeadlineCount: upcoming.length,
+      sent: Boolean(sentMessageId),
+      sentMessageId,
+      sendError,
     }),
     { headers: { "content-type": "application/json" } },
   );

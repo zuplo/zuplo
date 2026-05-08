@@ -1,6 +1,7 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import type { Expense, ExpenseCategory, ExpensePolicy } from "../repositories/expenses.ts";
+import { postSlackMessage, defaultFinanceChannel } from "../integrations/slack.ts";
 
 /**
  * Orchestrator MCP tool: flag_policy_violations.
@@ -8,10 +9,16 @@ import type { Expense, ExpenseCategory, ExpensePolicy } from "../repositories/ex
  * Walks expenses, joins categories + policies, and returns expenses that
  * either exceed a daily/per-diem cap or are missing a receipt where one is
  * required.
+ *
+ * When `notifySlack=true`, posts a single digest message to the finance
+ * channel summarizing what was found. This is the lightest possible
+ * "human-in-the-loop" path — the LLM can flag, ping finance, and let a human
+ * approver act in Slack.
  */
 
 interface Body {
   employeeEmail?: string;
+  notifySlack?: boolean;
 }
 
 interface ExpensePage { items: Expense[]; nextCursor: string | null }
@@ -27,7 +34,6 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
   const body = (await request.json().catch(() => ({}))) as Body;
   const auth = { authorization: request.headers.get("authorization") ?? "" };
 
-  // Pull all expenses (optionally filtered by employee in TS).
   const expenses: Expense[] = [];
   let cursor: string | null | undefined = undefined;
   do {
@@ -62,7 +68,6 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     if (policies.length > 1000) break;
   } while (pCursor);
 
-  // Default policy = the strictest dailyLimitCents across all policies, or unlimited.
   const dailyLimit = policies.reduce(
     (acc, p) => (p.dailyLimitCents > 0 ? Math.min(acc, p.dailyLimitCents) : acc),
     Number.POSITIVE_INFINITY,
@@ -95,11 +100,47 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     if (reasons.length > 0) violations.push({ expense: e, reasons });
   }
 
+  let slackTs: string | null = null;
+  if (body.notifySlack && violations.length > 0) {
+    try {
+      const totalUsd = (
+        violations.reduce((s, v) => s + v.expense.amountCents, 0) / 100
+      ).toFixed(2);
+      const top = violations.slice(0, 10).map(
+        (v) =>
+          `• *${v.expense.employeeEmail}* — ${v.expense.merchant} ($${(v.expense.amountCents / 100).toFixed(2)}): ${v.reasons[0]}`,
+      ).join("\n");
+      const msg = await postSlackMessage({
+        channel: defaultFinanceChannel(),
+        text: `Policy violations detected: ${violations.length} expenses, $${totalUsd} total exposure`,
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*Policy violations detected*\n${violations.length} expense${violations.length === 1 ? "" : "s"}, *$${totalUsd}* total exposure`,
+            },
+          },
+          {
+            type: "section",
+            text: { type: "mrkdwn", text: top || "_(none)_" },
+          },
+        ],
+      });
+      slackTs = msg.ts ?? null;
+    } catch (err) {
+      context.log.error(
+        `flag_policy_violations: slack notify failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
   return new Response(
     JSON.stringify({
       count: violations.length,
       totalExposureCents: violations.reduce((s, v) => s + v.expense.amountCents, 0),
       violations,
+      slackTs,
     }),
     { headers: { "content-type": "application/json" } },
   );

@@ -18,12 +18,21 @@ function requireEnv(name: string): string {
 
 /**
  * The Interview entity. A scheduled conversation tied to a single Application.
+ * When the kit's schedule_interview handler is called with a candidateEmail,
+ * a Google Calendar event is created and the eventId/link are persisted here
+ * for later cancellation or rescheduling.
  */
 export interface Interview extends Entity {
   applicationId: string;
   scheduledAt: string;
   kind: "phone" | "onsite" | "technical";
   interviewerEmail: string;
+  candidateEmail: string | null;
+  durationMinutes: number | null;
+  calendarEventId: string | null;
+  calendarEventLink: string | null;
+  meetLink: string | null;
+  calendarError: string | null;
   createdAt: string;
 }
 

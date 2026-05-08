@@ -1,6 +1,7 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import type { Task } from "../repositories/tasks.ts";
+import { sendSlackMessage } from "../integrations/slack.ts";
 
 /**
  * Orchestrator: chase_stale_tasks.
@@ -8,13 +9,16 @@ import type { Task } from "../repositories/tasks.ts";
  * Returns tasks where status is "doing" or "blocked" and `updatedAt` is older
  * than `daysWithoutActivity` days ago. Optionally narrowed by assignee.
  *
- * Each row carries a draft nudge message the LLM can rewrite, so a downstream
- * agent can send the reminder.
+ * Each row carries a draft nudge message. When `dispatch=true` the tool also
+ * posts the nudges to Slack (one message per assignee, grouped) so a downstream
+ * agent can run this on demand instead of just inspecting the drafts.
  */
 
 interface Body {
   assigneeEmail?: string;
   daysWithoutActivity?: number;
+  /** When true, post the grouped nudges to Slack (uses SLACK_WEBHOOK_URL or bot token + SLACK_DEFAULT_CHANNEL). */
+  dispatch?: boolean;
 }
 
 interface TaskPage {
@@ -71,12 +75,32 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     (byAssignee[key] ??= []).push(row);
   }
 
+  let dispatched = 0;
+  const dispatchErrors: string[] = [];
+  if (body.dispatch && result.length > 0) {
+    for (const [assignee, rows] of Object.entries(byAssignee)) {
+      const lines = rows.map(
+        (r) =>
+          `• _${r.task.title}_ (\`${r.task.status}\`, ${r.ageDays}d cold) — task \`${r.task.id}\``,
+      );
+      const text = `:bell: *Stale task nudge for ${assignee}* (${rows.length} task${rows.length === 1 ? "" : "s"} > ${days}d without activity)\n${lines.join("\n")}`;
+      try {
+        await sendSlackMessage({ text });
+        dispatched += 1;
+      } catch (err) {
+        dispatchErrors.push(`${assignee}: ${(err as Error).message}`);
+      }
+    }
+  }
+
   return new Response(
     JSON.stringify({
       daysWithoutActivity: days,
       count: result.length,
       tasks: result,
       byAssignee,
+      dispatched,
+      dispatchErrors,
     }),
     { headers: { "content-type": "application/json" } },
   );

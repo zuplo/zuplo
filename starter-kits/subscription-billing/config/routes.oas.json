@@ -338,6 +338,25 @@
         }
       }
     },
+    "/webhooks/stripe": {
+      "post": {
+        "operationId": "stripe_webhook",
+        "summary": "Stripe webhook receiver",
+        "description": "Inbound webhook for Stripe events. Verifies the Stripe-Signature header and reconciles local subscription/billing-invoice state with the Stripe source of truth on customer.subscription.updated|deleted and invoice.payment_succeeded|failed events.",
+        "responses": {
+          "200": { "description": "Event processed (or ignored)." },
+          "400": { "description": "Missing or invalid signature." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/webhooks/stripe)"
+          },
+          "policies": { "inbound": [] }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -378,33 +397,38 @@
     "schemas": {
       "Subscription": {
         "type": "object",
-        "description": "A customer's active or historical subscription to a plan.",
+        "description": "A customer's subscription to a plan. Mirrors a Stripe subscription — Stripe owns the canonical state, this kit stores only IDs and a snapshot reconciled via webhook.",
         "required": ["id", "tenantId", "customerId", "planId", "status", "startDate", "currentPeriodStart", "currentPeriodEnd", "trialEnd", "canceledAt", "createdAt"],
         "properties": {
           "id": { "type": "string", "description": "Unique subscription id within the tenant." },
           "tenantId": { "type": "string", "description": "Tenant the subscription belongs to. Set automatically from the API key." },
           "customerId": { "type": "string", "description": "Id of the customer that owns this subscription." },
           "planId": { "type": "string", "description": "Id of the plan being subscribed to." },
-          "status": { "type": "string", "enum": ["active", "past_due", "canceled", "paused"], "description": "Lifecycle state." },
+          "status": { "type": "string", "enum": ["active", "past_due", "canceled", "paused"], "description": "Lifecycle state. Reconciled from Stripe via webhook." },
           "startDate": { "type": "string", "format": "date", "description": "Date the subscription began." },
           "currentPeriodStart": { "type": "string", "format": "date-time", "description": "Start of the current billing period." },
           "currentPeriodEnd": { "type": "string", "format": "date-time", "description": "End of the current billing period." },
           "trialEnd": { "type": ["string", "null"], "format": "date-time", "description": "When the trial ends, or null if no trial." },
           "canceledAt": { "type": ["string", "null"], "format": "date-time", "description": "When cancellation was initiated, or null." },
-          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." },
+          "stripeSubscriptionId": { "type": ["string", "null"], "description": "Stripe sub_xxx id. Null when running zero-config (no STRIPE_SECRET_KEY)." },
+          "stripeCustomerId": { "type": ["string", "null"], "description": "Stripe cus_xxx id." },
+          "stripeItemId": { "type": ["string", "null"], "description": "Stripe subscription item id (for usage records)." },
+          "metadata": { "type": ["object", "null"], "description": "Free-form metadata, also forwarded to Stripe." }
         }
       },
       "SubscriptionCreate": {
         "type": "object",
-        "description": "Payload to create a subscription.",
-        "required": ["customerId", "planId", "startDate", "currentPeriodStart", "currentPeriodEnd"],
+        "description": "Payload to create a subscription. With Stripe configured, periods come back from Stripe — they're optional here.",
+        "required": ["customerId", "planId"],
         "properties": {
           "customerId": { "type": "string", "description": "Id of the customer." },
           "planId": { "type": "string", "description": "Id of the plan." },
-          "startDate": { "type": "string", "format": "date", "description": "Date the subscription begins." },
-          "currentPeriodStart": { "type": "string", "format": "date-time", "description": "Start of the first billing period." },
-          "currentPeriodEnd": { "type": "string", "format": "date-time", "description": "End of the first billing period." },
-          "trialEnd": { "type": ["string", "null"], "format": "date-time", "description": "When the trial ends, or null." }
+          "startDate": { "type": "string", "format": "date", "description": "Date the subscription begins. Defaults to now." },
+          "currentPeriodStart": { "type": "string", "format": "date-time", "description": "Optional. Defaults to now in local-only mode; set by Stripe in Stripe mode." },
+          "currentPeriodEnd": { "type": "string", "format": "date-time", "description": "Optional. Defaults to +30d in local-only mode; set by Stripe in Stripe mode." },
+          "trialEnd": { "type": ["string", "null"], "format": "date-time", "description": "When the trial ends, or null." },
+          "metadata": { "type": "object", "description": "Free-form metadata forwarded to Stripe." }
         }
       },
       "SubscriptionPage": {
@@ -418,7 +442,7 @@
       },
       "Plan": {
         "type": "object",
-        "description": "A pricing plan.",
+        "description": "A pricing plan. Mirrors a Stripe Product+Price pair.",
         "required": ["id", "tenantId", "name", "intervalUnit", "priceCents", "currency", "includedUsage", "overageRateCents", "createdAt"],
         "properties": {
           "id": { "type": "string", "description": "Unique plan id within the tenant." },
@@ -429,7 +453,9 @@
           "currency": { "type": "string", "description": "ISO 4217 currency code." },
           "includedUsage": { "type": "integer", "description": "Units of usage included in the plan." },
           "overageRateCents": { "type": "integer", "description": "Per-unit overage rate above includedUsage, in cents." },
-          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." },
+          "stripePriceId": { "type": ["string", "null"], "description": "Stripe price_xxx id." },
+          "stripeProductId": { "type": ["string", "null"], "description": "Stripe prod_xxx id." }
         }
       },
       "PlanCreate": {

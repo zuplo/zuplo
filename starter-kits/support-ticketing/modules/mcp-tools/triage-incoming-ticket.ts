@@ -1,17 +1,24 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import type { Ticket } from "../repositories/tickets.ts";
+import { callClaudeJson } from "../integrations/claude.ts";
 
 /**
- * Orchestrator: triage_incoming_ticket.
+ * Orchestrator MCP tool: triage_incoming_ticket.
  *
- * Reads a freshly-created ticket and suggests a priority, tags, and assignee
- * based on keyword heuristics in the subject + body. Optionally looks at
- * recent tickets in the same tenant to find common assignees for similar tags.
+ * Pulls a ticket, asks Claude to classify category + severity and draft a
+ * suggested first reply, then optionally cross-references recent tickets in
+ * the same tenant to recommend the assignee who has handled similar tagged
+ * tickets most often.
+ *
+ * The LLM does the work; the gateway grounds the LLM with real tenant data
+ * via invokeRoute (auth + rate-limit + tenant scoping inherited).
  */
 
 interface Body {
   ticketId: string;
+  /** When true, also returns a draft reply suitable for sending to the customer. */
+  draftReply?: boolean;
 }
 
 interface TicketPage {
@@ -19,21 +26,24 @@ interface TicketPage {
   nextCursor: string | null;
 }
 
-const PRIORITY_KEYWORDS: Record<Ticket["priority"], string[]> = {
-  urgent: ["down", "outage", "production", "cannot login", "data loss", "security", "breach"],
-  high: ["asap", "blocked", "important", "deadline", "customer churn", "refund", "billing"],
-  normal: [],
-  low: ["minor", "whenever", "no rush", "nice to have", "feature request"],
-};
+interface ClaudeTriage {
+  category: string;
+  tags: string[];
+  priority: "low" | "normal" | "high" | "urgent";
+  reasoning: string;
+  draftReply?: string;
+}
 
-const TAG_KEYWORDS: Record<string, string[]> = {
-  billing: ["bill", "invoice", "charge", "refund", "subscription", "payment"],
-  auth: ["login", "password", "sso", "mfa", "2fa", "locked", "session"],
-  bug: ["bug", "error", "crash", "broken", "fails", "doesn't work", "exception"],
-  feature: ["feature", "request", "would love", "could you add", "enhancement"],
-  performance: ["slow", "lag", "timeout", "performance", "spinning", "hang"],
-  onboarding: ["getting started", "set up", "first time", "onboarding", "configure"],
-};
+const SYSTEM_PROMPT = `You are a senior customer support triage agent.
+
+You will be given a single inbound support ticket. Classify it and propose:
+- a single category (one of: billing, auth, bug, feature, performance, onboarding, other)
+- 0-4 short tags (lowercase, hyphenated, reused from the ticket text where possible)
+- a priority (low | normal | high | urgent) based on customer impact and language
+- a one-sentence reasoning for the priority
+- optionally, a draft first reply to the customer (friendly, signed "the support team", no commitments on timeline)
+
+Treat anything mentioning "down", "outage", "data loss", "security", "breach", or "refund" as at least high priority.`;
 
 export default async function (request: ZuploRequest, context: ZuploContext) {
   const body = (await request.json().catch(() => ({}))) as Body;
@@ -51,39 +61,50 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     { headers: auth },
   );
 
-  const haystack = `${ticket.subject} ${ticket.body}`.toLowerCase();
+  // Ask Claude to classify + draft a suggested reply.
+  const triage = await callClaudeJson<ClaudeTriage>({
+    system: SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: [
+          `Subject: ${ticket.subject}`,
+          `Customer: ${ticket.customerEmail}`,
+          `Channel: ${ticket.channel}`,
+          "",
+          ticket.body,
+          "",
+          body.draftReply
+            ? "Include the `draftReply` field."
+            : "Do not include `draftReply`.",
+        ].join("\n"),
+      },
+    ],
+    maxTokens: 1024,
+    jsonSchemaHint: `{
+  "category": "string",
+  "tags": ["string"],
+  "priority": "low|normal|high|urgent",
+  "reasoning": "string",
+  "draftReply": "string (optional)"
+}`,
+  });
 
-  // Priority: pick the highest priority that matches; fall back to normal.
-  let suggestedPriority: Ticket["priority"] = "normal";
-  const order: Ticket["priority"][] = ["urgent", "high", "normal", "low"];
-  for (const prio of order) {
-    if (PRIORITY_KEYWORDS[prio].some((kw) => haystack.includes(kw))) {
-      suggestedPriority = prio;
-      break;
-    }
-  }
-
-  // Tags: collect all matching keyword categories.
-  const suggestedTags: string[] = [];
-  for (const [tag, keywords] of Object.entries(TAG_KEYWORDS)) {
-    if (keywords.some((kw) => haystack.includes(kw))) {
-      suggestedTags.push(tag);
-    }
-  }
-
-  // Suggest an assignee based on recent tickets sharing any tag.
-  const recent = await invokeJson<TicketPage>(context, "/tickets?limit=200", { headers: auth });
+  // Cross-reference recent tickets to find the most likely assignee for these tags.
+  const recent = await invokeJson<TicketPage>(context, "/tickets?limit=200", {
+    headers: auth,
+  });
   const tagCounts: Record<string, Record<string, number>> = {};
   for (const t of recent.items) {
     if (!t.assigneeEmail) continue;
     for (const tag of t.tags ?? []) {
-      if (!suggestedTags.includes(tag)) continue;
+      if (!triage.tags.includes(tag)) continue;
       tagCounts[tag] ??= {};
       tagCounts[tag][t.assigneeEmail] = (tagCounts[tag][t.assigneeEmail] ?? 0) + 1;
     }
   }
   const assigneeScores: Record<string, number> = {};
-  for (const tag of suggestedTags) {
+  for (const tag of triage.tags) {
     for (const [email, count] of Object.entries(tagCounts[tag] ?? {})) {
       assigneeScores[email] = (assigneeScores[email] ?? 0) + count;
     }
@@ -97,23 +118,21 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     }
   }
 
-  // Pull a short list of recent similar tickets for context.
   const similarTickets = recent.items
     .filter((t) => t.id !== ticket.id)
-    .filter((t) => (t.tags ?? []).some((tag) => suggestedTags.includes(tag)))
+    .filter((t) => (t.tags ?? []).some((tag) => triage.tags.includes(tag)))
     .slice(0, 5);
 
   return new Response(
     JSON.stringify({
       ticketId: ticket.id,
-      suggestedPriority,
-      suggestedTags,
+      category: triage.category,
+      suggestedTags: triage.tags,
+      suggestedPriority: triage.priority,
       suggestedAssignee,
+      reasoning: triage.reasoning,
+      draftReply: triage.draftReply ?? null,
       similarTickets,
-      reasoning: {
-        priorityMatchedFrom: PRIORITY_KEYWORDS[suggestedPriority],
-        tagsConsidered: Object.keys(TAG_KEYWORDS),
-      },
     }),
     { headers: { "content-type": "application/json" } },
   );

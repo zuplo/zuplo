@@ -382,6 +382,81 @@
         }
       }
     },
+    "/send-survey": {
+      "post": {
+        "operationId": "send_survey",
+        "summary": "Send a survey to recipients (orchestrator)",
+        "description": "Orchestrator MCP tool. Distributes a survey to a recipient list via email (Resend) or SMS (Twilio). Returns a per-recipient delivery report.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SendSurveyQuery" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-recipient delivery report.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Send survey result.",
+                  "properties": {
+                    "surveyId": { "type": "string", "description": "Echo of the survey id." },
+                    "channel": { "type": "string", "enum": ["email", "sms"], "description": "Channel used." },
+                    "attempted": { "type": "integer", "description": "Number of recipients attempted." },
+                    "delivered": { "type": "integer", "description": "Number of successful sends." },
+                    "failed": { "type": "integer", "description": "Number of failed sends." },
+                    "reports": {
+                      "type": "array",
+                      "description": "Per-recipient delivery report.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "to": { "type": "string", "description": "Email or phone." },
+                          "channel": { "type": "string" },
+                          "ok": { "type": "boolean" },
+                          "id": { "type": ["string", "null"], "description": "Provider message id when delivered." },
+                          "error": { "type": ["string", "null"], "description": "Error message when failed." }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/send-survey)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/webhooks/resend": {
+      "post": {
+        "operationId": "resend_webhook",
+        "summary": "Inbound Resend webhook",
+        "description": "Receives Resend delivery events (email.delivered, email.bounced, email.complained). Verifies the Svix signature, parses the event, and currently logs it. Extend the handler to suspend bounced respondents or re-route detractor follow-ups.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "description": "Resend event payload — see https://resend.com/docs/dashboard/webhooks/event-types" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Acknowledged.",
+            "content": {
+              "application/json": { "schema": { "type": "object", "properties": { "ok": { "type": "boolean" } } } }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/resend-webhook)" },
+          "policies": { "inbound": [] }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -408,7 +483,8 @@
                 { "file": "./config/routes.oas.json", "id": "summarize_results" },
                 { "file": "./config/routes.oas.json", "id": "cluster_open_responses" },
                 { "file": "./config/routes.oas.json", "id": "compare_cohorts" },
-                { "file": "./config/routes.oas.json", "id": "propose_followup_question" }
+                { "file": "./config/routes.oas.json", "id": "propose_followup_question" },
+                { "file": "./config/routes.oas.json", "id": "send_survey" }
               ]
             }
           },
@@ -517,12 +593,13 @@
       },
       "ResponseCreate": {
         "type": "object",
-        "description": "Payload to submit a response.",
+        "description": "Payload to submit a response. NPS scores 0–6 trigger a Slack detractor alert unless `silent: true`.",
         "required": ["surveyId", "answers"],
         "properties": {
           "surveyId": { "type": "string", "description": "Parent survey id." },
           "respondentEmail": { "type": "string", "format": "email", "description": "Respondent email (required unless anonymous)." },
           "anonymous": { "type": "boolean", "description": "Whether the response is anonymous." },
+          "silent": { "type": "boolean", "description": "When true, suppress detractor Slack alert." },
           "answers": {
             "type": "array",
             "description": "Answers, one per question.",
@@ -576,7 +653,8 @@
           "surveyId": { "type": "string", "description": "Survey id." },
           "questionId": { "type": "string", "description": "Question id (must be a text question)." },
           "topThemes": { "type": "integer", "description": "How many top themes to return. Defaults to 5.", "minimum": 1, "maximum": 20 },
-          "samplesPerTheme": { "type": "integer", "description": "How many sample comments per theme. Defaults to 3.", "minimum": 1, "maximum": 10 }
+          "samplesPerTheme": { "type": "integer", "description": "How many sample comments per theme. Defaults to 3.", "minimum": 1, "maximum": 10 },
+          "useClaude": { "type": "boolean", "description": "When false, skip Claude and use the keyword-frequency fallback. Defaults to true." }
         }
       },
       "CompareCohortsQuery": {
@@ -608,6 +686,30 @@
           "surveyId": { "type": "string", "description": "Survey id." },
           "themeKeywords": { "type": "array", "description": "Theme keywords (e.g. from cluster_open_responses).", "items": { "type": "string" } },
           "kind": { "type": "string", "enum": ["single_choice", "multi_choice", "text", "rating", "nps"], "description": "Suggested kind for the follow-up. Defaults to 'text'." }
+        }
+      },
+      "SendSurveyQuery": {
+        "type": "object",
+        "description": "Input to send_survey.",
+        "required": ["surveyId", "channel", "recipients", "respondUrl"],
+        "properties": {
+          "surveyId": { "type": "string", "description": "Survey id (must be open)." },
+          "channel": { "type": "string", "enum": ["email", "sms"], "description": "Delivery channel." },
+          "recipients": {
+            "type": "array",
+            "description": "Recipient list. For email channel, set recipient.email; for sms, set recipient.phone.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "email": { "type": "string", "description": "Recipient email address." },
+                "phone": { "type": "string", "description": "Recipient phone number in e.164 format." },
+                "name": { "type": "string", "description": "Optional first name for personalisation." }
+              }
+            }
+          },
+          "respondUrl": { "type": "string", "description": "Public URL to send the recipient. Supports {email}, {phone}, {name} placeholders." },
+          "subject": { "type": "string", "description": "Override the email subject." },
+          "bodyTemplate": { "type": "string", "description": "Override the message body. Supports {title}, {description}, {respondUrl}, {name}, {questionCount}." }
         }
       }
     }

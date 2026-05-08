@@ -617,6 +617,46 @@
         }
       }
     },
+    "/webhooks/postmark/inbound": {
+      "post": {
+        "operationId": "postmark_inbound_webhook",
+        "summary": "Postmark inbound email webhook",
+        "description": "Postmark posts the parsed inbound email here. The handler verifies HTTP Basic Auth credentials, maps From/Subject/TextBody onto a ticket, and creates it. Configure your Postmark inbound stream to POST to this URL with the username/password matching POSTMARK_WEBHOOK_USERNAME/POSTMARK_WEBHOOK_PASSWORD.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ticket created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "ticketId": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid Postmark credentials." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/postmark-inbound)"
+          },
+          "policies": { "inbound": ["api-key-inbound"] }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",

@@ -6,10 +6,13 @@ import {
   incidentUpdateRepository,
   type IncidentUpdate,
 } from "../repositories/incident-updates.ts";
+import { fanoutToSubscribers } from "../integrations/fanout.ts";
 
 interface Body {
   body: string;
   status: IncidentUpdate["status"];
+  /** When true, suppress subscriber fanout (e.g. for internal-only updates). */
+  suppressFanout?: boolean;
 }
 
 export default async function (request: ZuploRequest, context: ZuploContext) {
@@ -46,7 +49,30 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     if (!(err instanceof NotFoundError)) throw err;
   }
 
-  return new Response(JSON.stringify(update), {
+  // Fan out the update to subscribers per their preferences.
+  let fanout = { attempted: 0, delivered: 0, errors: [] as unknown[] };
+  if (!body.suppressFanout) {
+    try {
+      const r = await fanoutToSubscribers(
+        tenantId,
+        {
+          subject: `[Status update] ${existing.title} — ${body.status}`,
+          text: body.body,
+          impact: existing.impact === "none" ? "minor" : existing.impact,
+          affectedComponents: existing.affectedComponentSlugs ?? [],
+          dedupKey: `incident:${incidentId}:update:${update.id}`,
+        },
+        context,
+      );
+      fanout = r;
+    } catch (err) {
+      context.log.warn(
+        `Fanout failed for update ${update.id}: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  return new Response(JSON.stringify({ ...update, fanout }), {
     status: 201,
     headers: { "content-type": "application/json" },
   });

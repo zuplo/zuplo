@@ -332,6 +332,18 @@
                     "type": "string",
                     "format": "date",
                     "description": "Inclusive end of the date window (YYYY-MM-DD)."
+                  },
+                  "notifyManager": {
+                    "type": "boolean",
+                    "description": "When true and conflictCount > 0, post a Slack message to managerSlackChannel (or SLACK_DEFAULT_CHANNEL) with a coverage warning. Failures are reported in the response, not thrown."
+                  },
+                  "managerSlackChannel": {
+                    "type": "string",
+                    "description": "Slack channel id, channel name (e.g. #staffing), or user id to DM. Optional; falls back to SLACK_DEFAULT_CHANNEL."
+                  },
+                  "teamName": {
+                    "type": "string",
+                    "description": "Display name for the team in the Slack alert (e.g. 'Platform team')."
                   }
                 }
               }
@@ -373,6 +385,16 @@
                           "days": { "type": "number", "description": "Number of days requested." }
                         }
                       }
+                    },
+                    "notification": {
+                      "type": "object",
+                      "description": "Slack notification result, present only when notifyManager was true and conflicts > 0.",
+                      "properties": {
+                        "sent": { "type": "boolean", "description": "Whether Slack accepted the message." },
+                        "channel": { "type": "string", "description": "Channel the message was posted to (Web API only)." },
+                        "ts": { "type": "string", "description": "Slack message timestamp for threading replies." },
+                        "error": { "type": "string", "description": "Failure reason when sent=false." }
+                      }
                     }
                   }
                 }
@@ -412,6 +434,18 @@
                   "employeeId": {
                     "type": "string",
                     "description": "Employee id to check the balance for."
+                  },
+                  "draftReply": {
+                    "type": "boolean",
+                    "description": "When true, ask Claude to draft a friendly natural-language reply summarizing the balance, suitable for pasting into Slack or email."
+                  },
+                  "question": {
+                    "type": "string",
+                    "description": "Optional context for the drafted reply, e.g. 'Maria asked if she has enough vacation left for a trip June 14-21'."
+                  },
+                  "employeeName": {
+                    "type": "string",
+                    "description": "Optional display name for the employee, used in the drafted reply."
                   }
                 }
               }
@@ -439,7 +473,17 @@
                       }
                     },
                     "asOf": { "type": "string", "format": "date-time", "description": "When the balance was read." },
-                    "productionNote": { "type": "string", "description": "Implementation note." }
+                    "productionNote": { "type": "string", "description": "Implementation note." },
+                    "draftedReply": {
+                      "type": "object",
+                      "description": "Claude-drafted reply, present only when draftReply was true.",
+                      "properties": {
+                        "text": { "type": "string", "description": "The drafted reply text." },
+                        "model": { "type": "string", "description": "Claude model that produced the draft." },
+                        "inputTokens": { "type": "integer", "description": "Input tokens consumed." },
+                        "outputTokens": { "type": "integer", "description": "Output tokens generated." }
+                      }
+                    }
                   }
                 }
               }

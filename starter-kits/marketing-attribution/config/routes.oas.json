@@ -348,6 +348,96 @@
         }
       }
     },
+    "/webhooks/meta-ads-leadgen": {
+      "get": {
+        "operationId": "meta_leadgen_verify",
+        "summary": "Meta Lead Ads webhook verification handshake",
+        "description": "Meta calls this with `hub.mode=subscribe`, `hub.verify_token`, `hub.challenge` to verify webhook ownership. Returns the challenge if META_VERIFY_TOKEN matches.",
+        "parameters": [
+          { "name": "hub.mode", "in": "query", "schema": { "type": "string" } },
+          { "name": "hub.verify_token", "in": "query", "schema": { "type": "string" } },
+          { "name": "hub.challenge", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Challenge echoed back." },
+          "403": { "description": "Token mismatch." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/meta-leadgen-webhook)" },
+          "policies": { "inbound": ["rate-limit"] }
+        }
+      },
+      "post": {
+        "operationId": "meta_leadgen_webhook",
+        "summary": "Meta Lead Ads webhook (lead notifications)",
+        "description": "Inbound from Meta when a Lead Ad form is submitted. Verifies x-hub-signature-256 with META_APP_SECRET, fetches each leadgen_id from the Graph API, then upserts a Visitor + records a paid `social/lead_ad` Touchpoint + a `signup` Conversion. Tenant resolved via `?tenant=` query parameter.",
+        "parameters": [
+          { "name": "tenant", "in": "query", "description": "Tenant id to attribute the lead to.", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Leads processed." },
+          "401": { "description": "Invalid signature." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/meta-leadgen-webhook)" },
+          "policies": { "inbound": ["rate-limit"] }
+        }
+      }
+    },
+    "/webhooks/google-ads-conversion": {
+      "post": {
+        "operationId": "google_ads_conversion_webhook",
+        "summary": "Google Ads conversion webhook",
+        "description": "Inbound from a server-side GTM tag (or your CRM). Verifies the Authorization bearer against GOOGLE_ADS_CONVERSION_SECRET, records a `paid_search` touchpoint with sessionId=gclid, records the Conversion, and (if `?upload=true`) uploads the conversion back to Google Ads via uploadClickConversions so Smart Bidding sees it. Tenant resolved via `?tenant=` query parameter.",
+        "parameters": [
+          { "name": "tenant", "in": "query", "description": "Tenant id.", "schema": { "type": "string" } },
+          { "name": "upload", "in": "query", "description": "If `true`, also upload the offline conversion back to Google Ads.", "schema": { "type": "string", "enum": ["true", "false"] } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["gclid"],
+                "properties": {
+                  "gclid": { "type": "string", "description": "Google Click ID." },
+                  "visitorAnonymousId": { "type": "string", "description": "Visitor identifier; defaults to `gclid:<gclid>`." },
+                  "kind": { "type": "string", "enum": ["signup", "purchase", "trial", "demo"] },
+                  "valueCents": { "type": "integer", "description": "Conversion value in cents." },
+                  "occurredAt": { "type": "string", "format": "date-time", "description": "Conversion timestamp." },
+                  "dealId": { "type": ["string", "null"], "description": "Optional CRM deal id." },
+                  "campaignName": { "type": "string" },
+                  "source": { "type": "string" },
+                  "medium": { "type": "string" },
+                  "url": { "type": "string" },
+                  "currencyCode": { "type": "string", "description": "ISO 4217. Required if `upload=true`." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Conversion accepted." },
+          "401": { "description": "Invalid bearer." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/google-ads-conversion-webhook)" },
+          "policies": { "inbound": ["rate-limit"] }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",

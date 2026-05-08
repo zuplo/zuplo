@@ -114,10 +114,23 @@
       "patch": {
         "operationId": "reject_expense",
         "summary": "Reject a submitted expense",
-        "description": "Move a submitted expense to `rejected`. Idempotent.",
+        "description": "Move a submitted expense to `rejected`. Idempotent. If RESEND_API_KEY is set, sends a notification email to the submitter explaining the rejection.",
         "parameters": [
           { "name": "id", "in": "path", "required": true, "description": "Expense id.", "schema": { "type": "string" } }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": { "type": "string", "description": "Optional reason. Included in the rejection email if email is enabled." }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": { "description": "The rejected expense.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Expense" } } } },
           "404": { "description": "Expense not found." }
@@ -180,7 +193,7 @@
       "post": {
         "operationId": "flag_policy_violations",
         "summary": "Flag policy-violating expenses (orchestrator)",
-        "description": "Orchestrator MCP tool. Walks expenses (optionally for one employee), joins categories + policies, and returns expenses that exceed limits or are missing required receipts. Each violation includes a list of human-readable reasons.",
+        "description": "Orchestrator MCP tool. Walks expenses (optionally for one employee), joins categories + policies, and returns expenses that exceed limits or are missing required receipts. Each violation includes a list of human-readable reasons. With `notifySlack=true`, also posts a digest to the finance Slack channel.",
         "requestBody": {
           "required": false,
           "content": {
@@ -188,7 +201,8 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "employeeEmail": { "type": "string", "description": "Optional. Restrict to one employee's expenses." }
+                  "employeeEmail": { "type": "string", "description": "Optional. Restrict to one employee's expenses." },
+                  "notifySlack": { "type": "boolean", "description": "If true, post a digest of violations to the finance Slack channel." }
                 }
               }
             }
@@ -214,7 +228,8 @@
                           "reasons": { "type": "array", "description": "Human-readable reasons.", "items": { "type": "string" } }
                         }
                       }
-                    }
+                    },
+                    "slackTs": { "type": ["string", "null"], "description": "Slack message timestamp if notifySlack succeeded." }
                   }
                 }
               }
@@ -286,6 +301,55 @@
         }
       }
     },
+    "/parse-receipt": {
+      "post": {
+        "operationId": "parse_receipt",
+        "summary": "Parse a receipt image with Mindee OCR (orchestrator)",
+        "description": "Takes a publicly-reachable receipt URL, calls the Mindee Expense Receipts v5 endpoint, and returns normalized fields (merchant, amountCents, currency, date, category) the LLM can drop straight into create_expense.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["receiptUrl"],
+                "properties": {
+                  "receiptUrl": { "type": "string", "format": "uri", "description": "Publicly-reachable URL to the receipt image (PNG, JPG, PDF)." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Normalized OCR result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "merchant": { "type": ["string", "null"], "description": "Detected merchant/supplier name." },
+                    "amountCents": { "type": ["integer", "null"], "description": "Total amount in cents." },
+                    "currency": { "type": ["string", "null"], "description": "ISO currency code." },
+                    "date": { "type": ["string", "null"], "description": "Detected receipt date (YYYY-MM-DD)." },
+                    "category": { "type": ["string", "null"], "description": "Detected category (food, transport, etc.)." },
+                    "receiptNumber": { "type": ["string", "null"], "description": "Receipt number if detected." },
+                    "confidence": { "type": "number", "description": "Min confidence across the load-bearing fields (0..1)." },
+                    "ready": { "type": "boolean", "description": "True if the load-bearing fields parsed and confidence > 0.5." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/parse-receipt)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -308,7 +372,8 @@
                 { "file": "./config/routes.oas.json", "id": "list_categories" },
                 { "file": "./config/routes.oas.json", "id": "list_policies" },
                 { "file": "./config/routes.oas.json", "id": "flag_policy_violations" },
-                { "file": "./config/routes.oas.json", "id": "summarize_pending_approvals" }
+                { "file": "./config/routes.oas.json", "id": "summarize_pending_approvals" },
+                { "file": "./config/routes.oas.json", "id": "parse_receipt" }
               ]
             }
           },

@@ -902,6 +902,33 @@
         }
       }
     },
+    "/webhooks/datadog": {
+      "post": {
+        "operationId": "datadog_webhook",
+        "summary": "Datadog monitor → status page incident",
+        "description": "Datadog Monitor / Synthetic webhook. Verifies the HMAC signature, then opens (Triggered) or resolves (Recovered) a status-page incident, bumps affected components, and fans out to subscribers across email + sms + slack per their preferences. Tag the firing monitor with `severity:<minor|major|critical>` and `component:<slug>` (one or more).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Event processed." },
+          "401": { "description": "Invalid signature." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/datadog-webhook)"
+          },
+          "policies": { "inbound": ["api-key-inbound"] }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -1259,11 +1286,14 @@
       },
       "Subscriber": {
         "type": "object",
-        "description": "A customer who has opted in to status notifications.",
+        "description": "A customer who has opted in to status notifications. Channel preferences (email/sms/slack) determine which integrations the fanout uses.",
         "required": [
           "id",
           "tenantId",
           "email",
+          "phone",
+          "slackWebhookUrl",
+          "channels",
           "components",
           "notifyOnImpact",
           "createdAt"
@@ -1272,6 +1302,13 @@
           "id": { "type": "string", "description": "Unique id within the tenant." },
           "tenantId": { "type": "string", "description": "Tenant the subscriber belongs to." },
           "email": { "type": "string", "description": "Subscriber email." },
+          "phone": { "type": ["string", "null"], "description": "E.164 phone number for SMS via Twilio." },
+          "slackWebhookUrl": { "type": ["string", "null"], "description": "Per-subscriber Slack incoming webhook URL." },
+          "channels": {
+            "type": "array",
+            "description": "Channels this subscriber wants. Defaults to ['email'].",
+            "items": { "type": "string", "enum": ["email", "sms", "slack"] }
+          },
           "components": {
             "type": "array",
             "description": "Components the subscriber wants notifications for. Empty array means all components.",
@@ -1295,6 +1332,13 @@
         "required": ["email"],
         "properties": {
           "email": { "type": "string", "description": "Subscriber email." },
+          "phone": { "type": ["string", "null"], "description": "E.164 phone number. Required when channels includes 'sms'." },
+          "slackWebhookUrl": { "type": ["string", "null"], "description": "Slack incoming webhook URL. Required when channels includes 'slack'." },
+          "channels": {
+            "type": "array",
+            "description": "Channels this subscriber wants. Defaults to ['email'].",
+            "items": { "type": "string", "enum": ["email", "sms", "slack"] }
+          },
           "components": {
             "type": "array",
             "description": "Components to subscribe to. Defaults to all.",

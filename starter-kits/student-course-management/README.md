@@ -1,9 +1,26 @@
 # Student / Course Management API
 
-Students, courses, enrollments, lessons, and grades with MCP tools that flag at-risk students, draft progress reports, and recommend remediation.
+Students, courses, enrollments, lessons, and grades — wired to Google Calendar so every lesson lands on the instructor's *and* enrolled students' calendars (Meet link optional), and to Resend so progress reports go straight to parents.
 
-**Replaces:** TeachWorks, Thinkific admin, Google Classroom.
-**SEO target:** "api for course management".
+Replaces: TeachWorks, Thinkific admin, Google Classroom.
+
+## Wires up
+
+Google Calendar receives a calendar event for every lesson scheduled — the instructor and all actively-enrolled students are added as attendees, and Calendar can provision a Meet link in the same call. Resend ships progress reports composed by `send_progress_report` (which delegates to the existing `draft_progress_report` orchestrator) to the parent email on file (falling back to the student email). Together they make the kit a real "school operations" surface, not just rows in a database.
+
+## Architecture at a glance
+
+```
+Inbound ──▶ Zuplo Gateway ──▶ Handlers
+                │                  ├── create_lesson  ──▶ Google Calendar (instructor + students + optional Meet link)
+                │                  └── DB adapter (Supabase / Firestore / Neon / Upstash)
+                ▼
+         /mcp ──▶ MCP server ──▶ orchestrator tools
+                                   ├── send_progress_report ──▶ Resend (parent / student email)
+                                   ├── draft_progress_report
+                                   ├── flag_at_risk_students
+                                   └── recommend_remediation
+```
 
 ## Quickstart
 
@@ -38,7 +55,12 @@ This kit ships with HTTP-only adapters (the kits run in Zuplo's edge runtime —
 
 ## Environment variables
 
-See [env.example](./env.example).
+See [env.example](./env.example). Beyond `DB_PROVIDER`:
+
+- **Google Calendar** — `GOOGLE_CALENDAR_ACCESS_TOKEN` (OAuth2 access token, refresh externally), optional `GOOGLE_CALENDAR_ID`.
+- **Resend** — `RESEND_API_KEY`, `RESEND_FROM_EMAIL`.
+
+If either integration is unset, the affected handler still records the lesson / draft, but the response includes a `*_Error` field describing what failed.
 
 ## API surface
 
@@ -49,6 +71,7 @@ See [env.example](./env.example).
 | GET | `/course/{id}` | `get_course` | Get Course | tool |
 | GET | `/courses` | `list_courses` | List Courses | tool |
 | POST | `/draft-progress-report` | `draft_progress_report` | Draft Progress Report | tool |
+| POST | `/send-progress-report` | `send_progress_report` | Compose + send progress report via Resend | tool |
 | POST | `/enrollment` | `create_enrollment` | Create Enrollment | tool |
 | PATCH | `/enrollment-status/{id}` | `update_enrollment_status` | Update Enrollment Status | tool |
 | GET | `/enrollment/{id}` | `get_enrollment` | Get Enrollment | tool |
@@ -56,7 +79,7 @@ See [env.example](./env.example).
 | POST | `/flag-at-risk-students` | `flag_at_risk_students` | Flag At Risk Students | tool |
 | POST | `/grade` | `record_grade` | Record Grade | tool |
 | GET | `/grades` | `list_grades` | List Grades | tool |
-| POST | `/lesson` | `create_lesson` | Create Lesson | tool |
+| POST | `/lesson` | `create_lesson` | Create Lesson (Google Calendar event + roster invites) | tool |
 | GET | `/lessons` | `list_lessons` | List Lessons | tool |
 | POST | `/mark-attendance` | `mark_attendance` | Mark Attendance | tool |
 | POST | `/recommend-remediation` | `recommend_remediation` | Recommend Remediation | tool |
@@ -69,7 +92,14 @@ OpenAPI: [`config/routes.oas.json`](./config/routes.oas.json).
 
 ## MCP tools
 
-19 tools registered: `create_course`, `create_enrollment`, `create_lesson`, `create_student`, `get_course`, `get_enrollment`, `get_student`, `list_attendance`, `list_courses`, `list_enrollments`, `list_grades`, `list_lessons`, `list_students`, `mark_attendance`, `record_grade`, `update_enrollment_status`, `draft_progress_report`, `flag_at_risk_students`, `recommend_remediation`.
+| Tool | Calls | Description |
+|---|---|---|
+| CRUD: `create_course`, `create_enrollment`, `create_student`, `get_course`, `get_enrollment`, `get_student`, `list_attendance`, `list_courses`, `list_enrollments`, `list_grades`, `list_lessons`, `list_students`, `mark_attendance`, `record_grade`, `update_enrollment_status` | DB | Standard reads/writes. |
+| `create_lesson` | DB + Google Calendar | Save the lesson AND put it on the instructor's + enrolled students' calendars. Pass `createMeetLink: true` to provision a Hangouts Meet on the same call. |
+| `draft_progress_report` | DB | Per-student narrative across enrolled courses (grades + attendance). |
+| `send_progress_report` | DB + Resend | Compose `draft_progress_report` and ship it via Resend. Pass `send: false` to dry-run. |
+| `flag_at_risk_students` | DB | Score students by attendance + grades and surface the bottom slice. |
+| `recommend_remediation` | DB | For a flagged student, suggest specific remediation steps. |
 
 Both layers of Zuplo's MCP wiring agree:
 - Per-route `mcp: { type: "tool" }` annotations on each operation in `config/routes.oas.json`
@@ -77,13 +107,12 @@ Both layers of Zuplo's MCP wiring agree:
 
 ## The AI angle
 
-The orchestrator MCP tools shipped with this kit are where the agentic value compounds — they read multi-source signals through `context.invokeRoute()` and shape the response for an LLM, rather than dumping raw rows. Agents work best when they can call a few purposeful tools (`triage_x`, `summarize_x`, `flag_x`) instead of every CRUD endpoint.
-
-Per the [conventions doc](../CLAUDE.md), every CRUD endpoint inherits `api-key-inbound` + `rate-limit` policies, and the `/mcp` route adds `prompt-injection-outbound` + `secret-masking-outbound` defenses for AI traffic.
+`send_progress_report` is where the loop closes. The MCP-aware assistant runs `flag_at_risk_students`, picks one, calls `recommend_remediation` to see what to do, and then `send_progress_report` to put a coherent update in the parent's inbox — three calls, one outcome the family can act on. `create_lesson` makes the schedule durable: instructor and students see the lesson on their calendars within seconds of it being created.
 
 ## Extending
 
+- **Swap Resend for Postmark/SendGrid**: replace `modules/integrations/resend.ts`. The orchestrator's `sendResendEmail(...)` call is a single function.
+- **Calendar provider**: replace `modules/integrations/google-calendar.ts` with Outlook/Microsoft Graph.
+- **SMS reminders**: add a Twilio integration and have `create_lesson` text day-of reminders to students whose phones are on file.
 - **New entity:** add a repository in `modules/repositories/` (follow the factory pattern keyed by `DB_PROVIDER`).
-- **New endpoint:** add a handler in `modules/handlers/`, append the route to `config/routes.oas.json` with `mcp: { type: "tool" }`, and add the `operationId` to the `/mcp` route's `options.operations: [...]` array. Both layers must agree.
-- **New orchestrator MCP tool:** drop a file in `modules/mcp-tools/` that uses `invokeJson` from `@zuplo/starter-kit-shared/mcp` to compose existing endpoints. Pass the inbound `authorization` header through so the inner calls re-run policies.
 - **Switch databases:** change `DB_PROVIDER` in `.env` — the handlers don't change.

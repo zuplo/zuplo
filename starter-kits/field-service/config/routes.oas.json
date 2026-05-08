@@ -183,7 +183,7 @@
       "post": {
         "operationId": "upload_photo",
         "summary": "Attach a photo to a job",
-        "description": "Record a photo URL against a job (the file itself is uploaded to object storage out-of-band; this endpoint logs the metadata).",
+        "description": "Register a photo URL + metadata against a job. For R2-backed flows, call `presign_photo_upload` first to get an upload URL, PUT the bytes there, then call this endpoint with the returned `r2Key` + public `url`.",
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PhotoCreate" } } }
@@ -194,6 +194,61 @@
         "x-zuplo-route": {
           "corsPolicy": "anything-goes",
           "handler": { "export": "default", "module": "$import(./modules/handlers/upload-photo)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/photos/presign-upload": {
+      "post": {
+        "operationId": "presign_photo_upload",
+        "summary": "Presign an R2 upload URL for an inspection photo",
+        "description": "Returns a presigned PUT URL the technician's app can upload bytes directly to Cloudflare R2 with. The client then calls /photos with the returned `r2Key` + `publicUrl` to register the photo against the job.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["jobId", "filename"],
+                "properties": {
+                  "jobId": { "type": "string", "description": "Job the photo belongs to." },
+                  "filename": { "type": "string", "description": "Filename used to derive the R2 object key." },
+                  "contentType": { "type": "string", "description": "MIME type the uploader will send. Defaults to image/jpeg." },
+                  "expiresInSeconds": { "type": "integer", "minimum": 60, "maximum": 604800, "description": "Presigned URL TTL. Defaults to 900." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Presigned upload URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["uploadUrl", "publicUrl", "key", "bucket", "expiresInSeconds"],
+                  "properties": {
+                    "uploadUrl": { "type": "string", "description": "Presigned PUT URL." },
+                    "publicUrl": { "type": "string", "description": "Public URL where the object will live." },
+                    "key": { "type": "string", "description": "R2 object key." },
+                    "bucket": { "type": "string", "description": "R2 bucket." },
+                    "expiresInSeconds": { "type": "integer" },
+                    "signedHeaders": { "type": "object", "description": "Headers the uploader must include with the PUT." },
+                    "jobId": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/presign-photo-upload)"
+          },
           "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
           "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
         }
@@ -263,7 +318,7 @@
       "post": {
         "operationId": "optimize_route_for_day",
         "summary": "Optimize route for a technician's day (orchestrator)",
-        "description": "Greedy nearest-neighbor route optimizer. Given a technician + day, walks scheduled jobs, sorts by `scheduledFor`, and returns the suggested driving order with a flagged 'gap' between any two adjacent stops longer than `maxGapMinutes`.",
+        "description": "Geocodes each job site via Mapbox Geocoding, fetches a Directions Matrix between every pair of stops, and runs a greedy nearest-neighbor solve to return the visit order with the lowest total drive time. Falls back to time-ordering when MAPBOX_ACCESS_TOKEN is unset. With `notifyTechnician=true`, fires a Twilio SMS to the tech with their first three stops.",
         "requestBody": {
           "required": true,
           "content": {
@@ -274,7 +329,9 @@
                 "properties": {
                   "technicianEmail": { "type": "string", "description": "Technician to plan for." },
                   "date": { "type": "string", "format": "date", "description": "ISO date (YYYY-MM-DD) of the day to plan." },
-                  "maxGapMinutes": { "type": "integer", "minimum": 5, "maximum": 480, "description": "Surface gaps longer than this. Defaults to 60." }
+                  "maxGapMinutes": { "type": "integer", "minimum": 5, "maximum": 480, "description": "Surface gaps longer than this. Defaults to 60." },
+                  "notifyTechnician": { "type": "boolean", "description": "When true, sends a Twilio SMS to the tech with their first 3 stops." },
+                  "originAddress": { "type": "string", "description": "Optional origin address (e.g. the depot) to start the route from." }
                 }
               }
             }
@@ -376,6 +433,7 @@
                 { "file": "./config/routes.oas.json", "id": "list_technicians" },
                 { "file": "./config/routes.oas.json", "id": "submit_inspection" },
                 { "file": "./config/routes.oas.json", "id": "upload_photo" },
+                { "file": "./config/routes.oas.json", "id": "presign_photo_upload" },
                 { "file": "./config/routes.oas.json", "id": "submit_checklist" },
                 { "file": "./config/routes.oas.json", "id": "list_invoices" },
                 { "file": "./config/routes.oas.json", "id": "create_invoice" },
@@ -479,7 +537,8 @@
           "lastName": { "type": "string" },
           "skills": { "type": "array", "items": { "type": "string" } },
           "territory": { "type": "string", "nullable": true },
-          "status": { "type": "string", "enum": ["active", "on_leave"] }
+          "status": { "type": "string", "enum": ["active", "on_leave"] },
+          "phone": { "type": "string", "nullable": true, "description": "E.164 phone for dispatch SMS via Twilio." }
         }
       },
       "TechnicianPage": {
@@ -544,7 +603,10 @@
           "url": { "type": "string", "format": "uri" },
           "caption": { "type": "string", "nullable": true },
           "takenAt": { "type": "string", "format": "date-time" },
-          "takenBy": { "type": "string", "description": "Technician email." }
+          "takenBy": { "type": "string", "description": "Technician email." },
+          "r2Key": { "type": "string", "nullable": true, "description": "R2 object key (when stored in Cloudflare R2)." },
+          "r2Bucket": { "type": "string", "nullable": true, "description": "R2 bucket the photo lives in." },
+          "contentType": { "type": "string", "nullable": true, "description": "MIME type (e.g. image/jpeg)." }
         }
       },
       "PhotoCreate": {
@@ -555,7 +617,10 @@
           "url": { "type": "string", "format": "uri" },
           "caption": { "type": "string" },
           "takenAt": { "type": "string", "format": "date-time", "description": "Defaults to now." },
-          "takenBy": { "type": "string" }
+          "takenBy": { "type": "string" },
+          "r2Key": { "type": "string", "description": "R2 object key from /photos/presign-upload." },
+          "r2Bucket": { "type": "string", "description": "R2 bucket from /photos/presign-upload." },
+          "contentType": { "type": "string", "description": "Photo MIME type." }
         }
       },
       "Checklist": {

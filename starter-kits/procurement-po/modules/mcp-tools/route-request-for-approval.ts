@@ -1,11 +1,19 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
+import { environment } from "@zuplo/runtime";
 import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 import type { PurchaseRequest } from "../repositories/purchase-requests.ts";
 import { approvalStepRepository, type ApprovalStep } from "../repositories/approval-steps.ts";
+import {
+  postSlackMessage,
+  lookupSlackUserByEmail,
+  defaultProcurementChannel,
+} from "../integrations/slack.ts";
 
 interface Body {
   requestId: string;
+  /** Skip Slack notification even if SLACK_BOT_TOKEN is set. Defaults to false. */
+  skipSlack?: boolean;
 }
 
 /**
@@ -16,6 +24,10 @@ interface Body {
  *   - up to $5k: cost-center manager only
  *   - up to $25k: + finance director
  *   - over $25k: + CFO
+ *
+ * Pings the FIRST approver in Slack so the chain can actually start
+ * moving. Subsequent approvers get pinged when the previous one approves
+ * (you'd wire that into approve_purchase_request).
  */
 export default async function (request: ZuploRequest, context: ZuploContext) {
   const tenantId = requireTenant(request);
@@ -44,8 +56,41 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     created.push(step);
   }
 
-  return new Response(JSON.stringify({ requestId: pr.id, steps: created }), {
-    status: 201,
-    headers: { "content-type": "application/json" },
-  });
+  let slackTs: string | null = null;
+  if (!body.skipSlack && environment.SLACK_BOT_TOKEN && created.length > 0) {
+    const firstApprover = created[0].approverEmail;
+    try {
+      const user = await lookupSlackUserByEmail(firstApprover);
+      const target = user?.id ?? defaultProcurementChannel();
+      const total = (pr.totalCents / 100).toFixed(2);
+      const next = created
+        .slice(1)
+        .map((s, idx) => `${idx + 2}. ${s.approverEmail}`)
+        .join("\n");
+      const subsequent = next ? `\n\n*Then:*\n${next}` : "";
+      const sent = await postSlackMessage({
+        channel: target,
+        text: `Purchase request ${pr.id} (${pr.currency} ${total}) needs your approval`,
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*Purchase request needs your approval*\n• Request: \`${pr.id}\`\n• Cost center: ${pr.costCenter}\n• Total: ${pr.currency} ${total}${subsequent}`,
+            },
+          },
+        ],
+      });
+      slackTs = sent.ts ?? null;
+    } catch (err) {
+      context.log.error(
+        `route_request_for_approval slack ping failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  return new Response(
+    JSON.stringify({ requestId: pr.id, steps: created, slackTs }),
+    { status: 201, headers: { "content-type": "application/json" } },
+  );
 }

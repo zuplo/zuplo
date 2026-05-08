@@ -1,9 +1,27 @@
 # Patient Intake / Healthcare Admin API
 
-Patients, intake forms, consents, insurance, and appointments with MCP tools that verify insurance pre-visit, summarize intake, and flag missing consents. NOT a substitute for HIPAA compliance work.
+Headless patient-intake API that does the actual work — eligibility checks against payers, identity-gated intake submission, and signed consent forms — exposed as both an HTTP API and an MCP server.
 
-**Replaces:** Jotform HIPAA, Phreesia.
-**SEO target:** "api for patient intake".
+Replaces: Jotform HIPAA, Phreesia, JotForm + manual phone-back patterns.
+
+> **HIPAA note.** This kit handles PHI and is not a substitute for a HIPAA program. You're responsible for BAAs with Stedi, DocuSign, Twilio, your database provider, and Zuplo. Configure access logging, retention, and minimum-necessary controls in your tenant. Don't ship to production without a HIPAA review.
+
+## Wires up
+
+- **Stedi** — real-time 270/271 eligibility checks against the patient's payer. Replaces "call BCBS at 8am the day of."
+- **Twilio Verify** — one-time SMS code that gates `/intake/{id}/submit`. A stolen `patientId` alone can't submit.
+- **DocuSign eSignature** — sends a templated HIPAA / treatment / telehealth consent envelope to the patient. The DocuSign Connect webhook materializes a `Consent` row when the envelope completes.
+
+## Architecture at a glance
+
+```
+Front desk / patient ──▶ Zuplo Gateway ──▶ Integration handlers
+                              │                  ├── Stedi      (verify_insurance_pre_visit)
+                              │                  ├── Twilio     (start_intake_verification + submit_intake)
+                              │                  └── DocuSign   (send_consent_envelope + /webhooks/docusign)
+                              ▼
+                      Database adapter (Supabase / Firestore / Neon / Upstash)
+```
 
 ## Quickstart
 
@@ -24,65 +42,86 @@ npx @modelcontextprotocol/inspector
 
 ## Choosing a database
 
-This kit ships with HTTP-only adapters (the kits run in Zuplo's edge runtime — no TCP drivers). Set `DB_PROVIDER` in `.env` to one of:
-
 | `DB_PROVIDER` | Adapter |
 |---|---|
-| `in-memory` | In-Memory (tests/local) |
+| `in-memory` | In-Memory (tests/local) — default |
 | `supabase` | Supabase (PostgREST) |
 | `firestore` | Firestore (REST) |
 | `neon` | Neon (HTTP serverless) |
 | `upstash-redis` | Upstash Redis (REST) |
 
-`in-memory` is the default — the kit boots without any credentials so you can try it before wiring up storage.
+The kit boots with `in-memory` so you can try it without credentials before wiring up storage. **Don't run real PHI through `in-memory` — it's stored in process memory and not encrypted at rest.**
 
 ## Environment variables
 
-See [env.example](./env.example).
+See [env.example](./env.example). Beyond `DB_PROVIDER`, you'll need credentials for:
+
+- `STEDI_API_KEY`, `STEDI_PROVIDER_NPI`, `STEDI_PROVIDER_ORG_NAME`
+- `DOCUSIGN_ACCESS_TOKEN`, `DOCUSIGN_ACCOUNT_ID`, `DOCUSIGN_BASE_URL`, `DOCUSIGN_HMAC_KEY`
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`
+
+Tools that depend on a missing key will throw clearly. `verify_insurance_pre_visit` falls back to stored eligibility flags if `STEDI_API_KEY` is unset; `submit_intake` skips the OTP gate if `TWILIO_VERIFY_SERVICE_SID` is unset (dev mode).
 
 ## API surface
 
-| Method | Path | Operation ID | Description | MCP |
-|---|---|---|---|---|
-| POST | `/appointment/{id}/schedule` | `schedule_appointment` | Schedule Appointment | tool |
-| GET | `/appointments` | `list_appointments` | List Appointments | tool |
-| POST | `/consent` | `record_consent` | Record Consent | tool |
-| GET | `/consents` | `list_consents` | List Consents | tool |
-| POST | `/flag-missing-consents` | `flag_missing_consents` | Flag Missing Consents | tool |
-| GET | `/insurance` | `list_insurance` | List Insurance | tool |
-| POST | `/insurance` | `create_insurance` | Create Insurance | tool |
-| POST | `/intake-form` | `create_intake_form` | Create Intake Form | tool |
-| GET | `/intake-forms` | `list_intake_forms` | List Intake Forms | tool |
-| GET | `/intake-submission/{id}` | `get_intake_submission` | Get Intake Submission | tool |
-| GET | `/intake-submissions` | `list_intake_submissions` | List Intake Submissions | tool |
-| POST | `/intake/{id}/submit` | `submit_intake` | Submit Intake | tool |
-| POST | `/patient` | `create_patient` | Create Patient | tool |
-| GET | `/patient/{id}` | `get_patient` | Get Patient | tool |
-| GET | `/patients` | `list_patients` | List Patients | tool |
-| POST | `/review-intake-submission` | `review_intake_submission` | Review Intake Submission | tool |
-| POST | `/summarize-intake-for-provider` | `summarize_intake_for_provider` | Summarize Intake For Provider | tool |
-| POST | `/verify-insurance-pre-visit` | `verify_insurance_pre_visit` | Verify Insurance Pre Visit | tool |
-| POST | `/mcp` | `mcp_handler` | MCP server endpoint | — |
+| Method | Path | Operation ID | MCP |
+|---|---|---|---|
+| POST | `/appointment/{id}/schedule` | `schedule_appointment` | tool |
+| GET | `/appointments` | `list_appointments` | tool |
+| POST | `/consent` | `record_consent` | tool |
+| GET | `/consents` | `list_consents` | tool |
+| POST | `/consent/send-envelope` | `send_consent_envelope` | tool |
+| POST | `/flag-missing-consents` | `flag_missing_consents` | tool |
+| GET | `/insurance` | `list_insurance` | tool |
+| POST | `/insurance` | `create_insurance` | tool |
+| POST | `/intake-form` | `create_intake_form` | tool |
+| GET | `/intake-forms` | `list_intake_forms` | tool |
+| GET | `/intake-submission/{id}` | `get_intake_submission` | tool |
+| GET | `/intake-submissions` | `list_intake_submissions` | tool |
+| POST | `/intake/{id}/submit` | `submit_intake` | tool |
+| POST | `/intake/start-verification` | `start_intake_verification` | tool |
+| POST | `/patient` | `create_patient` | tool |
+| GET | `/patient/{id}` | `get_patient` | tool |
+| GET | `/patients` | `list_patients` | tool |
+| POST | `/review-intake-submission` | `review_intake_submission` | tool |
+| POST | `/summarize-intake-for-provider` | `summarize_intake_for_provider` | tool |
+| POST | `/verify-insurance-pre-visit` | `verify_insurance_pre_visit` | tool |
+| POST | `/webhooks/docusign` | `webhook_docusign` | — |
+| POST | `/mcp` | `mcp_handler` | — |
 
 OpenAPI: [`config/routes.oas.json`](./config/routes.oas.json).
 
+## Webhooks (inbound)
+
+| Path | Provider | Behavior |
+|---|---|---|
+| `POST /webhooks/docusign` | DocuSign Connect | Verifies `x-docusign-signature-1` HMAC, parses `envelope-completed` events, records a `Consent` row from the envelope's prefill metadata. |
+
+Configure DocuSign Connect to POST `envelope-completed` to `https://<your-zuplo>/webhooks/docusign` and set `DOCUSIGN_HMAC_KEY` to the shared secret from the Connect listener.
+
 ## MCP tools
 
-18 tools registered: `create_insurance`, `list_insurance`, `create_intake_form`, `create_patient`, `get_intake_submission`, `get_patient`, `list_appointments`, `list_consents`, `list_intake_forms`, `list_intake_submissions`, `list_patients`, `record_consent`, `review_intake_submission`, `schedule_appointment`, `submit_intake`, `flag_missing_consents`, `summarize_intake_for_provider`, `verify_insurance_pre_visit`.
+| Tool | Calls | Description |
+|---|---|---|
+| `verify_insurance_pre_visit` | Stedi | Walk upcoming appointments, run live 270/271 eligibility per insurance plan, surface gaps. |
+| `start_intake_verification` | Twilio Verify | Send an SMS OTP to the patient on file. |
+| `submit_intake` | Twilio Verify | Reject the submission unless the OTP from `start_intake_verification` validates. |
+| `send_consent_envelope` | DocuSign | Send a HIPAA / treatment / telehealth consent envelope (email or embedded signing URL). |
+| `summarize_intake_for_provider` | — | Joins submission + form + patient and shapes a provider-facing summary. |
+| `flag_missing_consents` | — | Cross-checks consents on file vs. policy. |
 
-Both layers of Zuplo's MCP wiring agree:
-- Per-route `mcp: { type: "tool" }` annotations on each operation in `config/routes.oas.json`
-- The `/mcp` route's `options.operations: [...]` array lists every `operationId` exposed
+Plus the CRUD tools: `list_patients`, `get_patient`, `create_patient`, `list_insurance`, `create_insurance`, `list_intake_forms`, `create_intake_form`, `list_intake_submissions`, `get_intake_submission`, `review_intake_submission`, `list_appointments`, `schedule_appointment`, `list_consents`, `record_consent`.
 
 ## The AI angle
 
-The orchestrator MCP tools shipped with this kit are where the agentic value compounds — they read multi-source signals through `context.invokeRoute()` and shape the response for an LLM, rather than dumping raw rows. Agents work best when they can call a few purposeful tools (`triage_x`, `summarize_x`, `flag_x`) instead of every CRUD endpoint.
+`verify_insurance_pre_visit` is the canonical orchestrator: an agent (or a 5am cron-replacement that fires the route on schedule) walks every appointment in the next N days, hits Stedi for each plan on file, and returns a structured list of which patients need someone to call them today. The agent decides what to do — draft a call list, send a reminder, or flag for the office manager — but the eligibility data is real, not fake.
 
-Per the [conventions doc](../CLAUDE.md), every CRUD endpoint inherits `api-key-inbound` + `rate-limit` policies, and the `/mcp` route adds `prompt-injection-outbound` + `secret-masking-outbound` defenses for AI traffic.
+The same agent gets two more concrete tools: `start_intake_verification` to dispatch an SMS OTP when a patient claims to be on the line, and `send_consent_envelope` to fire the right DocuSign template based on visit type. None of these are nice-to-haves: each one replaces a tab someone keeps open all day.
 
 ## Extending
 
-- **New entity:** add a repository in `modules/repositories/` (follow the factory pattern keyed by `DB_PROVIDER`).
-- **New endpoint:** add a handler in `modules/handlers/`, append the route to `config/routes.oas.json` with `mcp: { type: "tool" }`, and add the `operationId` to the `/mcp` route's `options.operations: [...]` array. Both layers must agree.
-- **New orchestrator MCP tool:** drop a file in `modules/mcp-tools/` that uses `invokeJson` from `@zuplo/starter-kit-shared/mcp` to compose existing endpoints. Pass the inbound `authorization` header through so the inner calls re-run policies.
-- **Switch databases:** change `DB_PROVIDER` in `.env` — the handlers don't change.
+- **Swap eligibility provider.** Replace `modules/integrations/stedi.ts` with Change Healthcare or Availity. The orchestrator only depends on the `checkStediEligibility` shape.
+- **Swap signature provider.** Replace `modules/integrations/docusign.ts` with Dropbox Sign or Adobe Sign — keep the `sendDocuSignEnvelope` / `getDocuSignSigningUrl` signatures and the webhook handler shape.
+- **Replace SMS OTP with passkey or one-tap email link.** Drop in a different `modules/integrations/twilio.ts` and update `submit-intake.ts`.
+- **Add a clinic kiosk.** Use `embeddedSigning: true` on `/consent/send-envelope` to render the signing flow inside an iframe on a tablet. The Connect webhook still records the consent on completion.
+- **Switch databases.** Change `DB_PROVIDER` in `.env`. Handler code never changes.

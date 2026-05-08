@@ -882,6 +882,73 @@
         }
       }
     },
+    "/send-progress-report": {
+      "post": {
+        "operationId": "send_progress_report",
+        "summary": "Send Progress Report (orchestrator)",
+        "description": "Composes draft_progress_report and ships the result via Resend. Defaults to the parent email on file (falling back to the student email). Pass `send: false` to dry-run and only return the draft.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["studentId"],
+                "properties": {
+                  "studentId": { "type": "string", "description": "Student to report on." },
+                  "courseId": { "type": "string", "description": "Optional course filter." },
+                  "toEmail": { "type": "string", "description": "Override recipient (defaults to parent, then student)." },
+                  "cc": { "type": "array", "items": { "type": "string" }, "description": "Optional CC list (e.g. counselor)." },
+                  "subject": { "type": "string", "description": "Override the email subject." },
+                  "send": { "type": "boolean", "description": "When false, return the draft only — don't send. Defaults to true." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Composed report and (when sent) the Resend message id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "student": { "type": "object", "description": "Student record." },
+                    "generatedAt": { "type": "string", "format": "date-time" },
+                    "sections": { "type": "array", "items": { "type": "object" }, "description": "One per enrolled course." },
+                    "to": { "type": "string", "description": "Email recipient used." },
+                    "subject": { "type": "string" },
+                    "sent": { "type": "boolean" },
+                    "messageId": { "type": ["string", "null"], "description": "Resend message id when sent." },
+                    "sendError": { "type": ["string", "null"], "description": "Error message when send failed." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/send-progress-report)"
+          },
+          "policies": {
+            "inbound": [
+              "api-key-inbound",
+              "rate-limit"
+            ]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": {
+              "readOnlyHint": false
+            }
+          }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -970,6 +1037,10 @@
                 {
                   "file": "./config/routes.oas.json",
                   "id": "recommend_remediation"
+                },
+                {
+                  "file": "./config/routes.oas.json",
+                  "id": "send_progress_report"
                 }
               ]
             }

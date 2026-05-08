@@ -1,7 +1,12 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 import { NotFoundError } from "@zuplo/starter-kit-shared/adapters";
-import { conversationRepository, ticketRepository, type Conversation } from "../repositories/tickets.ts";
+import {
+  conversationRepository,
+  ticketRepository,
+  type Conversation,
+} from "../repositories/tickets.ts";
+import { sendResendEmail } from "../integrations/resend.ts";
 
 interface Body {
   authorEmail: string;
@@ -33,8 +38,10 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     createdAt: now,
   });
 
+  const isPublic = (body.kind ?? "public") === "public";
+
   // Public replies move the ticket to `pending` (waiting on the customer).
-  if ((body.kind ?? "public") === "public" && ticket.status !== "closed") {
+  if (isPublic && ticket.status !== "closed") {
     try {
       await ticketRepository.update(tenantId, ticketId, { status: "pending" });
     } catch (err) {
@@ -42,8 +49,32 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     }
   }
 
-  return new Response(JSON.stringify(conversation), {
-    status: 201,
-    headers: { "content-type": "application/json" },
-  });
+  // Send the public reply to the customer via Resend. Skipped for internal
+  // notes. Email failures are logged but do not fail the request — the
+  // conversation entry is the source of truth.
+  let emailMessageId: string | null = null;
+  if (isPublic) {
+    try {
+      const sent = await sendResendEmail({
+        to: ticket.customerEmail,
+        subject: `Re: ${ticket.subject}`,
+        text: body.body,
+        replyTo: body.authorEmail,
+        tags: [
+          { name: "ticket_id", value: ticket.id },
+          { name: "tenant_id", value: tenantId },
+        ],
+      });
+      emailMessageId = sent.id;
+    } catch (err) {
+      context.log.warn(
+        `Resend send failed for ticket ${ticket.id}: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  return new Response(
+    JSON.stringify({ ...conversation, emailMessageId }),
+    { status: 201, headers: { "content-type": "application/json" } },
+  );
 }

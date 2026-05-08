@@ -3,22 +3,34 @@
   "title": "Zuplo Starter Kits Index",
   "description": "Catalog of forkable Zuplo starter kits. Used by the docs gallery and search/SEO surfaces.",
   "type": "object",
-  "required": ["domains", "starterKits"],
+  "required": [
+    "domains",
+    "starterKits"
+  ],
   "properties": {
     "domains": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["slug", "title"],
+        "required": [
+          "slug",
+          "title"
+        ],
         "properties": {
-          "slug": { "type": "string" },
-          "title": { "type": "string" }
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
         }
       }
     },
     "starterKits": {
       "type": "array",
-      "items": { "$ref": "#/$defs/StarterKit" }
+      "items": {
+        "$ref": "#/$defs/StarterKit"
+      }
     }
   },
   "$defs": {
@@ -33,7 +45,8 @@
         "replaces",
         "seoQuery",
         "adapters",
-        "mcpTools"
+        "mcpTools",
+        "integrations"
       ],
       "properties": {
         "title": {
@@ -64,12 +77,18 @@
         },
         "tier": {
           "type": "string",
-          "enum": ["S", "M", "L"],
+          "enum": [
+            "S",
+            "M",
+            "L"
+          ],
           "description": "S = single-resource CRUD; M = multi-entity workflow; L = complex domain."
         },
         "replaces": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "SaaS products this kit can replace, e.g. ['QuickBooks', 'FreshBooks']."
         },
         "seoQuery": {
@@ -94,24 +113,41 @@
         },
         "mcpTools": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Names of MCP tools (operationIds) the kit registers in /mcp."
         },
         "mcpPrompts": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Names of MCP prompts the kit ships, if any."
         },
         "mcpResources": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Names of MCP resources the kit ships, if any."
         },
-        "iconUrl": { "type": "string", "format": "uri" },
+        "iconUrl": {
+          "type": "string",
+          "format": "uri"
+        },
         "date": {
           "type": "string",
           "format": "date",
           "description": "Date the kit was added (YYYY-MM-DD)."
+        },
+        "integrations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "External services this kit integrates with (e.g. ['stripe', 'resend', 'claude']). Display-name + logo come from the gallery's integration registry."
         }
       }
     }

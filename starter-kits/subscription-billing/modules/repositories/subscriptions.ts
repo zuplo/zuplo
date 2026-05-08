@@ -18,6 +18,11 @@ function requireEnv(name: string): string {
 
 /**
  * The Subscription entity.
+ *
+ * This kit is a thin wrapper over Stripe Billing — Stripe owns the
+ * subscription lifecycle, and we mirror just enough state to render UI and
+ * answer queries without round-tripping. The authoritative field is the
+ * `status`/`currentPeriodEnd` reconciled from Stripe via webhook.
  */
 export interface Subscription extends Entity {
   customerId: string;
@@ -29,10 +34,16 @@ export interface Subscription extends Entity {
   trialEnd: string | null;
   canceledAt: string | null;
   createdAt: string;
+  /** Stripe ids — persisted so we can look up / mutate the canonical record. */
+  stripeSubscriptionId: string | null;
+  stripeCustomerId: string | null;
+  stripeItemId: string | null;
+  /** Free-form metadata stored alongside the subscription. */
+  metadata: Record<string, string> | null;
 }
 
 /**
- * A pricing Plan a customer can subscribe to.
+ * A pricing Plan a customer can subscribe to. Mirrors a Stripe Price+Product.
  */
 export interface Plan extends Entity {
   name: string;
@@ -42,16 +53,19 @@ export interface Plan extends Entity {
   includedUsage: number;
   overageRateCents: number;
   createdAt: string;
+  stripePriceId: string | null;
+  stripeProductId: string | null;
 }
 
 /**
- * A billing customer.
+ * A billing customer. The `stripeCustomerId` is upserted on first subscription.
  */
 export interface Customer extends Entity {
   name: string;
   email: string;
   paymentMethodLast4: string;
   createdAt: string;
+  stripeCustomerId: string | null;
 }
 
 /**

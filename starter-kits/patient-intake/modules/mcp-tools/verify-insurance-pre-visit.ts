@@ -1,16 +1,20 @@
-import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
+import { environment, type ZuploContext, type ZuploRequest } from "@zuplo/runtime";
 import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import type { Appointment } from "../repositories/appointments.ts";
 import type { Insurance } from "../repositories/insurance.ts";
 import type { Patient } from "../repositories/patients.ts";
+import { checkStediEligibility } from "../integrations/stedi.ts";
 
 /**
  * Orchestrator MCP tool: verify_insurance_pre_visit.
  *
  * For every upcoming appointment in the configured window, joins the
- * patient's insurance records and surfaces eligibility gaps the front
- * desk needs to chase before the visit. Output is structured so the
- * LLM can compose tasks ("call BCBS for member 123") or messages.
+ * patient's insurance records and runs a real-time eligibility check
+ * against Stedi (X12 270/271) for each plan we have on file. Surfaces
+ * eligibility gaps the front desk needs to chase before the visit.
+ *
+ * Output is structured so the LLM can compose tasks ("call BCBS for
+ * member 123") or send messages.
  */
 
 interface Body {
@@ -18,6 +22,8 @@ interface Body {
   windowDays?: number;
   /** Only consider appointments still in `scheduled` state. Defaults to true. */
   scheduledOnly?: boolean;
+  /** Skip the live Stedi call (use stored eligibility flags only). */
+  skipPayerCheck?: boolean;
 }
 
 interface Page<T> {
@@ -50,6 +56,7 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
   const body = (await request.json().catch(() => ({}))) as Body;
   const windowDays = Math.max(0, Math.min(60, body.windowDays ?? 7));
   const scheduledOnly = body.scheduledOnly ?? true;
+  const skipPayerCheck = body.skipPayerCheck ?? !environment.STEDI_API_KEY;
   const auth = { authorization: request.headers.get("authorization") ?? "" };
 
   const now = Date.now();
@@ -78,32 +85,95 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     return true;
   });
 
-  const flagged = upcoming.map((appt) => {
-    const patient = patientById.get(appt.patientId) ?? null;
-    const insurances = insuranceByPatient.get(appt.patientId) ?? [];
+  const providerNpi = environment.STEDI_PROVIDER_NPI ?? "1234567890";
+  const providerOrgName =
+    environment.STEDI_PROVIDER_ORG_NAME ?? "Patient Intake Clinic";
 
-    const issues: string[] = [];
-    if (insurances.length === 0) {
-      issues.push("no_insurance_on_file");
-    } else {
-      const anyVerified = insurances.some((i) => i.verified);
-      if (!anyVerified) issues.push("no_verified_insurance");
-      const anyActive = insurances.some((i) => i.eligibility === "active");
-      if (!anyActive) issues.push("no_active_eligibility");
-      const expired = insurances.some((i) => i.eligibility === "expired");
-      if (expired) issues.push("has_expired_plan");
-      const unknown = insurances.some((i) => i.eligibility === "unknown");
-      if (unknown) issues.push("has_unverified_eligibility");
-    }
+  const flagged = await Promise.all(
+    upcoming.map(async (appt) => {
+      const patient = patientById.get(appt.patientId) ?? null;
+      const insurances = insuranceByPatient.get(appt.patientId) ?? [];
 
-    return {
-      appointment: appt,
-      patient,
-      insurances,
-      readyForVisit: issues.length === 0,
-      issues,
-    };
-  });
+      const issues: string[] = [];
+      const liveChecks: Array<{
+        insuranceId: string;
+        active: boolean | null;
+        planDescription: string | null;
+        traceId: string | null;
+        error?: string;
+      }> = [];
+
+      if (insurances.length === 0) {
+        issues.push("no_insurance_on_file");
+      } else if (!patient) {
+        issues.push("patient_record_missing");
+      } else if (!skipPayerCheck) {
+        // Live payer check via Stedi for each plan we have on file.
+        for (const ins of insurances) {
+          try {
+            const summary = await checkStediEligibility({
+              tradingPartnerServiceId: ins.payerName,
+              provider: {
+                organizationName: providerOrgName,
+                npi: providerNpi,
+              },
+              subscriber: {
+                memberId: ins.memberId,
+                firstName: patient.firstName,
+                lastName: patient.lastName,
+                dateOfBirth: patient.dateOfBirth,
+              },
+              encounter: {
+                serviceTypeCodes: ["30"],
+                dateOfService: appt.scheduledFor.slice(0, 10),
+              },
+            });
+            liveChecks.push({
+              insuranceId: ins.id,
+              active: summary.active,
+              planDescription: summary.planDescription,
+              traceId: summary.traceId,
+            });
+            if (summary.inactive) issues.push("payer_returned_inactive");
+          } catch (err) {
+            liveChecks.push({
+              insuranceId: ins.id,
+              active: null,
+              planDescription: null,
+              traceId: null,
+              error: err instanceof Error ? err.message : String(err),
+            });
+            issues.push("payer_check_failed");
+          }
+        }
+        if (
+          liveChecks.length > 0 &&
+          !liveChecks.some((c) => c.active === true)
+        ) {
+          issues.push("no_active_eligibility_from_payer");
+        }
+      } else {
+        // Fallback to stored flags if Stedi key isn't configured.
+        const anyVerified = insurances.some((i) => i.verified);
+        if (!anyVerified) issues.push("no_verified_insurance");
+        const anyActive = insurances.some((i) => i.eligibility === "active");
+        if (!anyActive) issues.push("no_active_eligibility");
+        const expired = insurances.some((i) => i.eligibility === "expired");
+        if (expired) issues.push("has_expired_plan");
+        const unknown = insurances.some((i) => i.eligibility === "unknown");
+        if (unknown) issues.push("has_unverified_eligibility");
+      }
+
+      return {
+        appointment: appt,
+        patient,
+        insurances,
+        liveChecks,
+        readyForVisit: issues.length === 0,
+        issues,
+      };
+    }),
+  );
 
   const blocking = flagged.filter((f) => !f.readyForVisit);
 
@@ -111,6 +181,7 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     JSON.stringify({
       windowDays,
       checkedAt: new Date().toISOString(),
+      payerCheckEnabled: !skipPayerCheck,
       totalUpcoming: upcoming.length,
       blockingCount: blocking.length,
       flagged,

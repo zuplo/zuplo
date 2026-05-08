@@ -4,7 +4,6 @@ import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 import type { Hire } from "../repositories/hires.ts";
 import type {
   OnboardingTemplate,
-  TaskTemplate,
 } from "../repositories/onboarding-templates.ts";
 import {
   onboardingTaskRepository,
@@ -12,6 +11,7 @@ import {
 } from "../repositories/onboarding-tasks.ts";
 import { hireRepository } from "../repositories/hires.ts";
 import { onboardingTemplateRepository } from "../repositories/onboarding-templates.ts";
+import { completeWithClaude } from "../integrations/claude.ts";
 
 /**
  * Orchestrator MCP tool: create_onboarding_plan.
@@ -21,15 +21,20 @@ import { onboardingTemplateRepository } from "../repositories/onboarding-templat
  * `hire.startDate + daysFromStart`. Resolves dependsOnTitles into the freshly
  * created task ids.
  *
- * The Hire and Template are read directly from their repositories (no public
- * read endpoints in this kit); creates go through the public `/tasks`
- * endpoint via context.invokeRoute so the same validation + tenant scoping
- * runs for every task.
+ * When `generate306090: true`, also asks Claude to draft a 30/60/90 day plan
+ * from the hire's role + level — perfect to drop into the new hire's first
+ * 1:1 doc.
  */
 
 interface Body {
   hireId: string;
   templateId: string;
+  /** When true, ask Claude to draft a personalized 30/60/90 plan from the hire's role + level. */
+  generate306090?: boolean;
+  /** Optional level for the 30/60/90 plan — IC2, IC3, M1, etc. Improves Claude's calibration. */
+  level?: string;
+  /** Optional team name / company context for the 30/60/90 plan. */
+  teamContext?: string;
 }
 
 function addDays(isoDate: string, days: number): string {
@@ -112,12 +117,54 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     created[i] = { ...created[i], dependsOn: ids };
   }
 
+  // Optional: Claude-drafted 30/60/90 plan tailored to this role.
+  let plan306090:
+    | { text: string; model: string; inputTokens: number; outputTokens: number }
+    | undefined;
+  if (body.generate306090) {
+    try {
+      const completion = await completeWithClaude({
+        system:
+          "You are an experienced engineering / operations manager writing a 30/60/90 day plan for a new hire. Output exactly three sections: '## First 30 days', '## Days 31-60', '## Days 61-90'. Each section has 4-6 bulleted goals, mixing learning, output, and relationship-building. Keep tone warm and concrete — reference real activities, not platitudes. End with a one-line note on how to revisit the plan in their first 1:1.",
+        messages: [
+          {
+            role: "user",
+            content:
+              `Hire: ${hire.firstName} ${hire.lastName}\n` +
+              `Role: ${hire.role}\n` +
+              `Level: ${body.level ?? "(not specified)"}\n` +
+              `Start date: ${hire.startDate}\n` +
+              `Manager: ${hire.managerEmail}\n` +
+              `Team / company context: ${body.teamContext ?? "(not specified)"}\n\n` +
+              `Write the plan.`,
+          },
+        ],
+        temperature: 0.5,
+        maxTokens: 1500,
+      });
+      plan306090 = {
+        text: completion.text,
+        model: completion.model,
+        inputTokens: completion.inputTokens,
+        outputTokens: completion.outputTokens,
+      };
+    } catch (err) {
+      plan306090 = {
+        text: `(Claude 30/60/90 plan unavailable: ${(err as Error).message})`,
+        model: "",
+        inputTokens: 0,
+        outputTokens: 0,
+      };
+    }
+  }
+
   return new Response(
     JSON.stringify({
       hireId: hire.id,
       templateId: template.id,
       tasksCreated: created.length,
       tasks: created,
+      plan306090,
     }),
     { status: 201, headers: { "content-type": "application/json" } },
   );

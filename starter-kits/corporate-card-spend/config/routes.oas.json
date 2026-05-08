@@ -214,6 +214,52 @@
         }
       }
     },
+    "/sync-ramp-transactions": {
+      "post": {
+        "operationId": "sync_ramp_transactions",
+        "summary": "Sync transactions from Ramp into the local store (orchestrator)",
+        "description": "Pulls transactions from the Ramp Developer API for the given window and upserts them into the local transaction store. Returns counts plus any Ramp card_ids that don't have a corresponding local card row (so the caller can provision cards first).",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fromDate": { "type": "string", "format": "date", "description": "Start of window (ISO date). Defaults to last 30 days." },
+                  "toDate": { "type": "string", "format": "date", "description": "End of window. Defaults to today." },
+                  "state": { "type": "string", "enum": ["CLEARED", "PENDING", "DECLINED"], "description": "Optional Ramp state filter." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sync result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "imported": { "type": "integer", "description": "New transactions written." },
+                    "updated": { "type": "integer", "description": "Existing transactions updated." },
+                    "unknownCardCount": { "type": "integer", "description": "Number of distinct Ramp cards with no local mapping." },
+                    "unknownCards": { "type": "array", "items": { "type": "string" }, "description": "Ramp card ids needing mapping." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/sync-ramp-transactions)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
     "/recommend-limit-change": {
       "post": {
         "operationId": "recommend_limit_change",
@@ -259,7 +305,8 @@
                 { "file": "./config/routes.oas.json", "id": "unfreeze_card" },
                 { "file": "./config/routes.oas.json", "id": "set_spend_limit" },
                 { "file": "./config/routes.oas.json", "id": "find_uncoded_transactions" },
-                { "file": "./config/routes.oas.json", "id": "recommend_limit_change" }
+                { "file": "./config/routes.oas.json", "id": "recommend_limit_change" },
+                { "file": "./config/routes.oas.json", "id": "sync_ramp_transactions" }
               ]
             }
           },
@@ -354,11 +401,12 @@
       },
       "SetSpendLimitRequest": {
         "type": "object",
-        "description": "Payload to update the recurring spend limit on a card.",
+        "description": "Payload to update the recurring spend limit on a card. With `rampCardId` set and Ramp creds configured, also pushes the new limit to Ramp.",
         "required": ["limitCents"],
         "properties": {
           "limitCents": { "type": "integer", "minimum": 0, "description": "New recurring spend limit in cents." },
-          "intervalDays": { "type": "integer", "minimum": 1, "description": "Length of the spend interval in days. Optional — keeps existing if omitted." }
+          "intervalDays": { "type": "integer", "minimum": 1, "description": "Length of the spend interval in days. Optional — keeps existing if omitted." },
+          "rampCardId": { "type": "string", "description": "Optional Ramp card id. When provided, the new limit is also pushed to Ramp via the Developer API." }
         }
       },
       "FindUncodedRequest": {
@@ -366,7 +414,8 @@
         "description": "Filter for find_uncoded_transactions.",
         "properties": {
           "employeeEmail": { "type": "string", "format": "email", "description": "Restrict to transactions on cards issued to this employee." },
-          "daysBack": { "type": "integer", "minimum": 1, "maximum": 365, "description": "Look back this many days. Defaults to 30." }
+          "daysBack": { "type": "integer", "minimum": 1, "maximum": 365, "description": "Look back this many days. Defaults to 30." },
+          "notifySlack": { "type": "boolean", "description": "If true, DM each cardholder a memo-chase via Slack (one DM per person, listing all their uncoded txns)." }
         }
       },
       "FindUncodedResponse": {
@@ -375,7 +424,8 @@
         "required": ["count", "transactions"],
         "properties": {
           "count": { "type": "integer", "description": "Number of uncoded transactions returned." },
-          "transactions": { "type": "array", "description": "The uncoded transactions.", "items": { "$ref": "#/components/schemas/Transaction" } }
+          "transactions": { "type": "array", "description": "The uncoded transactions.", "items": { "$ref": "#/components/schemas/Transaction" } },
+          "slackNotifications": { "type": "array", "description": "Per-transaction Slack notify result, only present when notifySlack=true.", "items": { "type": "object" } }
         }
       },
       "RecommendLimitRequest": {

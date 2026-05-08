@@ -40,6 +40,20 @@ export interface Order extends Entity {
   shippedAt: string | null;
   fraudScore: number;
   channel: "web" | "marketplace" | "phone";
+  /** Stripe PaymentIntent id, when checkout uses Stripe. */
+  stripePaymentIntentId?: string | null;
+  /** Buyer's contact phone for tracking SMS via Twilio. E.164 format. */
+  buyerPhone?: string | null;
+  /** Ship-to address — required for ShipEngine rate shopping + label purchase. */
+  shipToName?: string | null;
+  shipToAddressLine1?: string | null;
+  shipToAddressLine2?: string | null;
+  shipToCityLocality?: string | null;
+  shipToStateProvince?: string | null;
+  shipToPostalCode?: string | null;
+  shipToCountryCode?: string | null;
+  /** Parcel weight in ounces (used by rate shopping). */
+  parcelWeightOz?: number | null;
 }
 
 function build(): Repository<Order> {

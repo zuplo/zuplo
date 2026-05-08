@@ -1,6 +1,22 @@
 # Lead Routing / SDR Starter Kit
 
-Headless API for sales development teams. Replaces Chili Piper, LeanData, and Salesforce Flow routing.
+Headless lead routing that actually pages the rep. Inbound lead → rule match → assignment → Slack ping → email follow-up — one MCP tool call.
+
+Replaces: Chili Piper, LeanData, Salesforce Flow routing.
+
+## Wires up
+
+**Slack** delivers the "you got a new lead" ping into a channel or DM, using a bot token (preferred) or an incoming webhook URL. **Resend** sends the optional rep email — same data, different channel — handy for reps who live in Gmail.
+
+## Architecture at a glance
+
+```
+Inbound ──▶ Zuplo Gateway ──▶ Integration handlers
+                │                  ├── Slack    (chat.postMessage / webhook)
+                │                  └── Resend   (rep notification email)
+                ▼
+          Database adapter (Supabase / Firestore / Neon / Upstash)
+```
 
 ## Quickstart
 
@@ -33,7 +49,13 @@ Pick one via `DB_PROVIDER` and fill in the matching credentials in `.env`. See [
 
 ## Environment variables
 
-See [env.example](./env.example). The kit will boot with `DB_PROVIDER=in-memory` if no env vars are set.
+See [env.example](./env.example). Beyond `DB_PROVIDER`:
+
+- `SLACK_BOT_TOKEN` + `SLACK_DEFAULT_CHANNEL` — preferred Slack mode
+- `SLACK_WEBHOOK_URL` — fallback webhook mode (set either, not both)
+- `RESEND_API_KEY` + `RESEND_FROM_EMAIL` — only if you want email pings
+
+The kit boots and routes leads without any of these — notifications are skipped if their env isn't configured.
 
 ## API surface
 
@@ -49,7 +71,7 @@ See [env.example](./env.example). The kit will boot with `DB_PROVIDER=in-memory`
 | POST | `/routing-rules` | Create routing rule |
 | GET | `/territories` | List territories |
 | POST | `/meeting-bookings` | Book meeting |
-| POST | `/route-lead-intelligently` | Orchestrator |
+| POST | `/route-lead-intelligently` | Orchestrator: route + notify |
 | POST | `/match-lead-to-account` | Orchestrator |
 | POST | `/summarize-unworked-leads` | Orchestrator |
 | POST | `/mcp` | MCP server endpoint |
@@ -58,29 +80,27 @@ OpenAPI: [`config/routes.oas.json`](./config/routes.oas.json).
 
 ## MCP tools
 
-| Tool | Type | Read-only | Description |
+| Tool | Read-only | Calls | Description |
 |---|---|---|---|
-| `list_leads` | tool | yes | List leads |
-| `get_lead` | tool | yes | Get lead by id |
-| `create_lead` | tool | no | Create lead |
-| `assign_lead` | tool | no | Assign lead to rep |
-| `qualify_lead` | tool | no | Mark lead qualified |
-| `disqualify_lead` | tool | no | Mark lead unqualified |
-| `list_routing_rules` | tool | yes | List rules |
-| `create_routing_rule` | tool | no | Create rule |
-| `list_territories` | tool | yes | List territories |
-| `book_meeting` | tool | no | Book a meeting |
-| `route_lead_intelligently` | tool | no | Auto-route a lead (orchestrator) |
-| `match_lead_to_account` | tool | yes | Find related leads (orchestrator) |
-| `summarize_unworked_leads` | tool | yes | Stale-pipeline scan (orchestrator) |
+| `list_leads` / `get_lead` | yes | DB | Lead reads |
+| `create_lead` | no | DB | Create lead |
+| `assign_lead` / `qualify_lead` / `disqualify_lead` | no | DB | Lead writes |
+| `list_routing_rules` / `create_routing_rule` | mixed | DB | Rule management |
+| `list_territories` | yes | DB | Territory read |
+| `book_meeting` | no | DB | Meeting booking |
+| `route_lead_intelligently` | no | DB + **Slack** + **Resend** | Auto-route + notify |
+| `match_lead_to_account` | yes | DB | Sibling leads at same domain |
+| `summarize_unworked_leads` | yes | DB | Stale pipeline scan |
 
 ## The AI angle
 
-`route_lead_intelligently` is the high-leverage tool: hand it a lead id, it walks active routing rules in priority order, picks the first matching rule, assigns the rep, and returns a per-rule trace explaining the decision. `match_lead_to_account` lets the LLM detect duplicate / sibling contacts at the same company before assignment. `summarize_unworked_leads` powers an SDR-manager weekly review — "show me leads my reps have been sitting on for 7+ days" — without anyone writing SQL.
+`route_lead_intelligently` is the high-leverage orchestrator. Pass it a `leadId` and it walks active routing rules in priority order, picks the first matching rule, calls `/leads/{id}/assign`, and (if `notifySlack !== false` and Slack is configured) posts a formatted message to the rep's channel — "New lead assigned to alice@: Acme, score 87, source webform". Same call optionally fires a Resend email when `notifyEmail: true`. The decision trace comes back with the response so an LLM can answer "why did this go to alice?" without re-running the rules.
+
+The orchestrator is also the natural target for an inbound webform integration: form posts to `/leads`, then your form processor calls `route_lead_intelligently`, and the rep is paged within seconds — no Zapier in the middle.
 
 ## Extending
 
-- **New entity:** add fields to the entity interface in `modules/repositories/`, update the OpenAPI schema in `config/routes.oas.json`.
-- **New endpoint:** create a handler, add the route with `mcp: { type: "tool" }` if exposed, add the `operationId` to `/mcp` `operations`.
-- **New orchestrator:** add to `modules/mcp-tools/` using `invokeJson` from `@zuplo/starter-kit-shared/mcp`.
+- **Swap Slack for Teams / Discord:** replace `modules/integrations/slack.ts` with a Microsoft Graph / Discord webhook adapter. Same shape: `postMessage(channel, text, blocks)`.
+- **Round-robin instead of rule-based:** replace the rule iteration in `route-lead-intelligently.ts` with a counter-on-Upstash and pick the next rep in the territory.
+- **Fold in enrichment:** call Clearbit / Apollo before rule evaluation, augment the lead, then evaluate rules — the orchestrator keeps the same output shape.
 - **Switch databases:** change `DB_PROVIDER` in `.env`. Handler code never changes.

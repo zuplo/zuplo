@@ -29,6 +29,10 @@ export interface Order extends Entity {
   placedAt: string;
   paidAt: string | null;
   refundedAt: string | null;
+  /** Stripe PaymentIntent id, populated when the order is placed. */
+  stripePaymentIntentId?: string | null;
+  /** Stripe Refund id, populated when the order is refunded. */
+  stripeRefundId?: string | null;
 }
 
 function build(): Repository<Order> {

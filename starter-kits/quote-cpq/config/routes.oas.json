@@ -196,16 +196,24 @@
     "/quotes/{id}/send": {
       "post": {
         "operationId": "send_quote",
-        "summary": "Mark a quote as sent",
-        "description": "Transition a draft quote to status=sent and set sentAt. A real implementation would also email the PDF to the customer.",
+        "summary": "Send a quote (DocuSign or Resend)",
+        "description": "Marks a quote as sent and dispatches it. If `pdfBase64` is provided AND DOCUSIGN_* env is configured, an envelope is created via DocuSign for signature. Otherwise sends a plain email via Resend with `hostedQuoteUrl` + cover note. Always flips the quote to status=sent.",
         "parameters": [
           { "name": "id", "in": "path", "required": true, "description": "Quote id.", "schema": { "type": "string" } }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SendQuoteRequest" }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "The updated quote.",
+            "description": "The updated quote plus delivery metadata.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Quote" } }
+              "application/json": { "schema": { "$ref": "#/components/schemas/SendQuoteResponse" } }
             }
           },
           "404": { "description": "Quote not found." }
@@ -221,16 +229,24 @@
     "/quotes/{id}/accept": {
       "post": {
         "operationId": "accept_quote",
-        "summary": "Mark a quote as accepted",
-        "description": "Transition a sent quote to status=accepted and set acceptedAt. Typically called by an e-sign webhook in production.",
+        "summary": "Accept a quote (and optionally invoice via Stripe)",
+        "description": "Transitions a quote to status=accepted. When STRIPE_SECRET_KEY is set and a customer email is provided, also creates a Stripe customer (or finds one), adds one invoice item per line, finalizes the invoice, and emails the buyer the hosted URL via Resend (if RESEND_API_KEY is set). Typically also called by the inbound /webhooks/docusign route.",
         "parameters": [
           { "name": "id", "in": "path", "required": true, "description": "Quote id.", "schema": { "type": "string" } }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AcceptQuoteRequest" }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "The updated quote.",
+            "description": "The updated quote plus optional Stripe metadata.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Quote" } }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AcceptQuoteResponse" } }
             }
           },
           "404": { "description": "Quote not found." }
@@ -454,6 +470,38 @@
         }
       }
     },
+    "/webhooks/docusign": {
+      "post": {
+        "operationId": "docusign_webhook",
+        "summary": "Inbound DocuSign Connect webhook",
+        "description": "Verifies the DocuSign Connect HMAC signature, parses the envelope event, and on `envelope-completed` flips the matching quote to status=accepted. Configure your Connect webhook URL to point here.",
+        "responses": {
+          "200": { "description": "Acknowledged." },
+          "401": { "description": "Invalid signature." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": { "export": "default", "module": "$import(./modules/webhooks/docusign)" },
+          "policies": { "inbound": ["rate-limit"] }
+        }
+      }
+    },
+    "/webhooks/stripe": {
+      "post": {
+        "operationId": "stripe_webhook",
+        "summary": "Inbound Stripe events webhook",
+        "description": "Verifies the `stripe-signature` header against STRIPE_WEBHOOK_SIGNING_SECRET, then dispatches `invoice.paid` / `invoice.payment_failed`. Extend the switch in modules/webhooks/stripe.ts to handle more events.",
+        "responses": {
+          "200": { "description": "Acknowledged." },
+          "401": { "description": "Invalid signature." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": { "export": "default", "module": "$import(./modules/webhooks/stripe)" },
+          "policies": { "inbound": ["rate-limit"] }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -642,6 +690,53 @@
           "value": { "type": "number", "minimum": 0, "description": "Percent (0-100) or flat amount in cents." },
           "reason": { "type": "string", "description": "Human reason — captured for audit." },
           "appliedBy": { "type": "string", "description": "Email of the user applying it." }
+        }
+      },
+      "SendQuoteRequest": {
+        "type": "object",
+        "description": "Payload to dispatch a quote to the customer.",
+        "required": ["recipientEmail", "recipientName"],
+        "properties": {
+          "recipientEmail": { "type": "string", "format": "email", "description": "Customer email." },
+          "recipientName": { "type": "string", "description": "Customer display name." },
+          "coverNote": { "type": "string", "description": "Optional message inserted into the email body / DocuSign blurb." },
+          "pdfBase64": { "type": "string", "description": "Base64 PDF of the quote. When present and DOCUSIGN env is set, routes via DocuSign for signature." },
+          "hostedQuoteUrl": { "type": "string", "format": "uri", "description": "URL to the quote in your portal — used when emailing without DocuSign." }
+        }
+      },
+      "SendQuoteResponse": {
+        "type": "object",
+        "description": "Quote plus delivery metadata.",
+        "required": ["id", "deliveryMode"],
+        "properties": {
+          "id": { "type": "string", "description": "Quote id." },
+          "status": { "type": "string", "description": "Always 'sent' on success." },
+          "sentAt": { "type": "string", "format": "date-time", "description": "When the quote was sent." },
+          "deliveryMode": { "type": "string", "enum": ["esign", "email"], "description": "Which channel actually delivered." },
+          "envelopeId": { "type": "string", "description": "DocuSign envelope id (when deliveryMode=esign)." },
+          "resendId": { "type": "string", "description": "Resend message id (when deliveryMode=email)." }
+        }
+      },
+      "AcceptQuoteRequest": {
+        "type": "object",
+        "description": "Optional payload when accepting a quote — controls Stripe invoicing.",
+        "properties": {
+          "customerEmail": { "type": "string", "format": "email", "description": "Customer email; required for Stripe invoicing." },
+          "customerName": { "type": "string", "description": "Customer display name." },
+          "invoiceCustomer": { "type": "boolean", "description": "Set to false to skip Stripe invoice generation. Defaults to true when STRIPE_SECRET_KEY is configured." },
+          "daysUntilDue": { "type": "integer", "minimum": 1, "maximum": 365, "description": "Net terms (days). Defaults to 30." }
+        }
+      },
+      "AcceptQuoteResponse": {
+        "type": "object",
+        "description": "Accepted quote with optional Stripe invoice details.",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "description": "Quote id." },
+          "status": { "type": "string", "description": "Always 'accepted' on success." },
+          "acceptedAt": { "type": "string", "format": "date-time", "description": "When the quote was accepted." },
+          "stripeInvoiceId": { "type": "string", "description": "Stripe invoice id when invoicing succeeded." },
+          "hostedInvoiceUrl": { "type": "string", "format": "uri", "description": "URL the buyer can use to pay the invoice." }
         }
       }
     }

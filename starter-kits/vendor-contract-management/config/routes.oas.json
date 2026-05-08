@@ -413,6 +413,68 @@
         }
       }
     },
+    "/send-contract-for-signature": {
+      "post": {
+        "operationId": "send_contract_for_signature",
+        "summary": "Send a contract via DocuSign (orchestrator)",
+        "description": "Reads a draft contract, creates a DocuSign envelope from its documentUrl (or inline base64), invites the vendor's contact and one or more internal signers, posts a Slack notice, and stamps the envelope id back onto the contract.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["contractId", "internalSigners"],
+                "properties": {
+                  "contractId": { "type": "string", "description": "Contract id." },
+                  "internalSigners": {
+                    "type": "array",
+                    "description": "Internal signers (e.g. owner + legal).",
+                    "items": {
+                      "type": "object",
+                      "required": ["email", "name"],
+                      "properties": {
+                        "email": { "type": "string", "format": "email" },
+                        "name": { "type": "string" }
+                      }
+                    }
+                  },
+                  "includeVendorSigner": { "type": "boolean", "description": "Include the vendor's contactEmail. Default true." },
+                  "documentBase64": { "type": "string", "description": "Inline base64 document. Optional when contract.documentUrl is set." },
+                  "documentName": { "type": "string", "description": "Document name in the envelope. Defaults to contract.title." },
+                  "emailSubject": { "type": "string", "description": "Subject for the signing email." },
+                  "emailBlurb": { "type": "string", "description": "Body for the signing email." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Envelope created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contractId": { "type": "string" },
+                    "envelopeId": { "type": "string" },
+                    "status": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Contract not found." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/send-contract-for-signature)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -441,7 +503,8 @@
                 { "file": "./config/routes.oas.json", "id": "list_spend" },
                 { "file": "./config/routes.oas.json", "id": "flag_upcoming_renewals" },
                 { "file": "./config/routes.oas.json", "id": "compare_vendor_pricing" },
-                { "file": "./config/routes.oas.json", "id": "calc_total_spend" }
+                { "file": "./config/routes.oas.json", "id": "calc_total_spend" },
+                { "file": "./config/routes.oas.json", "id": "send_contract_for_signature" }
               ]
             }
           },

@@ -1,9 +1,11 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
+import { environment } from "@zuplo/runtime";
 import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import type {
   Experiment,
   ExperimentResult,
 } from "../repositories/experiments.ts";
+import { runPostHogQuery } from "../integrations/posthog.ts";
 
 /**
  * Orchestrator MCP tool: interpret_results.
@@ -12,10 +14,17 @@ import type {
  * (first one in the variants list), computes lift relative to control for
  * each other variant, marks anything with pValue < 0.05 as significant,
  * and emits a recommendation.
+ *
+ * If POSTHOG_PERSONAL_API_KEY + POSTHOG_PROJECT_ID are set, the tool also
+ * runs a HogQL query against `$feature_flag_called` events to surface live
+ * exposure counts per variant — useful when the kit is mirroring flags to
+ * PostHog and you want a sanity-check that traffic is actually flowing.
  */
 
 interface Body {
   experimentKey: string;
+  /** If true, query PostHog for live exposure counts. Default true when configured. */
+  includePostHogExposures?: boolean;
 }
 
 interface ResultPage {
@@ -98,6 +107,43 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     ? `Ship variant ${winner.variantKey} (lift ${winner.liftPercent?.toFixed(2)}% vs control, p<0.05).`
     : "No variant has reached significance. Keep running or end as inconclusive.";
 
+  // Optional: pull live PostHog exposures so a CMO can sanity-check that the
+  // flag is actually being delivered.
+  const env = environment as Record<string, string | undefined>;
+  const wantPostHog =
+    body.includePostHogExposures !== false &&
+    Boolean(env.POSTHOG_PERSONAL_API_KEY) &&
+    Boolean(env.POSTHOG_PROJECT_ID);
+
+  let posthogExposures: Array<{ variant: string; users: number; events: number }> | null = null;
+  let posthogError: string | null = null;
+  if (wantPostHog) {
+    try {
+      const queryResult = await runPostHogQuery({
+        hogql: `
+          SELECT
+            properties.$feature_flag_response AS variant,
+            count(DISTINCT distinct_id) AS users,
+            count() AS events
+          FROM events
+          WHERE event = '$feature_flag_called'
+            AND properties.$feature_flag = {flag_key}
+            AND timestamp >= now() - INTERVAL 30 DAY
+          GROUP BY variant
+          ORDER BY users DESC
+        `,
+        parameters: { flag_key: body.experimentKey },
+      });
+      posthogExposures = queryResult.results.map((row) => ({
+        variant: String(row[0] ?? ""),
+        users: Number(row[1] ?? 0),
+        events: Number(row[2] ?? 0),
+      }));
+    } catch (err) {
+      posthogError = err instanceof Error ? err.message : String(err);
+    }
+  }
+
   return new Response(
     JSON.stringify({
       experimentKey: experiment.key,
@@ -105,6 +151,8 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
       controlVariant: control.key,
       variantSummaries,
       recommendation,
+      posthogExposures,
+      posthogError,
     }),
     { headers: { "content-type": "application/json" } },
   );

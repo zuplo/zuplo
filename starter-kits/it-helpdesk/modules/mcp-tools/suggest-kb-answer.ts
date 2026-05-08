@@ -1,13 +1,14 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import type { IncidentTicket, KBArticle } from "../repositories/tickets.ts";
+import { callClaudeJson } from "../integrations/claude.ts";
 
 /**
  * Orchestrator: suggest_kb_answer.
  *
- * Reads a ticket, extracts keywords, calls /kb-articles/search, and ranks
- * articles by simple word-overlap. Returns the top matches an agent can paste
- * back to the requester.
+ * Hybrid retrieval: keyword-search hits the KB, then Claude reads the
+ * candidates and picks the best matches plus drafts a 1-2 sentence answer the
+ * agent can paste back to the requester.
  */
 
 interface Body {
@@ -17,6 +18,12 @@ interface Body {
 
 interface KBSearchResult {
   items: KBArticle[];
+}
+
+interface ClaudeRanking {
+  bestArticleIds: string[];
+  draftAnswer: string;
+  confidence: "low" | "medium" | "high";
 }
 
 const STOP_WORDS = new Set([
@@ -32,6 +39,10 @@ function extractKeywords(text: string): string[] {
     .split(/\s+/)
     .filter((w) => w.length > 2 && !STOP_WORDS.has(w));
 }
+
+const SYSTEM_PROMPT = `You are an IT helpdesk knowledge agent. Given a ticket and a list of candidate KB articles, pick the 1-3 articles that actually answer the ticket and draft a short response the agent can paste back to the requester.
+
+Be honest about confidence. If none of the articles really answer the question, return empty bestArticleIds and confidence: "low".`;
 
 export default async function (request: ZuploRequest, context: ZuploContext) {
   const body = (await request.json().catch(() => ({}))) as Body;
@@ -50,37 +61,70 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     { headers: { authorization: auth } },
   );
 
+  // 1. Keyword retrieval — collect KB candidates from the search endpoint.
   const keywords = extractKeywords(`${ticket.subject} ${ticket.body}`);
   const queryTerms = Array.from(new Set(keywords)).slice(0, 5);
-
-  // Fan out to search-kb for each top keyword and merge.
-  const articleScores = new Map<string, { article: KBArticle; score: number }>();
+  const candidates = new Map<string, KBArticle>();
   for (const term of queryTerms) {
     const result = await invokeJson<KBSearchResult>(
       context,
       `/kb-articles/search?q=${encodeURIComponent(term)}`,
       { headers: { authorization: auth } },
     );
-    for (const article of result.items) {
-      const existing = articleScores.get(article.id);
-      if (existing) {
-        existing.score += 1;
-      } else {
-        articleScores.set(article.id, { article, score: 1 });
-      }
-    }
+    for (const article of result.items) candidates.set(article.id, article);
   }
 
-  const ranked = Array.from(articleScores.values())
-    .sort((a, b) => b.score - a.score || b.article.helpfulCount - a.article.helpfulCount)
-    .slice(0, topN)
-    .map((entry) => ({ ...entry.article, matchScore: entry.score }));
+  if (candidates.size === 0) {
+    return new Response(
+      JSON.stringify({
+        ticketId: ticket.id,
+        queryTerms,
+        suggestions: [],
+        draftAnswer: null,
+        confidence: "low",
+      }),
+      { headers: { "content-type": "application/json" } },
+    );
+  }
+
+  // 2. Claude re-ranks + drafts.
+  const candidateList = Array.from(candidates.values()).slice(0, 10);
+  const ranking = await callClaudeJson<ClaudeRanking>({
+    system: SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: [
+          `Ticket subject: ${ticket.subject}`,
+          `Ticket body: ${ticket.body}`,
+          "",
+          "Candidate KB articles:",
+          ...candidateList.map(
+            (a) => `- id=${a.id} | title=${a.title}\n  body: ${a.body.slice(0, 600)}`,
+          ),
+        ].join("\n"),
+      },
+    ],
+    maxTokens: 1024,
+    jsonSchemaHint: `{
+  "bestArticleIds": ["string"],
+  "draftAnswer": "string",
+  "confidence": "low|medium|high"
+}`,
+  });
+
+  const suggestions = ranking.bestArticleIds
+    .map((id) => candidates.get(id))
+    .filter((a): a is KBArticle => Boolean(a))
+    .slice(0, topN);
 
   return new Response(
     JSON.stringify({
       ticketId: ticket.id,
       queryTerms,
-      suggestions: ranked,
+      suggestions,
+      draftAnswer: ranking.draftAnswer,
+      confidence: ranking.confidence,
     }),
     { headers: { "content-type": "application/json" } },
   );

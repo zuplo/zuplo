@@ -23,6 +23,10 @@ export interface Donation extends Entity {
   taxDeductibleAmountCents: number;
   anonymous: boolean;
   restrictedFund: string | null;
+  /** Stripe charge id when paid via Stripe (set by the webhook). */
+  stripeChargeId: string | null;
+  /** Resend message id of the acknowledgement email. */
+  acknowledgementEmailId: string | null;
 }
 
 function build(): Repository<Donation> {

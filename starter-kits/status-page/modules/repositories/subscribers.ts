@@ -23,6 +23,13 @@ function requireEnv(name: string): string {
  */
 export interface Subscriber extends Entity {
   email: string;
+  /** Optional E.164 phone for SMS via Twilio. */
+  phone: string | null;
+  /** Optional incoming-webhook URL for Slack delivery into the subscriber's
+   *  workspace. They own the endpoint; we just POST. */
+  slackWebhookUrl: string | null;
+  /** Which channels this subscriber wants. Empty defaults to ["email"]. */
+  channels: Array<"email" | "sms" | "slack">;
   components: string[];
   notifyOnImpact: "none" | "minor" | "major" | "critical";
   createdAt: string;

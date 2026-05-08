@@ -421,7 +421,7 @@
     "schemas": {
       "Booking": {
         "type": "object",
-        "description": "A scheduled meeting between a host and an attendee.",
+        "description": "A scheduled meeting between a host and an attendee. `calendarEventId`/`zoomMeetingId`/`zoomJoinUrl` are populated when the kit provisioned external resources on book_meeting.",
         "required": ["id", "tenantId", "eventTypeSlug", "hostEmail", "attendeeEmail", "attendeeName", "scheduledFor", "durationMinutes", "status", "canceledAt", "cancelReason", "notes", "location", "createdAt"],
         "properties": {
           "id": { "type": "string", "description": "Unique booking id within the tenant." },
@@ -430,6 +430,7 @@
           "hostEmail": { "type": "string", "format": "email", "description": "Email of the host hosting the meeting." },
           "attendeeEmail": { "type": "string", "format": "email", "description": "Email of the attendee." },
           "attendeeName": { "type": "string", "description": "Display name of the attendee." },
+          "attendeePhone": { "type": ["string", "null"], "description": "Attendee phone number used for SMS confirmation." },
           "scheduledFor": { "type": "string", "format": "date-time", "description": "ISO-8601 start time of the meeting." },
           "durationMinutes": { "type": "integer", "description": "Meeting duration in minutes." },
           "status": { "type": "string", "enum": ["confirmed", "canceled", "rescheduled", "completed", "no_show"], "description": "Lifecycle state." },
@@ -437,22 +438,29 @@
           "cancelReason": { "type": ["string", "null"], "description": "Free-form cancel reason." },
           "notes": { "type": ["string", "null"], "description": "Free-form notes." },
           "location": { "type": ["string", "null"], "description": "Meeting location (URL, address, or 'in-person')." },
+          "calendarEventId": { "type": ["string", "null"], "description": "Google Calendar event id when the kit provisioned one." },
+          "zoomMeetingId": { "type": ["string", "null"], "description": "Zoom meeting id when the kit provisioned one." },
+          "zoomJoinUrl": { "type": ["string", "null"], "description": "Zoom join URL or Google Meet hangoutLink." },
           "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
         }
       },
       "BookingCreate": {
         "type": "object",
-        "description": "Payload to create a confirmed booking.",
+        "description": "Payload to create a confirmed booking. Optional `conference` triggers Zoom or Google Meet provisioning; optional `attendeePhone` triggers a Twilio SMS confirmation.",
         "required": ["eventTypeSlug", "hostEmail", "attendeeEmail", "attendeeName", "scheduledFor", "durationMinutes"],
         "properties": {
           "eventTypeSlug": { "type": "string", "description": "Slug of the event type." },
           "hostEmail": { "type": "string", "format": "email", "description": "Host email." },
           "attendeeEmail": { "type": "string", "format": "email", "description": "Attendee email." },
           "attendeeName": { "type": "string", "description": "Attendee display name." },
+          "attendeePhone": { "type": "string", "description": "Optional attendee phone number in e.164 (triggers Twilio confirmation SMS)." },
           "scheduledFor": { "type": "string", "format": "date-time", "description": "Start time." },
           "durationMinutes": { "type": "integer", "description": "Duration in minutes." },
           "notes": { "type": "string", "description": "Optional notes." },
-          "location": { "type": "string", "description": "Optional location." }
+          "location": { "type": "string", "description": "Optional location." },
+          "conference": { "type": "string", "enum": ["zoom", "google_meet", "none"], "description": "Conference provisioning. Defaults to none." },
+          "timezone": { "type": "string", "description": "IANA timezone for the calendar event (e.g. America/Los_Angeles)." },
+          "silent": { "type": "boolean", "description": "When true, skip Calendar/Zoom/SMS side-effects." }
         }
       },
       "BookingReschedule": {
@@ -466,10 +474,11 @@
       },
       "BookingCancel": {
         "type": "object",
-        "description": "Payload to cancel a booking.",
+        "description": "Payload to cancel a booking. The kit deletes any provisioned Calendar event + Zoom meeting and SMS the attendee unless `silent: true`.",
         "properties": {
           "reason": { "type": "string", "description": "Free-form cancel reason." },
-          "canceledBy": { "type": "string", "description": "Identifier of who canceled (email, user id, or 'system')." }
+          "canceledBy": { "type": "string", "description": "Identifier of who canceled (email, user id, or 'system')." },
+          "silent": { "type": "boolean", "description": "When true, skip Calendar/Zoom/SMS side-effects." }
         }
       },
       "BookingPage": {

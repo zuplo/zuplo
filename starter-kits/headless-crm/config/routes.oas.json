@@ -427,7 +427,7 @@
       },
       "LogActivityRequest": {
         "type": "object",
-        "description": "Payload to log an activity.",
+        "description": "Payload to log an activity. When `kind === \"email\"` and `sendEmail: true`, the email is also dispatched via Resend.",
         "required": ["kind", "subject", "body", "ownerEmail"],
         "properties": {
           "kind": { "type": "string", "enum": ["email", "call", "meeting", "note"], "description": "Activity type." },
@@ -437,7 +437,15 @@
           "contactId": { "type": "string", "description": "Optional contact id." },
           "accountId": { "type": "string", "description": "Optional account id." },
           "occurredAt": { "type": "string", "format": "date-time", "description": "Defaults to now." },
-          "ownerEmail": { "type": "string", "format": "email", "description": "Owner email." }
+          "ownerEmail": { "type": "string", "format": "email", "description": "Owner email — also used as reply-to when an email is sent." },
+          "sendEmail": { "type": "boolean", "description": "When true and kind is 'email', actually sends the email via Resend in addition to logging." },
+          "toEmail": {
+            "description": "Recipient(s). Required when sendEmail is true.",
+            "oneOf": [
+              { "type": "string", "format": "email" },
+              { "type": "array", "items": { "type": "string", "format": "email" } }
+            ]
+          }
         }
       },
       "AccountTimelineRequest": {
@@ -445,7 +453,14 @@
         "description": "Input to account_timeline.",
         "required": ["accountId"],
         "properties": {
-          "accountId": { "type": "string", "description": "Account id to build the timeline for." }
+          "accountId": { "type": "string", "description": "Account id to build the timeline for." },
+          "summarize": { "type": "boolean", "description": "When true, hands the timeline to Claude and includes a pre-call brief in the response." },
+          "calendarAttendees": {
+            "type": "array",
+            "description": "Optional list of attendee emails to also pull from Google Calendar (requires GOOGLE_CALENDAR_ACCESS_TOKEN).",
+            "items": { "type": "string", "format": "email" }
+          },
+          "calendarDaysBack": { "type": "integer", "minimum": 1, "maximum": 365, "description": "How many days of calendar history to include. Defaults to 30." }
         }
       },
       "AccountTimelineResponse": {
@@ -462,14 +477,15 @@
               "type": "object",
               "required": ["kind", "occurredAt", "ownerEmail", "summary", "refId"],
               "properties": {
-                "kind": { "type": "string", "enum": ["activity", "note", "deal_created", "deal_updated"], "description": "Event source." },
+                "kind": { "type": "string", "enum": ["activity", "note", "deal_created", "deal_updated", "calendar"], "description": "Event source." },
                 "occurredAt": { "type": "string", "format": "date-time", "description": "Event timestamp." },
                 "ownerEmail": { "type": "string", "format": "email", "description": "Who acted." },
                 "summary": { "type": "string", "description": "Short summary line." },
                 "refId": { "type": "string", "description": "Underlying entity id." }
               }
             }
-          }
+          },
+          "summary": { "type": "string", "description": "When summarize=true, a Claude-generated pre-call brief." }
         }
       },
       "FindWarmIntroRequest": {

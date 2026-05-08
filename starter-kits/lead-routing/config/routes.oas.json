@@ -250,7 +250,7 @@
       "post": {
         "operationId": "route_lead_intelligently",
         "summary": "Assign a lead by evaluating routing rules (orchestrator)",
-        "description": "Loads the lead, walks active routing rules in priority order, picks the first whose conditions match, and assigns the lead. Returns the chosen rule + a per-rule trace explaining the decision.",
+        "description": "Loads the lead, walks active routing rules in priority order, picks the first whose conditions match, and assigns the lead. Optionally pings the assigned rep over Slack and/or Resend. Returns the chosen rule, the per-rule trace, and the notification status.",
         "requestBody": {
           "required": true,
           "content": {
@@ -259,7 +259,9 @@
                 "type": "object",
                 "required": ["leadId"],
                 "properties": {
-                  "leadId": { "type": "string", "description": "Lead id to route." }
+                  "leadId": { "type": "string", "description": "Lead id to route." },
+                  "notifySlack": { "type": "boolean", "description": "When true (default), posts to Slack if SLACK_BOT_TOKEN or SLACK_WEBHOOK_URL is set." },
+                  "notifyEmail": { "type": "boolean", "description": "When true, emails the assigned rep via Resend." }
                 }
               }
             }
@@ -289,6 +291,27 @@
                           "ruleName": { "type": "string", "description": "Rule name." },
                           "matched": { "type": "boolean", "description": "Whether the rule matched." },
                           "reason": { "type": "string", "description": "Per-condition match log." }
+                        }
+                      }
+                    },
+                    "notifications": {
+                      "type": "object",
+                      "description": "Status of side-effect notifications.",
+                      "properties": {
+                        "slack": {
+                          "type": "object",
+                          "properties": {
+                            "ok": { "type": "boolean", "description": "Whether Slack accepted the message." },
+                            "ts": { "type": "string", "description": "Slack message timestamp (bot-token mode)." },
+                            "error": { "type": "string", "description": "Slack error if !ok." }
+                          }
+                        },
+                        "email": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string", "description": "Resend message id on success." },
+                            "error": { "type": "string", "description": "Resend error message on failure." }
+                          }
                         }
                       }
                     }

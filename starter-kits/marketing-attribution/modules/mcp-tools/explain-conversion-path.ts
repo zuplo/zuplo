@@ -1,10 +1,13 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
+import { environment } from "@zuplo/runtime";
+import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import type {
   AttributionModel,
   Conversion,
   Touchpoint,
 } from "../repositories/touchpoints.ts";
+import { explainPath } from "../integrations/clickhouse.ts";
 
 /**
  * Orchestrator MCP tool: explain_conversion_path.
@@ -12,10 +15,14 @@ import type {
  * Pulls a visitor's chronological touchpoints, the visitor's conversions,
  * and the configured attribution models, then computes how each model would
  * split the most recent conversion's value across the prior touchpoints.
+ *
+ * When DB_PROVIDER=clickhouse, the touchpoint + conversion lookup pushes
+ * down to a single SQL pair; otherwise it walks the kit's REST endpoints.
  */
 
 interface Body {
   visitorId: string;
+  forceMemory?: boolean;
 }
 
 interface TouchpointPage {
@@ -35,7 +42,7 @@ interface AttributionModelPage {
 
 function attributeValue(
   model: AttributionModel,
-  touchpoints: Touchpoint[],
+  touchpoints: Array<{ id: string; channel: string }>,
   totalCents: number,
 ): Array<{ touchpointId: string; channel: string; weight: number; valueCents: number }> {
   if (touchpoints.length === 0) return [];
@@ -68,7 +75,6 @@ function attributeValue(
       break;
     }
     case "time_decay": {
-      // Each step doubles in importance; later touches get more weight.
       let total = 0;
       for (let i = 0; i < weights.length; i++) {
         weights[i] = Math.pow(2, i);
@@ -97,8 +103,71 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
   }
   const auth = request.headers.get("authorization") ?? "";
 
-  const touchpoints: Touchpoint[] = [];
+  const env = environment as Record<string, string | undefined>;
+  const useClickHouse =
+    !body.forceMemory && env.DB_PROVIDER === "clickhouse" && Boolean(env.CLICKHOUSE_URL);
+
+  // Always need the attribution models from the kit.
+  const models: AttributionModel[] = [];
   let cursor: string | null | undefined = undefined;
+  do {
+    const qs = new URLSearchParams({ limit: "200" });
+    if (cursor) qs.set("cursor", cursor);
+    const page = await invokeJson<AttributionModelPage>(context, `/attribution-models?${qs}`, {
+      headers: { authorization: auth },
+    });
+    models.push(...page.items);
+    cursor = page.nextCursor;
+  } while (cursor);
+
+  if (useClickHouse) {
+    const tenantId = requireTenant(request);
+    const path = await explainPath({ tenantId, visitorId: body.visitorId });
+    if (!path) {
+      return new Response(
+        JSON.stringify({
+          visitorId: body.visitorId,
+          touchpointCount: 0,
+          conversionCount: 0,
+          lastConversion: null,
+          path: [],
+          attribution: {},
+          backend: "clickhouse",
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    }
+    const attribution: Record<string, ReturnType<typeof attributeValue>> = {};
+    for (const model of models) {
+      attribution[model.slug] = attributeValue(model, path.touchpoints, path.conversionValueCents);
+    }
+    return new Response(
+      JSON.stringify({
+        visitorId: body.visitorId,
+        touchpointCount: path.touchpoints.length,
+        conversionCount: 1,
+        lastConversion: {
+          id: path.conversionId,
+          valueCents: path.conversionValueCents,
+          occurredAt: path.conversionAt,
+        },
+        path: path.touchpoints.map((tp) => ({
+          touchpointId: tp.id,
+          channel: tp.channel,
+          campaignName: tp.campaignName,
+          occurredAt: tp.occurredAt,
+          url: tp.url,
+        })),
+        attribution,
+        backend: "clickhouse",
+      }),
+      { headers: { "content-type": "application/json" } },
+    );
+  }
+
+  // In-memory walk via the kit's REST endpoints.
+  const touchpoints: Touchpoint[] = [];
+  cursor = undefined;
   do {
     const qs = new URLSearchParams({ limit: "200", visitorId: body.visitorId });
     if (cursor) qs.set("cursor", cursor);
@@ -125,18 +194,6 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
   conversions.sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
   const lastConversion = conversions[conversions.length - 1] ?? null;
 
-  const models: AttributionModel[] = [];
-  cursor = undefined;
-  do {
-    const qs = new URLSearchParams({ limit: "200" });
-    if (cursor) qs.set("cursor", cursor);
-    const page = await invokeJson<AttributionModelPage>(context, `/attribution-models?${qs}`, {
-      headers: { authorization: auth },
-    });
-    models.push(...page.items);
-    cursor = page.nextCursor;
-  } while (cursor);
-
   const totalCents = lastConversion?.valueCents ?? 0;
   const priorTouchpoints = lastConversion
     ? touchpoints.filter((t) => t.occurredAt <= lastConversion.occurredAt)
@@ -161,6 +218,7 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
         url: tp.url,
       })),
       attribution,
+      backend: "memory",
     }),
     { headers: { "content-type": "application/json" } },
   );

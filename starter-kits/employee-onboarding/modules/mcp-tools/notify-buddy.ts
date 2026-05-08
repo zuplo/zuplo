@@ -3,18 +3,30 @@ import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 import { hireRepository } from "../repositories/hires.ts";
 import type { OnboardingTask } from "../repositories/onboarding-tasks.ts";
+import {
+  postSlackMessage,
+  lookupSlackUserByEmail,
+  openSlackDm,
+} from "../integrations/slack.ts";
 
 /**
  * Orchestrator MCP tool: notify_buddy.
  *
- * Reads the hire + their first-week buddy-category tasks and returns a draft
- * notification payload (subject + body) keyed to the buddy. Does NOT send
- * email — that's left to the integrator. Returns a structured payload an
- * agent can review and send via its own tool of choice.
+ * Reads the hire + their first-week buddy-category tasks and posts a Slack
+ * DM to the buddy with the first-week checklist. Resolves the buddy's
+ * Slack user id from their email (users.lookupByEmail) and opens a DM
+ * channel before posting.
+ *
+ * Set `dryRun: true` to return the drafted message without sending — useful
+ * for review or audit.
  */
 
 interface Body {
   hireId: string;
+  /** When true, return the drafted message but don't actually post to Slack. */
+  dryRun?: boolean;
+  /** Override the buddy's Slack user id (skip the email lookup). */
+  buddySlackUserId?: string;
 }
 
 interface TaskPage {
@@ -75,25 +87,59 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     (t) => t.dueDate >= hire.startDate && t.dueDate <= weekEndIso,
   );
 
-  const subject = `Buddy check-in: welcoming ${hire.firstName} ${hire.lastName}`;
+  // Build a Slack-formatted message (mrkdwn).
   const lines = [
-    `Hi,`,
+    `:wave: *Buddy check-in*`,
+    `${hire.firstName} ${hire.lastName} starts on *${hire.startDate}* as ${hire.role}, and you've been paired as their buddy.`,
     ``,
-    `${hire.firstName} ${hire.lastName} starts on ${hire.startDate} as ${hire.role}. You've been paired as their buddy.`,
-    ``,
-    `Here is the buddy checklist for their first week:`,
+    `*First-week checklist:*`,
     ...firstWeekTasks.map(
-      (t) => `  - [${t.dueDate}] ${t.title} — ${t.description}`,
+      (t) => `• \`${t.dueDate}\` ${t.title} — ${t.description}`,
     ),
     ``,
     `Let HR know if anything looks off. Thanks!`,
   ];
+  const text = lines.join("\n");
+
+  // Resolve the buddy's Slack user id and open a DM.
+  let dmChannel: string | null = null;
+  let slackUserId: string | null = null;
+  let resolveError: string | undefined;
+
+  if (!body.dryRun) {
+    try {
+      slackUserId =
+        body.buddySlackUserId ??
+        (await lookupSlackUserByEmail(hire.buddyEmail)).userId;
+      const dm = await openSlackDm({ userId: slackUserId });
+      dmChannel = dm.channelId;
+    } catch (err) {
+      resolveError = (err as Error).message;
+    }
+  }
+
+  let postResult: { sent: boolean; channel?: string; ts?: string; error?: string } | undefined;
+  if (!body.dryRun && dmChannel) {
+    try {
+      const result = await postSlackMessage({
+        channel: dmChannel,
+        text,
+      });
+      postResult = { sent: true, channel: result.channel, ts: result.ts };
+    } catch (err) {
+      postResult = { sent: false, error: (err as Error).message };
+    }
+  } else if (!body.dryRun && resolveError) {
+    postResult = { sent: false, error: resolveError };
+  }
 
   return new Response(
     JSON.stringify({
-      to: hire.buddyEmail,
-      subject,
-      body: lines.join("\n"),
+      buddy: {
+        email: hire.buddyEmail,
+        slackUserId,
+        dmChannel,
+      },
       hire: {
         id: hire.id,
         firstName: hire.firstName,
@@ -103,7 +149,9 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
       },
       taskCount: firstWeekTasks.length,
       tasks: firstWeekTasks,
-      note: "This tool returns a draft. Sending the email is left to the integrator.",
+      message: { text },
+      post: postResult,
+      dryRun: Boolean(body.dryRun),
     }),
     { headers: { "content-type": "application/json" } },
   );

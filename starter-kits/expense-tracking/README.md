@@ -1,8 +1,23 @@
 # Expense Tracking API
 
-Headless expense management with policy enforcement and approval workflows, backed by an MCP server. Submit, approve, reimburse — and let an LLM flag policy violations and triage the queue.
+Headless expense management with real OCR, real Slack notifications, and real rejection emails. The agent submits an expense from a receipt photo, the gateway extracts the line items with Mindee, the policy engine flags violations, and Slack pings finance.
 
-Replaces: Expensify, Ramp expenses, Brex expenses.
+Replaces: Expensify, Ramp expenses, Brex expenses (light).
+
+## Wires up
+
+**Mindee** is the receipt OCR — `parse_receipt` returns merchant, amount, date, currency in one call. **Slack** is where approvers live — `flag_policy_violations` drops a digest into the finance channel. **Resend** sends the rejection email back to the submitter so they actually know what happened.
+
+## Architecture at a glance
+
+```
+Inbound ──▶ Zuplo Gateway ──▶ Integration handlers
+                │                  ├── Mindee (receipt OCR)
+                │                  ├── Slack (approver digest)
+                │                  └── Resend (rejection email)
+                ▼
+          Database adapter (Supabase / Firestore / Neon / Upstash)
+```
 
 ## Quickstart
 
@@ -32,11 +47,15 @@ npx @modelcontextprotocol/inspector
 | `upstash-redis` | Supported |
 | `neon` | Supported |
 
-Pick one via `DB_PROVIDER` and fill in the matching credentials in `.env`. See [env.example](./env.example).
-
 ## Environment variables
 
-See [env.example](./env.example). The kit boots with `DB_PROVIDER=in-memory` and zero other env vars.
+See [env.example](./env.example). Beyond `DB_PROVIDER`:
+
+- `MINDEE_API_KEY` — receipt OCR
+- `SLACK_BOT_TOKEN`, `SLACK_FINANCE_CHANNEL` — approver digest
+- `RESEND_API_KEY`, `RESEND_FROM_EMAIL` — rejection notifications
+
+The kit boots with `DB_PROVIDER=in-memory` and zero other env vars. Each integration is opt-in: skip the env var, skip the call.
 
 ## API surface
 
@@ -47,10 +66,11 @@ See [env.example](./env.example). The kit boots with `DB_PROVIDER=in-memory` and
 | GET | `/expenses/{id}` | Get an expense |
 | PATCH | `/expenses/{id}/submit` | Submit for approval |
 | PATCH | `/expenses/{id}/approve` | Approve |
-| PATCH | `/expenses/{id}/reject` | Reject |
+| PATCH | `/expenses/{id}/reject` | Reject (emails submitter via Resend) |
 | GET | `/expense-categories` | List categories |
 | GET | `/expense-policies` | List policies |
-| POST | `/flag-policy-violations` | Orchestrator: flag policy-violating expenses |
+| POST | `/parse-receipt` | Orchestrator: OCR a receipt URL via Mindee |
+| POST | `/flag-policy-violations` | Orchestrator: flag violations + Slack digest |
 | POST | `/summarize-pending-approvals` | Orchestrator: pending approvals by employee |
 | POST | `/mcp` | MCP server endpoint |
 
@@ -58,26 +78,27 @@ OpenAPI: [`config/routes.oas.json`](./config/routes.oas.json).
 
 ## MCP tools
 
-| Tool | Read-only | Description |
-|---|---|---|
-| `list_expenses` | yes | List expenses |
-| `get_expense` | yes | Get expense by id |
-| `create_expense` | no | Create a draft expense |
-| `submit_expense` | no (idempotent) | Submit for approval |
-| `approve_expense` | no (idempotent) | Approve |
-| `reject_expense` | no (idempotent) | Reject |
-| `list_categories` | yes | List categories |
-| `list_policies` | yes | List policies |
-| `flag_policy_violations` | yes | Find expenses that exceed a cap or lack a required receipt |
-| `summarize_pending_approvals` | yes | Pending expenses grouped by employee |
+| Tool | Read-only | Calls | Description |
+|---|---|---|---|
+| `list_expenses` | yes | — | List expenses |
+| `get_expense` | yes | — | Get expense by id |
+| `create_expense` | no | — | Create a draft |
+| `submit_expense` | no (idempotent) | — | Submit for approval |
+| `approve_expense` | no (idempotent) | — | Approve |
+| `reject_expense` | no (idempotent) | Resend | Reject + email submitter |
+| `list_categories` | yes | — | List categories |
+| `list_policies` | yes | — | List policies |
+| `parse_receipt` | yes | Mindee | OCR a receipt URL |
+| `flag_policy_violations` | yes | Slack | Find violations, optionally digest to Slack |
+| `summarize_pending_approvals` | yes | — | Pending grouped by employee |
 
 ## The AI angle
 
-`flag_policy_violations` is the differentiator. Instead of teaching an agent to fan out across `/expenses`, `/expense-categories`, and `/expense-policies` and rebuild the rules engine in TypeScript, the gateway runs the join and returns expenses with human-readable reasons. The LLM grounds on small, structured payloads and can act (`reject_expense`) immediately.
+The realistic agent flow is: employee snaps a receipt, an MCP client calls `parse_receipt` (Mindee), then `create_expense` with the extracted fields, then `submit_expense`. Finance runs `flag_policy_violations` with `notifySlack=true` once a day — the gateway joins expenses+categories+policies internally, returns a structured violation list, **and posts a digest in Slack** so an approver can act without leaving their channel. When they `reject_expense`, Resend emails the submitter with the reason. The whole loop is three MCP tools and never exposes the agent to OCR JSON or DB rows.
 
 ## Extending
 
-- **Approver routing**: add a `Approver` entity and an orchestrator that picks the right approver per expense.
-- **Receipt OCR**: add a `parse_receipt` MCP tool that takes a URL and pre-fills `merchant`, `amount`, `date`.
-- **GL export**: add a `export_to_gl` orchestrator that bundles approved expenses by `glCode` and emits a CSV for the accounting system.
-- **Switch databases**: change `DB_PROVIDER`. Handler code never changes.
+- **Swap OCR provider:** replace `modules/integrations/mindee.ts` with Veryfi/AWS Textract — `parse_receipt` only depends on `parseReceiptFromUrl`.
+- **Interactive Slack approvals:** add a `/webhooks/slack/interactions` route that verifies the Slack request signature and calls `approve_expense` / `reject_expense`. The current kit ships outbound notifications only.
+- **GL export:** add an `export_to_gl` orchestrator that bundles `approved` expenses by `glCode` and emits a CSV.
+- **Switch databases:** change `DB_PROVIDER`. Handler code never changes.

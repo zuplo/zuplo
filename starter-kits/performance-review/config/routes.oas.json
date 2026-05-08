@@ -439,26 +439,67 @@
     "/request-peer-feedback": {
       "post": {
         "operationId": "request_peer_feedback",
-        "summary": "Request Peer Feedback",
-        "description": "Request Peer Feedback.",
+        "summary": "Create draft peer reviews and (optionally) email each reviewer (orchestrator)",
+        "description": "Creates one draft Review (kind=peer, status=draft) per email in peerEmails for the reviewee in the given cycle. When sendInvites=true, also sends a templated request email to each reviewer via Resend.",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "description": "Operation payload — see handler for schema."
+                "required": ["revieweeEmail", "peerEmails", "cycleId"],
+                "properties": {
+                  "revieweeEmail": { "type": "string", "format": "email", "description": "The person being reviewed." },
+                  "peerEmails": {
+                    "type": "array",
+                    "description": "Reviewers to invite. Self-reviews are filtered out.",
+                    "items": { "type": "string", "format": "email" }
+                  },
+                  "cycleId": { "type": "string", "description": "Performance review cycle id." },
+                  "sendInvites": { "type": "boolean", "description": "When true, send a Resend email to each reviewer once the draft Review is created." },
+                  "revieweeName": { "type": "string", "description": "Display name for the reviewee in the email." },
+                  "deadline": { "type": "string", "description": "Human-readable deadline (e.g. 'Jan 19'). Used in the email body." },
+                  "reviewLink": { "type": "string", "description": "URL to your review portal where reviewers fill out their review." },
+                  "messageBody": { "type": "string", "description": "Override the default email body. Supports {{name}}, {{revieweeName}}, {{deadline}}, {{reviewLink}} placeholders." },
+                  "messageSubject": { "type": "string", "description": "Override the default email subject. Same placeholders as messageBody." }
+                }
               }
             }
           }
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "201": {
+            "description": "Draft reviews created and (when sendInvites=true) emails sent.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "properties": {
+                    "revieweeEmail": { "type": "string", "description": "Echo of the reviewee." },
+                    "cycleId": { "type": "string", "description": "Cycle id." },
+                    "requested": { "type": "integer", "description": "Number of reviewers invited." },
+                    "invitesAttempted": { "type": "boolean", "description": "True when sendInvites was true." },
+                    "reviewers": {
+                      "type": "array",
+                      "description": "Per-reviewer outcome.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "reviewerEmail": { "type": "string", "description": "Reviewer email." },
+                          "reviewId": { "type": "string", "description": "Created Review id." },
+                          "invite": {
+                            "type": ["object", "null"],
+                            "description": "Send result (null when sendInvites was false).",
+                            "properties": {
+                              "sent": { "type": "boolean", "description": "Whether Resend accepted the email." },
+                              "id": { "type": "string", "description": "Resend message id." },
+                              "error": { "type": "string", "description": "Failure reason." }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -488,26 +529,66 @@
     "/summarize-feedback-themes": {
       "post": {
         "operationId": "summarize_feedback_themes",
-        "summary": "Summarize Feedback Themes",
-        "description": "Summarize Feedback Themes.",
+        "summary": "Cluster peer/manager/self review narratives into themes (orchestrator)",
+        "description": "For a reviewee + cycle, lists every submitted Review and returns counts + per-competency averages + narratives. When clusterThemes is true, also asks Claude to cluster the narratives into 3-6 named themes with verbatim quotes — the calibration write-up the manager actually delivers.",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "description": "Operation payload — see handler for schema."
+                "required": ["revieweeEmail", "cycleId"],
+                "properties": {
+                  "revieweeEmail": { "type": "string", "format": "email", "description": "The person being reviewed." },
+                  "cycleId": { "type": "string", "description": "Performance review cycle id." },
+                  "clusterThemes": { "type": "boolean", "description": "When true, ask Claude to cluster narratives into 3-6 themes with quotes and a manager action recommendation per theme." },
+                  "revieweeName": { "type": "string", "description": "Display name for the reviewee, used in the themed write-up." }
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Aggregated review data plus optional Claude theme clustering.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "properties": {
+                    "revieweeEmail": { "type": "string", "description": "Echo of the reviewee." },
+                    "cycleId": { "type": "string", "description": "Cycle id." },
+                    "reviewCount": { "type": "integer", "description": "Number of submitted reviews." },
+                    "byKind": {
+                      "type": "object",
+                      "description": "Counts of reviews per kind (peer, manager, self, etc.).",
+                      "additionalProperties": { "type": "integer" }
+                    },
+                    "avgRatingsByCompetency": {
+                      "type": "object",
+                      "description": "Average ratings, keyed by competency id.",
+                      "additionalProperties": { "type": "number" }
+                    },
+                    "narrativesByKind": {
+                      "type": "object",
+                      "description": "Concatenated narratives, keyed by reviewer kind.",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      }
+                    },
+                    "themes": {
+                      "type": "object",
+                      "description": "Claude theme clustering, present only when clusterThemes was true.",
+                      "properties": {
+                        "text": { "type": "string", "description": "Markdown-formatted themes write-up." },
+                        "model": { "type": "string", "description": "Claude model used." },
+                        "inputTokens": { "type": "integer", "description": "Input tokens consumed." },
+                        "outputTokens": { "type": "integer", "description": "Output tokens generated." },
+                        "sourceCount": { "type": "integer", "description": "Number of narratives clustered." }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -528,7 +609,7 @@
           "mcp": {
             "type": "tool",
             "annotations": {
-              "readOnlyHint": false
+              "readOnlyHint": true
             }
           }
         }

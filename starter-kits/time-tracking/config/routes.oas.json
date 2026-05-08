@@ -524,6 +524,132 @@
         }
       }
     },
+    "/chase-unbilled-hours": {
+      "post": {
+        "operationId": "chase_unbilled_hours",
+        "summary": "Draft (and optionally send) nudge emails for employees with unbilled time (orchestrator)",
+        "description": "For every employee with > minHours of draft, billable time entries, asks Claude to draft a friendly reminder email and (when sendEmails is true and an email is supplied) sends it via Resend. Returns the drafts and send results so an agent can audit the run.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "minHours": {
+                    "type": "number",
+                    "description": "Skip employees with fewer than this many unbilled hours. Defaults to 1.",
+                    "minimum": 0
+                  },
+                  "projectId": {
+                    "type": "string",
+                    "description": "Optional: limit the scan to a single project."
+                  },
+                  "employeeEmails": {
+                    "type": "object",
+                    "description": "Map of employeeId -> email address. Required when sendEmails=true.",
+                    "additionalProperties": { "type": "string", "format": "email" }
+                  },
+                  "employeeNames": {
+                    "type": "object",
+                    "description": "Optional map of employeeId -> first name for the email greeting.",
+                    "additionalProperties": { "type": "string" }
+                  },
+                  "sendEmails": {
+                    "type": "boolean",
+                    "description": "When true, sends the drafted email via Resend. When false, returns drafts only (default)."
+                  },
+                  "fromName": {
+                    "type": "string",
+                    "description": "Display name used in the email sign-off (e.g. 'Operations'). Defaults to 'Operations'."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Drafted nudges and send results, one per employee over the threshold.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "filter": {
+                      "type": "object",
+                      "description": "Echo of the filter applied.",
+                      "properties": {
+                        "projectId": { "type": ["string", "null"], "description": "Project filter, if any." },
+                        "minHours": { "type": "number", "description": "Effective minHours threshold." }
+                      }
+                    },
+                    "employeeCount": { "type": "integer", "description": "Employees over the threshold." },
+                    "sendsAttempted": { "type": "boolean", "description": "True when sendEmails was true." },
+                    "drafts": {
+                      "type": "array",
+                      "description": "Per-employee draft + send result, sorted by unbilled hours (desc).",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "employeeId": { "type": "string", "description": "Employee id." },
+                          "email": { "type": ["string", "null"], "description": "Resolved email address (from employeeEmails)." },
+                          "unbilledHours": { "type": "number", "description": "Total unbilled hours for this employee." },
+                          "unbilledEntries": { "type": "integer", "description": "Number of draft entries." },
+                          "byProject": {
+                            "type": "array",
+                            "description": "Per-project breakdown of unbilled hours.",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "projectId": { "type": "string" },
+                                "hours": { "type": "number" }
+                              }
+                            }
+                          },
+                          "draft": {
+                            "type": ["object", "null"],
+                            "description": "The Claude-drafted nudge.",
+                            "properties": {
+                              "subject": { "type": "string", "description": "Email subject line." },
+                              "text": { "type": "string", "description": "Plain-text body." },
+                              "model": { "type": "string", "description": "Claude model used (or 'fallback')." }
+                            }
+                          },
+                          "send": {
+                            "type": ["object", "null"],
+                            "description": "Send result (null when sendEmails was false).",
+                            "properties": {
+                              "sent": { "type": "boolean", "description": "Whether Resend accepted the email." },
+                              "id": { "type": "string", "description": "Resend message id." },
+                              "error": { "type": "string", "description": "Failure reason." }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/mcp-tools/chase-unbilled-hours)"
+          },
+          "policies": {
+            "inbound": ["api-key-inbound", "rate-limit"]
+          },
+          "mcp": {
+            "type": "tool",
+            "annotations": { "readOnlyHint": false }
+          }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -546,7 +672,8 @@
                 { "file": "./config/routes.oas.json", "id": "create_project" },
                 { "file": "./config/routes.oas.json", "id": "list_timesheets" },
                 { "file": "./config/routes.oas.json", "id": "submit_weekly_timesheet" },
-                { "file": "./config/routes.oas.json", "id": "find_unbilled_hours" }
+                { "file": "./config/routes.oas.json", "id": "find_unbilled_hours" },
+                { "file": "./config/routes.oas.json", "id": "chase_unbilled_hours" }
               ]
             }
           },

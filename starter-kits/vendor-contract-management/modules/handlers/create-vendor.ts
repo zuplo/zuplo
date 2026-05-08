@@ -1,6 +1,7 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 import { vendorRepository, type Vendor } from "../repositories/contracts.ts";
+import { postSlackMessage } from "../integrations/slack.ts";
 
 interface Body {
   name: string;
@@ -22,6 +23,24 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     totalSpendCents: 0,
     status: body.status ?? "active",
   });
+
+  // Notify the procurement channel so legal / finance can pick this up.
+  try {
+    await postSlackMessage({
+      text: [
+        `*New vendor onboarded:* ${created.name}`,
+        `Category: ${created.category}`,
+        `Contact: ${created.contactEmail}`,
+        created.website ? `Website: ${created.website}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    });
+  } catch (err) {
+    context.log.warn(
+      `Slack notify failed for vendor ${created.id}: ${(err as Error).message}`,
+    );
+  }
 
   return new Response(JSON.stringify(created), {
     status: 201,

@@ -1,6 +1,24 @@
 # NPS / Customer Feedback API Starter Kit
 
-A Zuplo Starter Kit for NPS, CSAT, and CES survey programs. Replaces Delighted, Wootric, and AskNicely.
+NPS, CSAT, and CES that actually closes the loop: send by email or SMS, capture bounces, escalate detractors to Slack, and let Claude cluster the verbatims so you stop reading comments at midnight.
+
+Replaces: Delighted, Wootric, AskNicely.
+
+## Wires up
+
+**Resend** sends email surveys and posts bounce / complaint events back through the inbound webhook. **Twilio** sends SMS surveys and reports delivery status to its inbound webhook. **Slack** receives the detractor escalation — top N unaddressed detractors get pinged into a CSM channel. **Claude** reads recent verbatims and clusters them into themes with summaries — a real CX research pass instead of grep-by-keyword.
+
+## Architecture at a glance
+
+```
+Inbound ──▶ Zuplo Gateway ──▶ Integration handlers
+                │                  ├── Resend   (send_survey email + bounce webhook)
+                │                  ├── Twilio   (send_survey SMS + status webhook)
+                │                  ├── Slack    (flag_detractor_for_csm escalation)
+                │                  └── Claude   (cluster_open_responses)
+                ▼
+          Database adapter (Supabase / Firestore / Neon / Upstash)
+```
 
 ## Quickstart
 
@@ -33,9 +51,14 @@ Pick one via `DB_PROVIDER` and fill in the matching credentials in `.env`. See [
 
 ## Environment variables
 
-See [env.example](./env.example).
+See [env.example](./env.example). Each integration is opt-in:
 
-The kit will boot with `DB_PROVIDER=in-memory` if no env vars are set, so the smoke test path is zero-config.
+- `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_WEBHOOK_SIGNING_SECRET` — email survey delivery + bounce
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` — SMS survey delivery + status webhook
+- `SLACK_BOT_TOKEN` (+ `SLACK_DEFAULT_CHANNEL`) or `SLACK_WEBHOOK_URL` — detractor escalation
+- `ANTHROPIC_API_KEY` (or `AI_GATEWAY_URL`) — Claude theme clustering
+
+The kit boots without any of these. send_survey rejects rows for channels whose env isn't set; cluster_open_responses falls back to keyword clustering when Claude is unavailable.
 
 ## API surface
 
@@ -44,43 +67,51 @@ The kit will boot with `DB_PROVIDER=in-memory` if no env vars are set, so the sm
 | GET | `/surveys` | List surveys |
 | POST | `/surveys` | Create survey |
 | GET | `/surveys/{id}` | Get survey |
-| POST | `/surveys/{id}/send` | Send survey to recipients (stub) |
-| GET | `/responses` | List responses (filter by surveyId, category, customerEmail) |
+| POST | `/surveys/{id}/send` | Send survey (Resend email / Twilio SMS) |
+| GET | `/responses` | List responses |
 | POST | `/responses` | Record a response |
 | GET | `/responses/{id}` | Get a response |
-| GET | `/follow-ups` | List follow-ups (filter by responseId, byEmail) |
+| GET | `/follow-ups` | List follow-ups |
 | POST | `/follow-ups` | Log a follow-up |
-| POST | `/cluster-open-responses` | Orchestrator: theme clustering |
-| POST | `/flag-detractor-for-csm` | Orchestrator: unaddressed detractors |
+| POST | `/cluster-open-responses` | Orchestrator: Claude theme clustering |
+| POST | `/flag-detractor-for-csm` | Orchestrator: detractor list (+ Slack) |
 | POST | `/compare-cohorts` | Orchestrator: NPS by segment |
+| POST | `/webhooks/resend` | Inbound Resend (Svix) events |
+| POST | `/webhooks/twilio` | Inbound Twilio status callbacks |
 | POST | `/mcp` | MCP server endpoint |
 
 OpenAPI: [`config/routes.oas.json`](./config/routes.oas.json).
 
+## Webhooks (inbound)
+
+| Path | Verifies | Handles |
+|---|---|---|
+| `/webhooks/resend` | `svix-id` / `svix-timestamp` / `svix-signature` against `RESEND_WEBHOOK_SIGNING_SECRET` | `email.bounced`, `email.complained`, `email.delivered`, `email.opened`, `email.clicked` |
+| `/webhooks/twilio` | `X-Twilio-Signature` (HMAC-SHA1) against `TWILIO_AUTH_TOKEN` | Message delivery state — logs `failed` / `undelivered` for retry |
+
 ## MCP tools
 
-| Tool | Type | Read-only | Description |
+| Tool | Read-only | Calls | Description |
 |---|---|---|---|
-| `list_surveys` | tool | yes | List surveys in tenant |
-| `create_survey` | tool | no | Create survey |
-| `get_survey` | tool | yes | Get survey |
-| `send_survey` | tool | no | Queue a send batch (stub) |
-| `list_responses` | tool | yes | List responses |
-| `record_response` | tool | no | Record a response |
-| `get_response` | tool | yes | Get a response |
-| `list_followups` | tool | yes | List follow-ups |
-| `log_followup` | tool | no | Log a follow-up |
-| `cluster_open_responses` | tool | yes | Theme clustering orchestrator |
-| `flag_detractor_for_csm` | tool | yes | Detractor tracker |
-| `compare_cohorts` | tool | yes | Segment-vs-segment NPS comparison |
+| `list_surveys` / `get_survey` | yes | DB | Survey reads |
+| `create_survey` | no | DB | Create survey |
+| `send_survey` | no | DB + **Resend** + **Twilio** | Multi-channel dispatch |
+| `list_responses` / `get_response` / `record_response` | mixed | DB | Response data |
+| `list_followups` / `log_followup` | mixed | DB | Follow-up tracking |
+| `cluster_open_responses` | yes | DB + **Claude** | Theme clustering |
+| `flag_detractor_for_csm` | yes | DB + **Slack** | Detractor list + escalation |
+| `compare_cohorts` | yes | DB | NPS by segment |
 
 ## The AI angle
 
-The point of NPS isn't the score — it's responding to it. `flag_detractor_for_csm` keeps a queue of unaddressed detractors so an assistant can draft outreach. `cluster_open_responses` answers "what are people complaining about lately?" without anyone having to read the comment column. `compare_cohorts` is the analyst question — "are enterprise accounts happier than SMB?" — answered in one tool call.
+`cluster_open_responses` is the kit's reason to exist. CX teams have a verbatim review meeting every week where someone reads 200 NPS comments out loud and someone else types "pricing" in a Google Doc. This orchestrator does it in a single tool call: pull recent verbatims for a survey (optionally filtered to detractors), hand them to Claude with a "you are a CX research analyst, group these into at most 6 themes with 1-2 sentence summaries" system prompt, and return the structured themes — name, count, summary, contributing verbatim ids — sorted by frequency. Falls back to keyword clustering when Claude is off.
+
+`flag_detractor_for_csm` rounds out the closed-loop: when ops calls it with `postToSlack: true`, the detractor list lands in the CSM channel automatically. Pair the two on a weekly cron and you have a fully automated VOC program.
 
 ## Extending
 
-- **Real send backend:** replace `modules/handlers/send-survey.ts` with an SES, Postmark, or SendGrid call. The route stays the same.
-- **Custom themes:** pass a `themes` array to `cluster_open_responses` for domain-specific keyword buckets, or replace the keyword match with an embedding-based similarity score.
-- **New orchestrator:** add a handler in `modules/mcp-tools/`, list it on a route, register the operationId in the `/mcp` route's `operations` array.
-- **Switch databases:** change `DB_PROVIDER` in `.env`.
+- **Swap email provider:** replace `modules/integrations/resend.ts` with a Postmark / SES / SendGrid adapter and update the webhook signature scheme.
+- **Add WhatsApp via Twilio:** the same `sendTwilioSms` works against a WhatsApp sender — change `From` to `whatsapp:+14155...`.
+- **Send Slack threads instead of single posts:** the `postSlackMessage` helper accepts `threadTs` already; have the orchestrator open a thread per detractor.
+- **Route Claude through a gateway:** set `AI_GATEWAY_URL`. Useful for adding budget caps in front of weekly clustering runs.
+- **Switch databases:** change `DB_PROVIDER` in `.env`. Handler code never changes.

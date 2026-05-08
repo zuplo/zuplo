@@ -839,6 +839,33 @@
         }
       }
     },
+    "/webhooks/pagerduty": {
+      "post": {
+        "operationId": "pagerduty_webhook",
+        "summary": "PagerDuty incident webhook",
+        "description": "Receives PagerDuty incident events (triggered/acknowledged/resolved). Verifies the HMAC signature against PAGERDUTY_WEBHOOK_SECRET, mirrors the incident into our store, and broadcasts to the Slack incident channel.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Event processed." },
+          "401": { "description": "Invalid signature." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/pagerduty-webhook)"
+          },
+          "policies": { "inbound": ["api-key-inbound"] }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",

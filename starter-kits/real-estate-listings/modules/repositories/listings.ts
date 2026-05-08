@@ -61,6 +61,8 @@ export interface Lead extends Entity {
 
 /**
  * A Showing is an in-person tour of a Listing scheduled for a Lead.
+ * `calendarEventId` is set when the kit provisioned a Google Calendar
+ * event for the agent so the event can be cleaned up on cancellation.
  */
 export interface Showing extends Entity {
   listingId: string;
@@ -70,6 +72,7 @@ export interface Showing extends Entity {
   agentEmail: string;
   status: "scheduled" | "completed" | "canceled" | "no_show";
   feedback: string;
+  calendarEventId: string | null;
   createdAt: string;
 }
 

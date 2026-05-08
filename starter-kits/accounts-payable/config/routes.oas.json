@@ -137,10 +137,28 @@
       }
     },
     "/bill-payments": {
+      "get": {
+        "operationId": "list_bill_payments",
+        "summary": "List bill payments",
+        "description": "Returns scheduled and completed bill payments. Used by reconcile_with_bank.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Max payments to return.", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "cursor", "in": "query", "description": "Pagination cursor.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Page of bill payments.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BillPaymentPage" } } } }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/list-bill-payments)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      },
       "post": {
         "operationId": "schedule_payment",
         "summary": "Schedule a payment for a bill",
-        "description": "Schedule a future payment for an approved bill.",
+        "description": "Schedule a future payment for an approved bill. With `executeNow=true` and a Stripe-connected vendor, the gateway pushes a Stripe Transfer immediately and the webhook handles confirmation.",
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BillPaymentCreate" } } }
@@ -356,6 +374,120 @@
         }
       }
     },
+    "/parse-bill": {
+      "post": {
+        "operationId": "parse_bill",
+        "summary": "Parse a vendor bill PDF via Mindee OCR (orchestrator)",
+        "description": "Takes a publicly-reachable bill URL, runs Mindee OCR, and returns normalized fields the LLM can drop into create_bill.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["attachmentUrl"],
+                "properties": {
+                  "attachmentUrl": { "type": "string", "format": "uri", "description": "URL to the bill (PDF, PNG, JPG)." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Normalized OCR result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "vendor": { "type": ["string", "null"], "description": "Detected vendor/supplier name." },
+                    "amountCents": { "type": ["integer", "null"], "description": "Total amount in cents." },
+                    "currency": { "type": ["string", "null"], "description": "ISO currency code." },
+                    "date": { "type": ["string", "null"], "description": "Detected bill date (YYYY-MM-DD)." },
+                    "billNumber": { "type": ["string", "null"], "description": "Detected bill/receipt number." },
+                    "category": { "type": ["string", "null"], "description": "Detected category." },
+                    "confidence": { "type": "number", "description": "Min confidence across load-bearing fields (0..1)." },
+                    "ready": { "type": "boolean", "description": "True if vendor + amount + date parsed and confidence > 0.5." }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/parse-bill)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/reconcile-with-bank": {
+      "post": {
+        "operationId": "reconcile_with_bank",
+        "summary": "Reconcile bank transactions to scheduled payments via Plaid (orchestrator)",
+        "description": "Pulls Plaid transactions for the configured bank account and matches each against scheduled BillPayments by amount + date. Returns the proposed matches plus unmatched transactions for human review.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "startDate": { "type": "string", "format": "date", "description": "Window start. Defaults to 30 days ago." },
+                  "endDate": { "type": "string", "format": "date", "description": "Window end. Defaults to today." },
+                  "amountToleranceCents": { "type": "integer", "description": "Max delta in cents to consider a match. Default 0 (exact)." },
+                  "dayWindow": { "type": "integer", "description": "Max day delta between scheduledFor and txn date. Default 3." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Match results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "window": { "type": "object", "properties": { "startDate": { "type": "string" }, "endDate": { "type": "string" } } },
+                    "txnCount": { "type": "integer" },
+                    "matchCount": { "type": "integer" },
+                    "unmatchedTxnCount": { "type": "integer" },
+                    "matches": { "type": "array", "items": { "type": "object" } },
+                    "unmatchedTxns": { "type": "array", "items": { "type": "object" } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/reconcile-with-bank)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/webhooks/stripe": {
+      "post": {
+        "operationId": "stripe_webhook",
+        "summary": "Stripe webhook receiver",
+        "description": "Inbound webhook for Stripe Transfer / Payout events. Verifies the Stripe-Signature header and reconciles BillPayment + Bill state on transfer.paid / payout.paid / transfer.reversed / payout.failed.",
+        "responses": {
+          "200": { "description": "Event processed (or ignored)." },
+          "400": { "description": "Missing or invalid signature." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/webhooks/stripe)" },
+          "policies": { "inbound": [] }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -375,12 +507,15 @@
                 { "file": "./config/routes.oas.json", "id": "route_for_approval" },
                 { "file": "./config/routes.oas.json", "id": "approve_bill" },
                 { "file": "./config/routes.oas.json", "id": "reject_bill" },
+                { "file": "./config/routes.oas.json", "id": "list_bill_payments" },
                 { "file": "./config/routes.oas.json", "id": "schedule_payment" },
                 { "file": "./config/routes.oas.json", "id": "list_vendors" },
                 { "file": "./config/routes.oas.json", "id": "create_vendor" },
                 { "file": "./config/routes.oas.json", "id": "detect_duplicate_bills" },
                 { "file": "./config/routes.oas.json", "id": "summarize_payable_aging" },
-                { "file": "./config/routes.oas.json", "id": "match_bill_to_po" }
+                { "file": "./config/routes.oas.json", "id": "match_bill_to_po" },
+                { "file": "./config/routes.oas.json", "id": "parse_bill" },
+                { "file": "./config/routes.oas.json", "id": "reconcile_with_bank" }
               ]
             }
           },
@@ -477,7 +612,9 @@
           "paymentTerms": { "type": "integer", "description": "Net payment terms in days (e.g. 30 for net-30)." },
           "currency": { "type": "string", "description": "ISO 4217 currency code." },
           "paymentMethod": { "type": "string", "enum": ["check", "ach", "wire"], "description": "Default payment method." },
-          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." }
+          "createdAt": { "type": "string", "format": "date-time", "description": "Record creation time." },
+          "stripeAccountId": { "type": ["string", "null"], "description": "Stripe Connect account id (acct_xxx) for outbound Transfers." },
+          "plaidAccessToken": { "type": ["string", "null"], "description": "Optional Plaid access token for the vendor's receiving account." }
         }
       },
       "VendorCreate": {
@@ -489,7 +626,9 @@
           "email": { "type": "string", "format": "email", "description": "Vendor contact email." },
           "paymentTerms": { "type": "integer", "description": "Net payment terms in days." },
           "currency": { "type": "string", "description": "ISO 4217 currency code." },
-          "paymentMethod": { "type": "string", "enum": ["check", "ach", "wire"], "description": "Default payment method." }
+          "paymentMethod": { "type": "string", "enum": ["check", "ach", "wire"], "description": "Default payment method." },
+          "stripeAccountId": { "type": "string", "description": "Optional Stripe Connect account id." },
+          "plaidAccessToken": { "type": "string", "description": "Optional Plaid access token." }
         }
       },
       "VendorPage": {
@@ -526,7 +665,17 @@
           "amountCents": { "type": "integer", "description": "Amount in cents." },
           "method": { "type": "string", "description": "Payment method." },
           "scheduledFor": { "type": "string", "format": "date-time", "description": "Scheduled execution time." },
-          "reference": { "type": "string", "description": "External reference." }
+          "reference": { "type": "string", "description": "External reference." },
+          "executeNow": { "type": "boolean", "description": "If true and the vendor has a Stripe Connect account, push the payment immediately." }
+        }
+      },
+      "BillPaymentPage": {
+        "type": "object",
+        "description": "A page of bill payments.",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "Payments on this page.", "items": { "$ref": "#/components/schemas/BillPayment" } },
+          "nextCursor": { "type": ["string", "null"], "description": "Pagination cursor." }
         }
       },
       "AgingBucket": {

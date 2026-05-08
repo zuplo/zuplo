@@ -45,6 +45,10 @@ export interface Vendor extends Entity {
   currency: string;
   paymentMethod: "check" | "ach" | "wire";
   createdAt: string;
+  /** Stripe Connect account id (acct_xxx) for outbound payouts via Transfer. */
+  stripeAccountId: string | null;
+  /** Plaid access_token for the *vendor's* receiving account (rare — usually it's the payer's account that's in Plaid, see `PLAID_ACCESS_TOKEN`). */
+  plaidAccessToken: string | null;
 }
 
 /**

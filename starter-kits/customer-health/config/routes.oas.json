@@ -575,8 +575,8 @@
     "/predict-churn-risk": {
       "post": {
         "operationId": "predict_churn_risk",
-        "summary": "Predict at-risk accounts in the renewal window (orchestrator)",
-        "description": "Returns accounts likely to churn — defined as red tier OR (renewing within `daysAhead` AND any high-severity signal). Filterable by CSM email.",
+        "summary": "Predict at-risk accounts (Claude-powered orchestrator)",
+        "description": "Aggregates signals from the kit's own DB (health scores, severity events), Stripe (outstanding invoices, cancelling subscriptions), and PostHog (a HogQL usage rollup you supply), then hands the per-account context to Claude for a low/medium/high risk verdict and short reasoning. Each external call is opt-in and skipped silently if its env is unset.",
         "requestBody": {
           "required": false,
           "content": {
@@ -594,6 +594,18 @@
                     "description": "Renewal window. Defaults to 90.",
                     "minimum": 1,
                     "maximum": 365
+                  },
+                  "includeRevenueHealth": {
+                    "type": "boolean",
+                    "description": "Fold in Stripe past-due invoices and cancelling subscriptions for accounts that have `external.stripeCustomerId` set."
+                  },
+                  "posthogUsageQuery": {
+                    "type": "string",
+                    "description": "Optional HogQL query returning rows of [account_prefix, weekly_active_users]. Folded into the per-account context."
+                  },
+                  "classifyWithClaude": {
+                    "type": "boolean",
+                    "description": "Default true. Set false to skip the Claude classification and just return deterministic reasons."
                   }
                 }
               }
@@ -602,7 +614,7 @@
         },
         "responses": {
           "200": {
-            "description": "List of at-risk accounts with reasons.",
+            "description": "List of at-risk accounts with reasons and optional Claude verdict.",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ChurnRiskReport" }
@@ -940,7 +952,21 @@
                 "account": { "$ref": "#/components/schemas/Account" },
                 "latestScore": { "$ref": "#/components/schemas/HealthScore", "nullable": true },
                 "highSignals": { "type": "array", "items": { "$ref": "#/components/schemas/Signal" } },
-                "reasons": { "type": "array", "items": { "type": "string" } }
+                "revenue": {
+                  "type": "object",
+                  "nullable": true,
+                  "description": "Stripe-derived revenue health (when includeRevenueHealth=true and stripeCustomerId is set on the account).",
+                  "additionalProperties": true
+                },
+                "weeklyActiveUsers": { "type": "integer", "nullable": true, "description": "From PostHog usage query, when supplied." },
+                "reasons": { "type": "array", "items": { "type": "string" }, "description": "Deterministic reasons computed from rules." },
+                "claudeRisk": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["low", "medium", "high", null],
+                  "description": "Claude's classification, when classifyWithClaude is on."
+                },
+                "claudeReasoning": { "type": "string", "nullable": true, "description": "One-sentence reasoning from Claude." }
               }
             }
           }

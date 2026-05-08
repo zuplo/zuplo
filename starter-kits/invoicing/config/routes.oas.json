@@ -296,7 +296,7 @@
       "post": {
         "operationId": "chase_overdue_invoices",
         "summary": "Chase overdue invoices (orchestrator)",
-        "description": "Orchestrator MCP tool. Lists invoices past due, hydrates customer info, and produces a draft chase email per invoice. Tone is intentionally neutral — the LLM caller should rewrite for voice.",
+        "description": "Orchestrator MCP tool. Lists invoices past due, drafts a chase email per invoice, and (when dryRun=false) creates a hosted Stripe invoice and sends the chase via Resend. Defaults to dryRun=true so the LLM can preview before billing real customers.",
         "requestBody": {
           "required": false,
           "content": {
@@ -304,7 +304,8 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "daysOverdue": { "type": "integer", "description": "Only include invoices that are at least this many days past due. Defaults to 0.", "minimum": 0, "maximum": 365 }
+                  "daysOverdue": { "type": "integer", "description": "Only include invoices that are at least this many days past due. Defaults to 0.", "minimum": 0, "maximum": 365 },
+                  "dryRun": { "type": "boolean", "description": "If true (default), only return drafts. If false, push each invoice to Stripe and send via Resend." }
                 }
               }
             }
@@ -318,6 +319,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "dryRun": { "type": "boolean", "description": "Whether the run actually emailed/charged or just previewed." },
                     "count": { "type": "integer", "description": "Number of overdue invoices." },
                     "totalOutstandingCents": { "type": "integer", "description": "Sum of total amounts across overdue invoices, in cents." },
                     "invoices": {
@@ -329,7 +331,10 @@
                           "invoice": { "$ref": "#/components/schemas/Invoice" },
                           "customer": { "$ref": "#/components/schemas/Customer" },
                           "daysOverdue": { "type": "integer", "description": "How many days past dueDate." },
-                          "draftEmail": { "type": "string", "description": "Draft email text the LLM can rewrite." }
+                          "draftEmail": { "type": "string", "description": "Draft email text the LLM can rewrite." },
+                          "stripeHostedInvoiceUrl": { "type": ["string", "null"], "description": "Stripe-hosted pay link if a real run was performed." },
+                          "emailId": { "type": ["string", "null"], "description": "Resend email id if a chase email was sent." },
+                          "errors": { "type": "array", "items": { "type": "string" }, "description": "Per-invoice errors from Stripe/Resend, if any." }
                         }
                       }
                     }
@@ -402,6 +407,25 @@
           },
           "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
           "mcp": { "type": "tool", "annotations": { "readOnlyHint": true } }
+        }
+      }
+    },
+    "/webhooks/stripe": {
+      "post": {
+        "operationId": "stripe_webhook",
+        "summary": "Stripe webhook receiver",
+        "description": "Inbound webhook for Stripe events. Verifies the Stripe-Signature header against STRIPE_WEBHOOK_SECRET and dispatches invoice.payment_succeeded / invoice.payment_failed events into the local invoice store.",
+        "responses": {
+          "200": { "description": "Event processed (or ignored)." },
+          "400": { "description": "Missing or invalid signature." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/webhooks/stripe)"
+          },
+          "policies": { "inbound": [] }
         }
       }
     },

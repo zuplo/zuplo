@@ -18,6 +18,8 @@ function requireEnv(name: string): string {
 
 /**
  * The Lesson entity — a single class session within a course.
+ * `calendarEventId` is set when the kit provisioned a Google Calendar
+ * event (via create_lesson) so the event can be deleted on lesson removal.
  */
 export interface Lesson extends Entity {
   courseId: string;
@@ -26,6 +28,7 @@ export interface Lesson extends Entity {
   scheduledFor: string;
   durationMinutes: number;
   videoUrl: string | null;
+  calendarEventId: string | null;
   createdAt: string;
 }
 

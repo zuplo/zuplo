@@ -357,6 +357,85 @@
         }
       }
     },
+    "/discover-apps": {
+      "post": {
+        "operationId": "discover_apps",
+        "summary": "Auto-discover SaaS apps from connected IdPs (orchestrator)",
+        "description": "Calls Google Workspace Admin SDK, Microsoft Graph, and Okta to enumerate apps the tenant's users have signed into, plus seat counts where available, and upserts them into the apps catalog. The IdPs that lack credentials are skipped silently.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "providers": {
+                    "type": "array",
+                    "description": "Subset of providers to query. Defaults to all configured.",
+                    "items": { "type": "string", "enum": ["google-workspace", "microsoft-365", "okta"] }
+                  },
+                  "upsert": { "type": "boolean", "description": "Persist to the apps catalog. Defaults true." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Discovered apps.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "providers": { "type": "array", "items": { "type": "string" } },
+                    "discovered": { "type": "integer" },
+                    "apps": { "type": "array", "items": { "type": "object" } },
+                    "errors": { "type": "array", "items": { "type": "object" } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/mcp-tools/discover-apps)" },
+          "policies": { "inbound": ["api-key-inbound", "rate-limit"] },
+          "mcp": { "type": "tool", "annotations": { "readOnlyHint": false } }
+        }
+      }
+    },
+    "/oauth/google/callback": {
+      "get": {
+        "operationId": "google_oauth_callback",
+        "summary": "Google OAuth callback",
+        "description": "Receives the OAuth `code` from Google's consent flow and exchanges it for a refresh token. Save the resulting refresh_token as GOOGLE_REFRESH_TOKEN in your env vars.",
+        "responses": {
+          "200": { "description": "Token exchange successful." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/google-oauth-callback)" },
+          "policies": { "inbound": [] }
+        }
+      }
+    },
+    "/oauth/microsoft/callback": {
+      "get": {
+        "operationId": "microsoft_oauth_callback",
+        "summary": "Microsoft Entra OAuth callback",
+        "description": "Confirms admin consent or completes the auth-code grant for Microsoft Graph access. Use the admin-consent URL during initial setup.",
+        "responses": {
+          "200": { "description": "Consent or token exchange successful." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": { "export": "default", "module": "$import(./modules/handlers/microsoft-oauth-callback)" },
+          "policies": { "inbound": [] }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -383,7 +462,8 @@
                 { "file": "./config/routes.oas.json", "id": "plan_renewal" },
                 { "file": "./config/routes.oas.json", "id": "find_unused_licenses" },
                 { "file": "./config/routes.oas.json", "id": "recommend_seat_reduction" },
-                { "file": "./config/routes.oas.json", "id": "forecast_renewal_cost" }
+                { "file": "./config/routes.oas.json", "id": "forecast_renewal_cost" },
+                { "file": "./config/routes.oas.json", "id": "discover_apps" }
               ]
             }
           },

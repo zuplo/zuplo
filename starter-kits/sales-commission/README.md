@@ -1,83 +1,105 @@
 # Commission / Sales Comp API
 
-Comp plans, quotas, credits, and payouts with MCP tools that explain commission amounts, model what-ifs, and flag clawback risk.
+Comp plans, quotas, credits, and payouts — with the part that actually makes reps happy: a tool that explains where their commission number came from, in plain English.
 
-**Replaces:** CaptivateIQ, Spiff, Xactly.
-**SEO target:** "commission api".
+Replaces: CaptivateIQ, Spiff, Xactly.
+
+## Wires up
+
+**Slack** delivers the "your commission for Q2 is approved" DM the moment ops hits approve. **Claude** reads the comp plan, the credits, the accelerator math, and writes the rep an honest paragraph explaining the number — including whether the recomputation matches the stored value.
+
+## Architecture at a glance
+
+```
+Inbound ──▶ Zuplo Gateway ──▶ Integration handlers
+                │                  ├── Slack    (approve_payout DM)
+                │                  └── Claude   (explain_commission_amount)
+                ▼
+          Database adapter (Supabase / Firestore / Neon / Upstash)
+```
 
 ## Quickstart
 
 ```bash
-npx create-zuplo-api@latest --example starter-kits/sales-commission
-cd sales-commission
+cd starter-kits/sales-commission
 cp env.example .env
 npm install
 npm run dev
+# Gateway boots at http://localhost:9000
 ```
 
-The gateway boots at `http://localhost:9000`. To explore the MCP server:
+Connect an MCP inspector:
 
 ```bash
 npx @modelcontextprotocol/inspector
-# Connect to http://localhost:9000/mcp
+# Point it at http://localhost:9000/mcp
 ```
 
 ## Choosing a database
 
-This kit ships with HTTP-only adapters (the kits run in Zuplo's edge runtime — no TCP drivers). Set `DB_PROVIDER` in `.env` to one of:
-
-| `DB_PROVIDER` | Adapter |
+| Adapter | Status |
 |---|---|
-| `in-memory` | In-Memory (tests/local) |
-| `supabase` | Supabase (PostgREST) |
-| `firestore` | Firestore (REST) |
-| `neon` | Neon (HTTP serverless) |
-| `upstash-redis` | Upstash Redis (REST) |
+| `in-memory` | Default — boots without any credentials |
+| `supabase` | Supported |
+| `firestore` | Supported |
+| `upstash-redis` | Supported |
+| `neon` | Supported |
 
-`in-memory` is the default — the kit boots without any credentials so you can try it before wiring up storage.
+Pick one via `DB_PROVIDER` and fill in the matching credentials in `.env`. See [env.example](./env.example).
 
 ## Environment variables
 
-See [env.example](./env.example).
+See [env.example](./env.example). Beyond `DB_PROVIDER`:
+
+- `SLACK_BOT_TOKEN` (+ `SLACK_DEFAULT_CHANNEL`) or `SLACK_WEBHOOK_URL` — for approve_payout DMs
+- `ANTHROPIC_API_KEY` (or `AI_GATEWAY_URL`) — for the commission explanation
+
+The kit boots without any of these — Slack and Claude calls are skipped if their env isn't configured, and the explanation field is just omitted from the response.
 
 ## API surface
 
-| Method | Path | Operation ID | Description | MCP |
-|---|---|---|---|---|
-| POST | `/credit` | `record_credit` | Record Credit | tool |
-| GET | `/credits` | `list_credits` | List Credits | tool |
-| POST | `/explain-commission-amount` | `explain_commission_amount` | Explain Commission Amount | tool |
-| POST | `/flag-clawback-risk` | `flag_clawback_risk` | Flag Clawback Risk | tool |
-| POST | `/model-what-if-close` | `model_what_if_close` | Model What If Close | tool |
-| GET | `/payout/{id}` | `get_payout` | Get Payout | tool |
-| POST | `/payout/{id}/approve` | `approve_payout` | Approve Payout | tool |
-| GET | `/payouts` | `list_payouts` | List Payouts | tool |
-| POST | `/payouts/calculate` | `calculate_payouts` | Calculate Payouts | tool |
-| POST | `/plan` | `create_plan` | Create Plan | tool |
-| GET | `/plans` | `list_plans` | List Plans | tool |
-| PATCH | `/quota/{id}` | `set_quota` | Set Quota | tool |
-| GET | `/quotas` | `list_quotas` | List Quotas | tool |
-| POST | `/mcp` | `mcp_handler` | MCP server endpoint | — |
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/credit` | Record credit |
+| GET | `/credits` | List credits |
+| POST | `/payout/{id}/approve` | Approve payout (+ Slack DM) |
+| GET | `/payout/{id}` | Get payout |
+| GET | `/payouts` | List payouts |
+| POST | `/payouts/calculate` | Calculate payouts for a period |
+| POST | `/plan` | Create comp plan |
+| GET | `/plans` | List comp plans |
+| PATCH | `/quota/{id}` | Set quota |
+| GET | `/quotas` | List quotas |
+| POST | `/explain-commission-amount` | Orchestrator: math + Claude explanation |
+| POST | `/flag-clawback-risk` | Orchestrator: clawback scan |
+| POST | `/model-what-if-close` | Orchestrator: forecast |
+| POST | `/mcp` | MCP server endpoint |
 
 OpenAPI: [`config/routes.oas.json`](./config/routes.oas.json).
 
 ## MCP tools
 
-13 tools registered: `approve_payout`, `calculate_payouts`, `create_plan`, `get_payout`, `list_credits`, `list_payouts`, `list_plans`, `list_quotas`, `record_credit`, `set_quota`, `explain_commission_amount`, `flag_clawback_risk`, `model_what_if_close`.
-
-Both layers of Zuplo's MCP wiring agree:
-- Per-route `mcp: { type: "tool" }` annotations on each operation in `config/routes.oas.json`
-- The `/mcp` route's `options.operations: [...]` array lists every `operationId` exposed
+| Tool | Read-only | Calls | Description |
+|---|---|---|---|
+| `record_credit` / `list_credits` | mixed | DB | Sales credits |
+| `create_plan` / `list_plans` | mixed | DB | Comp plans |
+| `set_quota` / `list_quotas` | mixed | DB | Quotas |
+| `calculate_payouts` | no | DB | Compute payouts for a period |
+| `get_payout` / `list_payouts` | yes | DB | Payout reads |
+| `approve_payout` | no | DB + **Slack** | Approve + DM rep |
+| `explain_commission_amount` | yes | DB + **Claude** | Math + plain-English explanation |
+| `flag_clawback_risk` | yes | DB | Clawback scan |
+| `model_what_if_close` | yes | DB | Forecast helper |
 
 ## The AI angle
 
-The orchestrator MCP tools shipped with this kit are where the agentic value compounds — they read multi-source signals through `context.invokeRoute()` and shape the response for an LLM, rather than dumping raw rows. Agents work best when they can call a few purposeful tools (`triage_x`, `summarize_x`, `flag_x`) instead of every CRUD endpoint.
+`explain_commission_amount` is the kit's reason to exist. Comp plans are notoriously spaghetti — base rate × attainment-tier accelerator × split percent × deal-status modifier — and reps end every quarter typing "where did this number come from?" into a Slack ticket queue. This tool walks the credits that fed the payout, resolves the plan that priced it, reproduces the accelerator decision, and feeds the whole structured breakdown to Claude with a "be a comp ops analyst, explain this in 180 words" system prompt. Claude grounds its answer on the math rather than hallucinating, and is honest when the recomputation does not match the stored number — which is the most useful response of all.
 
-Per the [conventions doc](../CLAUDE.md), every CRUD endpoint inherits `api-key-inbound` + `rate-limit` policies, and the `/mcp` route adds `prompt-injection-outbound` + `secret-masking-outbound` defenses for AI traffic.
+`approve_payout` rounds out the loop: when comp ops hits approve, the rep gets DM'd in Slack the same second, with the period and the dollar amount. No "did you check the email yet?" questions.
 
 ## Extending
 
-- **New entity:** add a repository in `modules/repositories/` (follow the factory pattern keyed by `DB_PROVIDER`).
-- **New endpoint:** add a handler in `modules/handlers/`, append the route to `config/routes.oas.json` with `mcp: { type: "tool" }`, and add the `operationId` to the `/mcp` route's `options.operations: [...]` array. Both layers must agree.
-- **New orchestrator MCP tool:** drop a file in `modules/mcp-tools/` that uses `invokeJson` from `@zuplo/starter-kit-shared/mcp` to compose existing endpoints. Pass the inbound `authorization` header through so the inner calls re-run policies.
-- **Switch databases:** change `DB_PROVIDER` in `.env` — the handlers don't change.
+- **Swap Slack for Teams / Discord:** replace `modules/integrations/slack.ts` with a Microsoft Graph / Discord adapter (same shape).
+- **Route Claude through a gateway:** set `AI_GATEWAY_URL`. Useful for adding budget caps or prompt-injection scanning in front of the comp explanation.
+- **Add audit log:** wrap `payoutRepository.update` with a write to a `commission_events` collection so every approval is traceable.
+- **Switch databases:** change `DB_PROVIDER` in `.env`. Handler code never changes.

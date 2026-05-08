@@ -25,6 +25,12 @@ export interface Photo extends Entity {
   caption: string | null;
   takenAt: string;
   takenBy: string;
+  /** R2 object key (when stored in Cloudflare R2). */
+  r2Key?: string | null;
+  /** R2 bucket the photo lives in. */
+  r2Bucket?: string | null;
+  /** MIME type, e.g. "image/jpeg". */
+  contentType?: string | null;
 }
 
 function build(): Repository<Photo> {

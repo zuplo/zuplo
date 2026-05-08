@@ -23,6 +23,12 @@ export interface PurchaseOrder extends Entity {
   currency: string;
   status: "issued" | "received" | "closed";
   issuedAt: string;
+  /** DocuSign envelope id once the PO is sent for vendor counter-signature. */
+  docusignEnvelopeId: string | null;
+  /** DocuSign envelope status (sent / delivered / completed / declined). */
+  docusignStatus: string | null;
+  /** Resend message id once the vendor email is sent. */
+  vendorEmailId: string | null;
 }
 
 function build(): Repository<PurchaseOrder> {

@@ -1,7 +1,11 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
+import { environment } from "@zuplo/runtime";
 import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 import { submissionRepository } from "../repositories/submissions.ts";
 import { spamRuleRepository } from "../repositories/spam-rules.ts";
+import { formRepository } from "../repositories/forms.ts";
+import { postToSlack, buildSubmissionAlert } from "../integrations/slack.ts";
+import { sendResendEmail, buildSubmissionConfirmation } from "../integrations/resend.ts";
 
 interface Body {
   formId: string;
@@ -71,6 +75,49 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     processed: false,
     spam: verdict.flagged,
   });
+
+  // Best-effort fan-out. Each integration is opt-in via env vars and fails
+  // open — a Slack outage or Resend rate-limit must not break submit.
+  const env = environment as Record<string, string | undefined>;
+  let form: { name: string } | null = null;
+  try {
+    form = await formRepository.get(tenantId, body.formId);
+  } catch {
+    // Form lookup is decorative for the notification — keep going.
+  }
+  const formName = form?.name ?? "Form submission";
+
+  // Slack notification.
+  if (!verdict.flagged && (env.SLACK_WEBHOOK_URL || env.SLACK_BOT_TOKEN)) {
+    try {
+      await postToSlack(
+        buildSubmissionAlert({
+          formName,
+          submitterEmail,
+          score: null,
+          routedTo: null,
+          payloadPreview: body.payload ?? {},
+          submissionId: created.id,
+        }),
+      );
+    } catch (err) {
+      context.log.warn("Slack notify failed", { err: String(err) });
+    }
+  }
+
+  // Resend confirmation email back to the submitter.
+  if (!verdict.flagged && submitterEmail && env.RESEND_API_KEY && env.RESEND_FROM_EMAIL) {
+    try {
+      await sendResendEmail(
+        buildSubmissionConfirmation({
+          to: submitterEmail,
+          formName,
+        }),
+      );
+    } catch (err) {
+      context.log.warn("Resend confirmation failed", { err: String(err) });
+    }
+  }
 
   return new Response(JSON.stringify(created), {
     status: 201,

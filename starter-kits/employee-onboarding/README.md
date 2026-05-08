@@ -1,8 +1,25 @@
 # Employee Onboarding API
 
-A Zuplo Starter Kit that ships an onboarding API — hires, task templates, and per-hire checklists — together with an MCP server so an agent can spin up an onboarding plan, surface overdue work, and draft buddy notifications without leaving the chat.
+A Zuplo Starter Kit that handles new hires the way new hires should be handled — Slack DMs to the buddy with their first-week checklist, Claude-drafted 30/60/90 plans tailored to the role, Resend emails for paperwork. The MCP server turns "Maria starts Monday — set her up" into one command.
 
 Replaces: Sapling, ChartHop onboarding, Workday onboarding.
+
+## Wires up
+
+- **Slack** (Web API: `users.lookupByEmail` + `conversations.open` + `chat.postMessage`) — DMs the buddy with the new hire's first-week checklist
+- **Resend** — outbound transactional email (welcome notes, paperwork reminders, day-1 confirmations)
+- **Claude** (Anthropic Messages API, optionally routed through Zuplo AI Gateway) — drafts a 30/60/90 plan tailored to the hire's role and level
+
+## Architecture at a glance
+
+```
+Inbound ──▶ Zuplo Gateway ──▶ Integration handlers
+                │                  ├── Slack       (lookup + DM the buddy)
+                │                  ├── Resend      (welcome / paperwork emails)
+                │                  └── Claude      (30/60/90 plan generator)
+                ▼
+          Database adapter (Supabase / Firestore / Neon / Upstash)
+```
 
 ## Quickstart
 
@@ -35,9 +52,13 @@ Pick one via `DB_PROVIDER` and fill in the matching credentials in `.env`. See [
 
 ## Environment variables
 
-See [env.example](./env.example).
+See [env.example](./env.example). Beyond `DB_PROVIDER`:
 
-The kit will boot with `DB_PROVIDER=in-memory` if no env vars are set, so the smoke-test path is zero-config.
+- `SLACK_BOT_TOKEN` (with `chat:write`, `im:write`, `users:read.email`) — required for `notify_buddy` to actually DM
+- `RESEND_API_KEY` + `RESEND_FROM_EMAIL` — outbound email
+- `ANTHROPIC_API_KEY` — `create_onboarding_plan` 30/60/90 generation (`AI_GATEWAY_URL` optional)
+
+The kit boots fine with `DB_PROVIDER=in-memory` and no integration creds. `notify_buddy` supports `dryRun: true` for testing without sending.
 
 ## API surface
 
@@ -51,42 +72,44 @@ The kit will boot with `DB_PROVIDER=in-memory` if no env vars are set, so the sm
 | PATCH | `/tasks/{id}/complete` | Mark a task done |
 | GET | `/templates` | List onboarding templates |
 | POST | `/templates` | Create an onboarding template |
-| POST | `/create-onboarding-plan` | Orchestrator: materialise a template into tasks |
+| POST | `/create-onboarding-plan` | Orchestrator: materialise a template into tasks (+ optional 30/60/90) |
 | POST | `/check-overdue-tasks` | Orchestrator: overdue tasks grouped by owner |
-| POST | `/notify-buddy` | Orchestrator: draft a buddy notification |
+| POST | `/notify-buddy` | Orchestrator: DM the buddy with the first-week checklist |
 | POST | `/mcp` | MCP server endpoint |
 
 OpenAPI: [`config/routes.oas.json`](./config/routes.oas.json).
 
 ## MCP tools
 
-| Tool | Type | Read-only | Description |
-|---|---|---|---|
-| `list_hires` | tool | yes | List hires |
-| `get_hire` | tool | yes | Get a hire |
-| `create_hire` | tool | no | Create a hire |
-| `list_tasks` | tool | yes | List tasks |
-| `create_task` | tool | no | Create a task |
-| `complete_task` | tool | idempotent | Mark a task done |
-| `list_templates` | tool | yes | List templates |
-| `create_template` | tool | no | Create a template |
-| `create_onboarding_plan` | tool | no | Spin up tasks from a template (orchestrator) |
-| `check_overdue_tasks` | tool | yes | Overdue tasks grouped by owner (orchestrator) |
-| `notify_buddy` | tool | yes | Draft a buddy notification (orchestrator) |
+| Tool | Type | Read-only | Calls | Description |
+|---|---|---|---|---|
+| `list_hires` | tool | yes | DB | List hires |
+| `get_hire` | tool | yes | DB | Get a hire |
+| `create_hire` | tool | no | DB | Create a hire |
+| `list_tasks` | tool | yes | DB | List tasks |
+| `create_task` | tool | no | DB | Create a task |
+| `complete_task` | tool | idempotent | DB | Mark a task done |
+| `list_templates` | tool | yes | DB | List templates |
+| `create_template` | tool | no | DB | Create a template |
+| `create_onboarding_plan` | tool | no | DB + Claude (optional) | Materialise a template; optionally generate a 30/60/90 plan (orchestrator) |
+| `check_overdue_tasks` | tool | yes | DB | Overdue tasks grouped by owner (orchestrator) |
+| `notify_buddy` | tool | no | DB + Slack | DM the buddy with the first-week checklist (orchestrator) |
 
 ## The AI angle
 
-Three orchestrators do the work that nobody enjoys.
+`notify_buddy` and `create_onboarding_plan` are the headline tools.
 
-`create_onboarding_plan` is the one. Reading a template and producing a calendar of tasks for a specific hire used to be ten minutes of copy-paste in a spreadsheet — here it's a single MCP call. The orchestrator schedules each task at `hire.startDate + daysFromStart` and resolves the dependsOnTitles graph in a second pass.
+- **`notify_buddy`** resolves the buddy's Slack user from their email address, opens a DM channel with `conversations.open`, and posts a formatted first-week checklist with the new hire's buddy-category tasks. Pass `dryRun: true` and you get the message text without actually posting — useful for review.
+- **`create_onboarding_plan`** still spins up the per-hire task list from a template (the original orchestrator), but with `generate306090: true` it also asks Claude to draft a tailored 30/60/90 plan from the hire's role + level + team context. Manager pastes that into the new hire's first 1:1 doc and skips an hour of writing.
 
-`check_overdue_tasks` answers "what's slipping?" without forcing the user to scan rows. The result is grouped by `ownerEmail` so an agent can chase the right people in one round of DMs.
-
-`notify_buddy` returns a *draft* notification — it intentionally does not send email. An agent reviews and dispatches via its own email tool.
+`check_overdue_tasks` answers "what's slipping?" — group results by `ownerEmail` so an agent can chase the right people.
 
 ## Extending
 
-- **Real email send:** add an outbound webhook policy on `notify_buddy` (or wire it to your transactional-email vendor) to actually send the draft.
-- **Slack notifications:** add a sibling orchestrator `notify_manager` that posts a daily digest to a Slack channel for managers with overdue tasks.
+- **Welcome email on day -1:** add an outbound webhook policy on `create_hire` to fire a Resend welcome email automatically.
+- **Slack channel announcement:** add a `#welcome` post for every new hire on day 1 by extending `create_onboarding_plan` to also `postSlackMessage()` to a default channel.
+- **Manager digest:** add a sibling orchestrator that runs `check_overdue_tasks` and posts a digest to the manager's DM each Monday.
 - **Smart due dates:** factor in non-business days when materialising a plan — `daysFromStart` is currently a raw calendar offset.
+- **Swap Slack for Microsoft Teams:** replace `modules/integrations/slack.ts` with a Teams Graph API caller.
+- **Route Claude through Zuplo's AI Gateway:** set `AI_GATEWAY_URL`.
 - **Switch databases:** change `DB_PROVIDER` in `.env`. The handler code never changes.

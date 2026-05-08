@@ -650,6 +650,33 @@
         }
       }
     },
+    "/webhooks/datadog": {
+      "post": {
+        "operationId": "datadog_webhook",
+        "summary": "Datadog monitor webhook",
+        "description": "Datadog Monitor / Synthetic webhook. Verifies the HMAC signature, persists the raw payload to R2, and creates a `kind: log` evidence row on the control referenced by the monitor's `control:<id>` tag.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Event processed." },
+          "401": { "description": "Invalid signature." }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "anything-goes",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/handlers/datadog-webhook)"
+          },
+          "policies": { "inbound": ["api-key-inbound"] }
+        }
+      }
+    },
     "/mcp": {
       "post": {
         "operationId": "mcp_handler",
@@ -754,15 +781,17 @@
       },
       "EvidenceCreate": {
         "type": "object",
-        "description": "Payload to submit evidence.",
-        "required": ["controlId", "kind", "title", "description", "fileUrl", "sha256", "collectedBy"],
+        "description": "Payload to submit evidence. Either provide fileUrl + sha256 (artifact already lives elsewhere) or content (we'll upload to R2 and compute the hash).",
+        "required": ["controlId", "kind", "title", "description", "collectedBy"],
         "properties": {
           "controlId": { "type": "string", "description": "Control this evidence supports." },
           "kind": { "type": "string", "enum": ["screenshot", "config", "log", "policy", "attestation"], "description": "Evidence kind." },
           "title": { "type": "string", "description": "Short title." },
           "description": { "type": "string", "description": "What the evidence shows." },
-          "fileUrl": { "type": "string", "format": "uri", "description": "URL of the file." },
-          "sha256": { "type": "string", "description": "SHA-256 of the file." },
+          "fileUrl": { "type": "string", "format": "uri", "description": "URL of an existing artifact." },
+          "sha256": { "type": "string", "description": "SHA-256 of the file when fileUrl is provided." },
+          "content": { "type": "string", "description": "Base64-encoded inline content. We upload to R2 and compute the sha256 ourselves." },
+          "contentType": { "type": "string", "description": "MIME type for inline content." },
           "collectedAt": { "type": "string", "format": "date-time", "description": "When collected. Defaults to now." },
           "collectedBy": { "type": "string", "description": "Collector email." },
           "validUntil": { "type": ["string", "null"], "format": "date-time", "description": "Optional explicit expiry." }

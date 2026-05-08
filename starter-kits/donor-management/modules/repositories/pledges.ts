@@ -20,6 +20,10 @@ export interface Pledge extends Entity {
   dueDate: string;
   status: "open" | "fulfilled" | "defaulted";
   createdAt: string;
+  /** DocuSign envelope id once the pledge is sent for signature. */
+  docusignEnvelopeId: string | null;
+  /** Last-known DocuSign envelope status. */
+  docusignStatus: string | null;
 }
 
 function build(): Repository<Pledge> {

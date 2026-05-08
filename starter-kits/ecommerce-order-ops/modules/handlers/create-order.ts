@@ -14,6 +14,15 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     currency?: string;
     fraudScore?: number;
     channel?: Order["channel"];
+    buyerPhone?: string;
+    shipToName?: string;
+    shipToAddressLine1?: string;
+    shipToAddressLine2?: string;
+    shipToCityLocality?: string;
+    shipToStateProvince?: string;
+    shipToPostalCode?: string;
+    shipToCountryCode?: string;
+    parcelWeightOz?: number;
   };
 
   const created = await orderRepository.create(tenantId, {
@@ -30,6 +39,16 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
     shippedAt: null,
     fraudScore: body.fraudScore ?? 0,
     channel: body.channel ?? "web",
+    stripePaymentIntentId: null,
+    buyerPhone: body.buyerPhone ?? null,
+    shipToName: body.shipToName ?? null,
+    shipToAddressLine1: body.shipToAddressLine1 ?? null,
+    shipToAddressLine2: body.shipToAddressLine2 ?? null,
+    shipToCityLocality: body.shipToCityLocality ?? null,
+    shipToStateProvince: body.shipToStateProvince ?? null,
+    shipToPostalCode: body.shipToPostalCode ?? null,
+    shipToCountryCode: body.shipToCountryCode ?? null,
+    parcelWeightOz: body.parcelWeightOz ?? null,
   });
 
   return new Response(JSON.stringify(created), {

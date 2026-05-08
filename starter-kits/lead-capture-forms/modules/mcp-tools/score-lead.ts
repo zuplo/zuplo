@@ -199,7 +199,11 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
       );
       sideEffects.email = `sent:${result.id}`;
     } catch (err) {
-      sideEffects.email = `error: ${err instanceof Error ? err.message : String(err)}`;
+      // Log full error server-side; return only a stable label to the caller.
+      context.log.warn("Lead-capture confirm email failed", {
+        err: err instanceof Error ? err.message : String(err),
+      });
+      sideEffects.email = "error: send_failed";
     }
   } else if (body.confirmEmail && !email) {
     sideEffects.email = "skipped: no email in payload";

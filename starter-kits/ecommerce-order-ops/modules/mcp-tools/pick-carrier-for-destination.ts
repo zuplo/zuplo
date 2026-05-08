@@ -103,12 +103,13 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
         carrierIds: carrierIds.length > 0 ? carrierIds : undefined,
       });
     } catch (err) {
+      // Log the upstream error server-side; expose only a stable type to the caller.
+      context.log.warn("ShipEngine rate shop failed", {
+        err: err instanceof Error ? err.message : String(err),
+      });
       return new Response(
         JSON.stringify({
-          error: {
-            type: "rate_shop_failed",
-            message: err instanceof Error ? err.message : String(err),
-          },
+          error: { type: "rate_shop_failed" },
         }),
         { status: 502, headers: { "content-type": "application/json" } },
       );

@@ -168,7 +168,7 @@ describe("orchestrators/route-lead-intelligently", () => {
     let resendCalls = 0;
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);
-      if (url.includes("slack.com/api/chat.postMessage")) {
+      if (url.startsWith("https://slack.com/api/chat.postMessage")) {
         slackCalls += 1;
         return new Response(
           JSON.stringify({ ok: true, ts: "1.2", channel: "C123" }),

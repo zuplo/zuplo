@@ -72,7 +72,7 @@ describe("orchestrator discover_apps", () => {
       (input: Request | URL | string) => {
         const url = String(typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url);
         // Google OAuth token + Microsoft Graph token both return generic token response
-        if (url.includes("oauth2.googleapis.com/token") || url.includes("microsoftonline.com/")) {
+        if (url.startsWith("https://oauth2.googleapis.com/token") || url.startsWith("https://login.microsoftonline.com/")) {
           return Promise.resolve(tokenResponse("at"));
         }
         // Google directory users
@@ -253,8 +253,8 @@ describe("orchestrator discover_apps", () => {
     let googleCalls = 0;
     vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
       const url = String(typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url);
-      if (url.includes("googleapis.com")) googleCalls += 1;
-      if (url.includes("okta.com")) oktaCalls += 1;
+      if (url.startsWith("https://admin.googleapis.com") || url.startsWith("https://oauth2.googleapis.com")) googleCalls += 1;
+      if (url.startsWith("https://example.okta.com")) oktaCalls += 1;
       if (url.includes("/api/v1/users")) {
         return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
       }

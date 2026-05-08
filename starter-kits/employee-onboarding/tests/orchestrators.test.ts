@@ -514,7 +514,7 @@ describe("orchestrator: create_onboarding_plan", () => {
     const body = await res.json();
     expect(body.plan306090.text).toContain("First 30 days");
     const claudeCalls = fetchSpy.mock.calls.filter((c) =>
-      typeof c[0] === "string" && (c[0] as string).includes("anthropic.com"),
+      typeof c[0] === "string" && (c[0] as string).startsWith("https://api.anthropic.com"),
     );
     expect(claudeCalls).toHaveLength(1);
   });

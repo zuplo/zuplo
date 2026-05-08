@@ -491,7 +491,7 @@ describe("handlers/send-survey (Resend + Twilio fan-out)", () => {
           status: 200,
         });
       }
-      if (url.includes("twilio.com")) {
+      if (url.startsWith("https://api.twilio.com")) {
         twilioCalls += 1;
         return new Response(
           JSON.stringify({

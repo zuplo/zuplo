@@ -305,12 +305,12 @@ describe("integrations/fanout — fanoutToSubscribers", () => {
       .spyOn(globalThis, "fetch")
       .mockImplementation((input) => {
         const url = String(typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url);
-        if (url.includes("api.resend.com")) {
+        if (url.startsWith("https://api.resend.com")) {
           return Promise.resolve(
             new Response(JSON.stringify({ id: "re_1" }), { status: 200 }),
           );
         }
-        if (url.includes("api.twilio.com")) {
+        if (url.startsWith("https://api.twilio.com")) {
           return Promise.resolve(
             new Response(
               JSON.stringify({
@@ -326,7 +326,7 @@ describe("integrations/fanout — fanoutToSubscribers", () => {
             ),
           );
         }
-        if (url.includes("hooks.slack.com")) {
+        if (url.startsWith("https://hooks.slack.com")) {
           return Promise.resolve(new Response("ok", { status: 200 }));
         }
         return Promise.resolve(new Response("Unknown: " + url, { status: 404 }));
@@ -350,9 +350,9 @@ describe("integrations/fanout — fanoutToSubscribers", () => {
     expect(result.errors.length).toBe(0);
 
     const urls = fetchMock.mock.calls.map((c) => String(c[0]));
-    expect(urls.some((u) => u.includes("api.resend.com"))).toBe(true);
-    expect(urls.some((u) => u.includes("api.twilio.com"))).toBe(true);
-    expect(urls.some((u) => u.includes("hooks.slack.com"))).toBe(true);
+    expect(urls.some((u) => u.startsWith("https://api.resend.com"))).toBe(true);
+    expect(urls.some((u) => u.startsWith("https://api.twilio.com"))).toBe(true);
+    expect(urls.some((u) => u.startsWith("https://hooks.slack.com"))).toBe(true);
   });
 
   it("filters subscribers by impact threshold", async () => {

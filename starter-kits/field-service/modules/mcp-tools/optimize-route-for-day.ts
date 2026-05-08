@@ -219,7 +219,11 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
         });
         smsSid = result.sid;
       } catch (err) {
-        smsError = err instanceof Error ? err.message : String(err);
+        // Log full error server-side; return only a generic flag to the caller.
+        context.log.warn("Twilio SMS dispatch failed", {
+          err: err instanceof Error ? err.message : String(err),
+        });
+        smsError = "send_failed";
       }
     }
   }

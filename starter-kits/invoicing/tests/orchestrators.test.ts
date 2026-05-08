@@ -77,7 +77,7 @@ describe("orchestrators/chase_overdue_invoices", () => {
         if (u.includes("/customers/search")) {
           return new Response(JSON.stringify({ data: [] }), { status: 200 });
         }
-        if (u.includes("api.stripe.com/v1/customers") && !u.includes("search")) {
+        if (u.startsWith("https://api.stripe.com/v1/customers") && !u.includes("search")) {
           return new Response(
             JSON.stringify({ id: "cus_123", email: customer.email, name: customer.name, metadata: {} }),
             { status: 200 },
@@ -105,7 +105,7 @@ describe("orchestrators/chase_overdue_invoices", () => {
             { status: 200 },
           );
         }
-        if (u.includes("api.stripe.com/v1/invoices")) {
+        if (u.startsWith("https://api.stripe.com/v1/invoices")) {
           return new Response(
             JSON.stringify({
               id: "in_1",
@@ -121,7 +121,7 @@ describe("orchestrators/chase_overdue_invoices", () => {
             { status: 200 },
           );
         }
-        if (u.includes("api.resend.com/emails")) {
+        if (u.startsWith("https://api.resend.com/emails")) {
           return new Response(JSON.stringify({ id: "email_1" }), { status: 200 });
         }
         return new Response("unmocked: " + u, { status: 500 });

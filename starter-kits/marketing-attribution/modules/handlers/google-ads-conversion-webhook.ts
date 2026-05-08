@@ -143,8 +143,11 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
       });
       upload = { ok: true };
     } catch (err) {
-      upload = { ok: false, error: err instanceof Error ? err.message : String(err) };
-      context.log.warn("Google Ads upload failed", { err: upload.error });
+      // Log the upstream error server-side; expose only a stable label to the caller.
+      context.log.warn("Google Ads upload failed", {
+        err: err instanceof Error ? err.message : String(err),
+      });
+      upload = { ok: false, error: "upload_failed" };
     }
   }
 

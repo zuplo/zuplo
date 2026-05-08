@@ -140,7 +140,11 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
         events: Number(row[2] ?? 0),
       }));
     } catch (err) {
-      posthogError = err instanceof Error ? err.message : String(err);
+      // Log full error server-side; return only a generic flag to the caller.
+      context.log.warn("PostHog exposures query failed", {
+        err: err instanceof Error ? err.message : String(err),
+      });
+      posthogError = "query_failed";
     }
   }
 

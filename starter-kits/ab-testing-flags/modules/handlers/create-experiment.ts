@@ -51,8 +51,11 @@ export default async function (request: ZuploRequest, context: ZuploContext) {
         active: false, // Created in draft state to match the experiment status.
       });
     } catch (err) {
-      posthogError = err instanceof Error ? err.message : String(err);
-      context.log.warn("PostHog flag mirror failed", { err: posthogError });
+      // Log the full error server-side; return only a generic flag to the caller.
+      context.log.warn("PostHog flag mirror failed", {
+        err: err instanceof Error ? err.message : String(err),
+      });
+      posthogError = "mirror_failed";
     }
   }
 

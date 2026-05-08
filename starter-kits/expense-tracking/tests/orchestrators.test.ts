@@ -201,7 +201,7 @@ describe("orchestrators/flag_policy_violations", () => {
     expect(json.slackTs).toBe("1.2");
     expect(json.violations[0].reasons.length).toBeGreaterThan(0);
     const slackCalls = fetchMock.mock.calls.filter((c) =>
-      String(c[0]).includes("slack.com"),
+      String(c[0]).startsWith("https://slack.com") || String(c[0]).startsWith("https://hooks.slack.com"),
     );
     expect(slackCalls.length).toBe(1);
   });

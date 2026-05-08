@@ -346,10 +346,10 @@ describe("orchestrator: chase_unbilled_hours", () => {
     (environment as Record<string, string | undefined>).RESEND_FROM_EMAIL = "ops@kit.test";
 
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
-      if (typeof url === "string" && url.includes("anthropic.com")) {
+      if (typeof url === "string" && url.startsWith("https://api.anthropic.com")) {
         return fakeClaude("Body of nudge email");
       }
-      if (typeof url === "string" && url.includes("resend.com")) {
+      if (typeof url === "string" && url.startsWith("https://api.resend.com")) {
         return new Response(JSON.stringify({ id: "msg_resend_1" }), { status: 200 });
       }
       throw new Error(`Unexpected fetch URL: ${url}`);
@@ -377,7 +377,7 @@ describe("orchestrator: chase_unbilled_hours", () => {
 
     // Verify Resend call
     const resendCall = fetchSpy.mock.calls.find((c) =>
-      typeof c[0] === "string" && c[0].includes("resend.com"),
+      typeof c[0] === "string" && c[0].startsWith("https://api.resend.com"),
     );
     expect(resendCall).toBeDefined();
     const resendBody = JSON.parse((resendCall![1] as RequestInit).body as string);
@@ -402,7 +402,7 @@ describe("orchestrator: chase_unbilled_hours", () => {
 
     await chaseUnbilledHours(request, context);
     const resendCalls = fetchSpy.mock.calls.filter(
-      (c) => typeof c[0] === "string" && c[0].includes("resend.com"),
+      (c) => typeof c[0] === "string" && c[0].startsWith("https://api.resend.com"),
     );
     expect(resendCalls).toHaveLength(0);
   });

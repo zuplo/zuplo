@@ -143,10 +143,9 @@ function encodeKey(key: string): string {
 }
 
 function amzDate(d: Date): string {
-  return d
-    .toISOString()
-    .replace(/[:-]|\.\d{3}/g, "")
-    .replace(/Z$/, "Z");
+  // toISOString() returns e.g. "2026-05-08T14:00:00.000Z".
+  // Strip "-", ":", and the milliseconds — the trailing "Z" survives intact.
+  return d.toISOString().replace(/[:-]|\.\d{3}/g, "");
 }
 
 async function sha256Hex(bytes: Uint8Array): Promise<string> {

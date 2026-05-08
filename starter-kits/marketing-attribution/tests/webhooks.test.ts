@@ -407,7 +407,8 @@ describe("webhooks/google-ads-conversion", () => {
       upload: { ok: boolean; error?: string } | null;
     };
     expect(json.upload?.ok).toBe(false);
-    expect(json.upload?.error).toContain("Google Ads upload");
+    // Generic, non-stack-trace label exposed to the caller (full error is logged server-side).
+    expect(json.upload?.error).toBe("upload_failed");
   });
 
   it("reuses existing visitor when anonymousId already exists (idempotent on gclid)", async () => {

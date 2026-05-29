@@ -1,5 +1,5 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { requireTenant } from "../_shared/auth/index.ts";
+import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 import { discountRepository } from "../repositories/discounts.ts";
 
 export default async function (request: ZuploRequest, context: ZuploContext) {

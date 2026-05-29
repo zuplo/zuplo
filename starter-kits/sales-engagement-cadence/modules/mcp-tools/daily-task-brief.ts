@@ -1,8 +1,8 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "../_shared/mcp/helpers.ts";
+import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import type { Enrollment } from "../repositories/enrollments.ts";
 import { cadenceTaskRepository, type CadenceTask } from "../repositories/cadence-tasks.ts";
-import { requireTenant } from "../_shared/auth/index.ts";
+import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 
 interface Body {
   repEmail: string;

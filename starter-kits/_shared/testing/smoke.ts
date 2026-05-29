@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
  *   - Verifies the two-layer MCP wiring agrees (route annotations vs `/mcp` operations)
  *   - Imports every handler and orchestrator module to catch import-time errors
  *   - Verifies each module exports a `default` function
- *   - Verifies the kit has the vendored `modules/_shared/` tree
+ *   - Verifies `package.json` references `@zuplo/starter-kit-shared`
  *
  * No per-kit boilerplate beyond `runKitSmokeSuite(import.meta.dirname)`.
  */
@@ -37,7 +37,6 @@ export function runKitSmokeSuite(kitDir: string, options: SmokeOptions = {}): vo
   const routesPath = path.join(kitDir, "config/routes.oas.json");
   const policiesPath = path.join(kitDir, "config/policies.json");
   const packagePath = path.join(kitDir, "package.json");
-  const vendoredSharedPath = path.join(kitDir, "modules/_shared");
 
   describe(`${kitName} smoke`, () => {
     it("has config/routes.oas.json", () => {
@@ -48,12 +47,10 @@ export function runKitSmokeSuite(kitDir: string, options: SmokeOptions = {}): vo
       expect(fs.existsSync(policiesPath), `expected ${policiesPath} to exist`).toBe(true);
     });
 
-    it("has vendored modules/_shared (run `node starter-kits/_shared/regenerate-shared.mjs` to regenerate)", () => {
+    it("has package.json wired to @zuplo/starter-kit-shared", () => {
       expect(fs.existsSync(packagePath)).toBe(true);
-      expect(
-        fs.existsSync(vendoredSharedPath),
-        `expected ${vendoredSharedPath} to exist`,
-      ).toBe(true);
+      const pkg = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+      expect(pkg.dependencies?.["@zuplo/starter-kit-shared"]).toBeDefined();
     });
 
     it("routes.oas.json is valid JSON with paths", () => {

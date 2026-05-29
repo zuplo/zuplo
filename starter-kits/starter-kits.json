@@ -65,7 +65,7 @@
         "check_leave_balance"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "time-tracking",
@@ -99,7 +99,7 @@
         "find_unbilled_hours"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "applicant-tracking-system",
@@ -138,7 +138,7 @@
         "pipeline_health_for_job"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "employee-onboarding",
@@ -173,7 +173,7 @@
         "notify_buddy"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "performance-review",
@@ -209,7 +209,7 @@
         "track_goal_progress"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "org-chart-directory",
@@ -244,7 +244,7 @@
         "find_owner_of_team"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "invoicing",
@@ -278,7 +278,7 @@
         "summarize_ar_aging"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "expense-tracking",
@@ -312,7 +312,7 @@
         "summarize_pending_approvals"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "subscription-billing",
@@ -348,7 +348,7 @@
         "propose_upgrade_for_customer"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "accounts-payable",
@@ -384,7 +384,7 @@
         "match_bill_to_po"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "corporate-card-spend",
@@ -418,7 +418,7 @@
         "recommend_limit_change"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "procurement-po",
@@ -455,7 +455,7 @@
         "match_invoice_to_po"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "donor-management",
@@ -492,7 +492,7 @@
         "generate_year_end_receipts"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "headless-crm",
@@ -531,7 +531,7 @@
         "pipeline_summary_by_owner"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "sales-pipeline-forecast",
@@ -568,7 +568,7 @@
         "roll_up_forecast"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "quote-cpq",
@@ -605,7 +605,7 @@
         "explain_pricing"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "lead-routing",
@@ -642,7 +642,7 @@
         "summarize_unworked_leads"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "sales-engagement-cadence",
@@ -679,7 +679,7 @@
         "pause_engaged_replies"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "sales-commission",
@@ -716,7 +716,7 @@
         "model_what_if_close"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "support-ticketing",
@@ -754,7 +754,7 @@
         "summarize_recurring_issues"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "customer-health",
@@ -793,7 +793,7 @@
         "predict_churn_risk"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "renewal-management",
@@ -829,7 +829,7 @@
         "flag_at_risk_renewals"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "nps-feedback",
@@ -865,7 +865,7 @@
         "compare_cohorts"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "email-campaign",
@@ -906,7 +906,7 @@
         "propose_send_time"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "lead-capture-forms",
@@ -944,7 +944,7 @@
         "flag_spam_pattern"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "headless-cms",
@@ -984,7 +984,7 @@
         "suggest_internal_links"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "marketing-attribution",
@@ -1020,7 +1020,7 @@
         "find_underrated_channels"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "ab-testing-flags",
@@ -1059,7 +1059,7 @@
         "propose_experiment_for_metric"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "product-analytics",
@@ -1097,7 +1097,7 @@
         "compare_cohorts"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "it-asset-tracking",
@@ -1136,7 +1136,7 @@
         "schedule_refresh_cycle"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "it-helpdesk",
@@ -1176,7 +1176,7 @@
         "escalate_breaching_sla"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "vendor-contract-management",
@@ -1216,7 +1216,7 @@
         "calc_total_spend"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "saas-management",
@@ -1254,7 +1254,7 @@
         "forecast_renewal_cost"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "incident-change-management",
@@ -1295,7 +1295,7 @@
         "summarize_timeline"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "compliance-audit-evidence",
@@ -1335,7 +1335,7 @@
         "draft_audit_response"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "status-page",
@@ -1377,7 +1377,7 @@
         "post_postmortem_summary"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "internal-wiki",
@@ -1418,7 +1418,7 @@
         "merge_duplicate_pages"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "task-project-management",
@@ -1462,7 +1462,7 @@
         "summarize_sprint"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "scheduling-booking",
@@ -1499,7 +1499,7 @@
         "enforce_meeting_budget"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "survey-poll",
@@ -1537,7 +1537,7 @@
         "propose_followup_question"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "announcements-changelog",
@@ -1574,7 +1574,7 @@
         "draft_changelog_from_merged_prs"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "legal-matter-management",
@@ -1617,7 +1617,7 @@
         "draft_status_letter_to_client"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "real-estate-listings",
@@ -1659,7 +1659,7 @@
         "schedule_showing_round"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "student-course-management",
@@ -1702,7 +1702,7 @@
         "recommend_remediation"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "patient-intake",
@@ -1743,7 +1743,7 @@
         "verify_insurance_pre_visit"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "event-ticketing",
@@ -1784,7 +1784,7 @@
         "triage_refund_requests"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "ecommerce-order-ops",
@@ -1826,7 +1826,7 @@
         "auto_approve_returns_under_policy"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "restaurant-reservations",
@@ -1865,7 +1865,7 @@
         "recover_no_show_revenue"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "field-service",
@@ -1904,7 +1904,7 @@
         "draft_estimate_from_inspection"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     },
     {
       "slug": "community-forum",
@@ -1942,7 +1942,7 @@
         "summarize_unread_for_user"
       ],
       "iconUrl": "https://cdn.zuplo.com/static/logos/icon-pink-framed.png",
-      "date": "2026-05-07"
+      "date": "2026-05-06"
     }
   ]
 }

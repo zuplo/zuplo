@@ -1,5 +1,5 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "../_shared/mcp/helpers.ts";
+import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import type { Appointment } from "../repositories/appointments.ts";
 import type { Insurance } from "../repositories/insurance.ts";
 import type { Patient } from "../repositories/patients.ts";

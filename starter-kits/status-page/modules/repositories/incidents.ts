@@ -4,7 +4,7 @@ import {
   type DbProvider,
   type Entity,
   type Repository,
-} from "../_shared/adapters/index.ts";
+} from "@zuplo/starter-kit-shared/adapters";
 
 function requireEnv(name: string): string {
   const value = (environment as Record<string, string | undefined>)[name];

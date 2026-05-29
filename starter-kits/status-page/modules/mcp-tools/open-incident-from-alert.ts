@@ -1,5 +1,5 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "../_shared/mcp/helpers.ts";
+import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import type { Incident } from "../repositories/incidents.ts";
 import type { Component } from "../repositories/components.ts";
 import type { IncidentUpdate } from "../repositories/incident-updates.ts";

@@ -83,5 +83,5 @@ Per the [conventions doc](../CLAUDE.md), every CRUD endpoint inherits `api-key-i
 
 - **New entity:** add a repository in `modules/repositories/` (follow the factory pattern keyed by `DB_PROVIDER`).
 - **New endpoint:** add a handler in `modules/handlers/`, append the route to `config/routes.oas.json` with `mcp: { type: "tool" }`, and add the `operationId` to the `/mcp` route's `options.operations: [...]` array. Both layers must agree.
-- **New orchestrator MCP tool:** drop a file in `modules/mcp-tools/` that uses `invokeJson` from `../_shared/mcp/helpers.ts` to compose existing endpoints. Pass the inbound `authorization` header through so the inner calls re-run policies.
+- **New orchestrator MCP tool:** drop a file in `modules/mcp-tools/` that uses `invokeJson` from `@zuplo/starter-kit-shared/mcp` to compose existing endpoints. Pass the inbound `authorization` header through so the inner calls re-run policies.
 - **Switch databases:** change `DB_PROVIDER` in `.env` — the handlers don't change.

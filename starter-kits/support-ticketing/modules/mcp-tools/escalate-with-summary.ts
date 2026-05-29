@@ -1,8 +1,8 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "../_shared/mcp/helpers.ts";
+import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import { conversationRepository, customerRepository } from "../repositories/tickets.ts";
 import type { Conversation, Customer, Ticket } from "../repositories/tickets.ts";
-import { requireTenant } from "../_shared/auth/index.ts";
+import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 
 /**
  * Orchestrator: escalate_with_summary.

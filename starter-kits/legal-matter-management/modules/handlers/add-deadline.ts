@@ -1,5 +1,5 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { requireTenant } from "../_shared/auth/index.ts";
+import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 import { deadlineRepository, type Deadline } from "../repositories/matters.ts";
 
 interface Body {

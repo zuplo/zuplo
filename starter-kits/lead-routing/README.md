@@ -82,5 +82,5 @@ OpenAPI: [`config/routes.oas.json`](./config/routes.oas.json).
 
 - **New entity:** add fields to the entity interface in `modules/repositories/`, update the OpenAPI schema in `config/routes.oas.json`.
 - **New endpoint:** create a handler, add the route with `mcp: { type: "tool" }` if exposed, add the `operationId` to `/mcp` `operations`.
-- **New orchestrator:** add to `modules/mcp-tools/` using `invokeJson` from `../_shared/mcp/helpers.ts`.
+- **New orchestrator:** add to `modules/mcp-tools/` using `invokeJson` from `@zuplo/starter-kit-shared/mcp`.
 - **Switch databases:** change `DB_PROVIDER` in `.env`. Handler code never changes.

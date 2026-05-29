@@ -1,28 +1,10 @@
-# Starter Kit Shared Code (canonical)
+# @zuplo/starter-kit-shared
 
 Shared adapters, auth helpers, and MCP utilities used by every Zuplo Starter Kit.
 
-This directory is the **single source of truth**. It is **not** a published or workspace-imported package — Zuplo kits ship self-contained, so each kit gets its own copy of the relevant files at `<kit>/modules/_shared/`. The vendoring is done by `regenerate-shared.mjs` (see below).
+This is a workspace package — kits import it as a local dependency in the monorepo. When a developer forks an individual kit via `npx create-zuplo-api@latest --example starter-kits/<name>`, the scaffold copies the relevant pieces into the kit so the fork is self-contained.
 
-The `package.json` here exists only so the standalone tests in this directory (`adapters/in-memory.test.ts`, `adapters/postgres-integration.test.ts`) can run as part of `npm run test:starter-kits`.
-
-## Vendoring into kits
-
-```bash
-# Edit any file under starter-kits/_shared/, then:
-node starter-kits/_shared/regenerate-shared.mjs
-```
-
-The script:
-
-1. Scans every kit for `@zuplo/starter-kit-shared/<sub>` imports (legacy form) or already-relative imports of the vendored copy.
-2. Mirrors `_shared/{mcp,adapters,auth,testing}/` into `<kit>/modules/_shared/` — only the subpaths a kit actually uses.
-3. Rewrites any remaining `@zuplo/starter-kit-shared/...` imports to relative paths pointing at the vendored copy.
-4. Drops `@zuplo/starter-kit-shared` from each kit's `package.json` deps if present.
-
-Re-running the script is idempotent — it produces the same output every time.
-
-## Imports inside a kit
+## Imports
 
 ```ts
 import {
@@ -31,14 +13,12 @@ import {
   Entity,
   Repository,
   NotFoundError,
-} from "../_shared/adapters/index.ts";
+} from "@zuplo/starter-kit-shared/adapters";
 
-import { requireTenant } from "../_shared/auth/index.ts";
+import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 
-import { invokeJson, jsonResponse } from "../_shared/mcp/helpers.ts";
+import { invokeJson, jsonResponse } from "@zuplo/starter-kit-shared/mcp";
 ```
-
-Path depth depends on where the importing file lives (`modules/handlers/`, `modules/mcp-tools/`, etc.). The regenerate script computes the correct relative path per file.
 
 ## Adapters
 

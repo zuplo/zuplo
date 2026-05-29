@@ -1,8 +1,8 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { invokeJson } from "../_shared/mcp/helpers.ts";
+import { invokeJson } from "@zuplo/starter-kit-shared/mcp";
 import { categoryRepository } from "../repositories/tickets.ts";
 import type { IncidentTicket } from "../repositories/tickets.ts";
-import { requireTenant } from "../_shared/auth/index.ts";
+import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 
 /**
  * Orchestrator: triage_ticket.

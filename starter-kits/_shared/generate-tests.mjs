@@ -10,21 +10,19 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const KITS_DIR = path.join(ROOT, "starter-kits");
 
-// Each kit ships a vendored copy of starter-kits/_shared/ at modules/_shared/.
-// Run `node starter-kits/_shared/regenerate-shared.mjs` to refresh the copies.
 const SMOKE_TEST = `import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   runKitSmokeSuite,
   runKitFunctionalSuite,
-} from "../modules/_shared/testing/index.ts";
+} from "@zuplo/starter-kit-shared/testing";
 
 const kitDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 runKitSmokeSuite(kitDir);
 runKitFunctionalSuite(kitDir);
 `;
 
-const VITEST_CONFIG = `export { default } from "./modules/_shared/testing/vitest.config.ts";
+const VITEST_CONFIG = `export { default } from "@zuplo/starter-kit-shared/testing/vitest.config";
 `;
 
 const kits = fs

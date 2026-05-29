@@ -1,5 +1,5 @@
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { requireTenant } from "../_shared/auth/index.ts";
+import { requireTenant } from "@zuplo/starter-kit-shared/auth";
 import type { Donor } from "../repositories/donors.ts";
 import { donorRepository } from "../repositories/donors.ts";
 

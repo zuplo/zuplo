@@ -10,9 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@stoplight/spectral-core": "^1.18.3",
+    "@stoplight/spectral-core": "^1.23.0",
     "@stoplight/spectral-formats": "^1.5.0",
-    "@stoplight/spectral-functions": "^1.7.2"
+    "@stoplight/spectral-functions": "^1.10.3"
   },
   "devDependencies": {
     "@tsconfig/node18": "^18.2.0",

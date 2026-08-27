@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "zuplo",
+  "version": "1.0.0",
+  "description": "Public Zuplo examples, packages, developer tools, and MCP server connections.",
+  "author": {
+    "name": "Zuplo",
+    "url": "https://zuplo.com"
+  },
+  "homepage": "https://zuplo.com/docs",
+  "repository": "https://github.com/zuplo/zuplo",
+  "keywords": ["zuplo", "api-gateway", "ai-gateway", "mcp"]
+}

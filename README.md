@@ -2,6 +2,11 @@
 
 This is a monorepo containing a few public-facing projects for Zuplo.
 
+AI coding agents can start with [AGENTS.md](./AGENTS.md). This repository is
+also an [Agent Plugins 1.0.0](https://agent-plugins.org/specification) package:
+see [plugin.json](./plugin.json) for its manifest and [mcp.json](./mcp.json) for
+Zuplo's Docs and Platform MCP server connections.
+
 ## Examples
 
 This subfolder contains examples showing how to perform various tasks with [Zuplo](https://zuplo.com).

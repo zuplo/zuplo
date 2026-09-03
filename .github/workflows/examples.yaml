@@ -6,9 +6,12 @@ on:
     paths:
       - "examples/**"
 
+permissions: {}
+
 jobs:
   trigger-deploy:
     name: Refresh Examples
     runs-on: ubuntu-latest
     steps:
-      - run: curl ${{ secrets.EXAMPLES_DEPLOY_HOOK }}
+      # --fail so an HTTP error actually fails the job rather than reporting green.
+      - run: curl --fail --silent --show-error --retry 3 "${{ secrets.EXAMPLES_DEPLOY_HOOK }}"

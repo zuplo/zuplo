@@ -1,13 +1,18 @@
 {
-  "name": "samples-todo-list",
-  "version": "1.0.0",
-  "author": "",
-  "copyright": "",
+  "name": "schema-validation-file-ref",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "zup dev",
-    "test": "zup test"
+    "dev": "zuplo dev",
+    "test": "zuplo test",
+    "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "zuplo": "latest"
+    "zuplo": "^7"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "typescript": "^5"
   }
 }

@@ -2,6 +2,18 @@
   "policies": [
     {
       "handler": {
+        "export": "ApiKeyInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "allowUnauthenticatedRequests": false,
+          "cacheTtlSeconds": 60
+        }
+      },
+      "name": "my-auth-policy",
+      "policyType": "api-key-inbound"
+    },
+    {
+      "handler": {
         "export": "ValidateJsonSchemaInbound",
         "module": "$import(@zuplo/runtime)",
         "options": {

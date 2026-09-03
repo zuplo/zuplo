@@ -6,16 +6,10 @@ import {
 } from "@zuplo/runtime";
 import { checkAccess } from "./openfga";
 
-type AuthorizationPolicyOptions = {
-  relation: string;
-  objectType: string;
-  parameterName: string;
-};
-
 export default async function policy(
   request: ZuploRequest,
   context: ZuploContext,
-  options: AuthorizationPolicyOptions,
+  options: unknown,
   policyName: string,
 ) {
   // The route is setup with an extension `x-authorization` that configures the access

@@ -1,10 +1,9 @@
-extends: [["spectral:oas", "recommended"], ["zuplo", "recommended"]]
+extends: [["spectral:oas", "recommended"], "../ruleset.json"]
+functionsDir: "../functions"
+functions: ["abc"]
 rules:
   require-test-policy:
     severity: error
+    given: "$"
     then:
       function: "abc"
-      given: $
-      functionOptions:
-        name: "test"
-        type: "inbound"

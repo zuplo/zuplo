@@ -28,7 +28,7 @@ npx create-zuplo-api@latest --example log-request-response
 ```bash
 npm install
 npm run dev
-# Server runs on https://localhost:9000
+# Server runs on http://localhost:9000
 ```
 
 **Deploy to Zuplo:**

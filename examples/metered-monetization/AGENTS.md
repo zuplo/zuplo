@@ -1,6 +1,8 @@
 # Metered Monetization
 
 In order to enable a flexible approach to monetizing an API, we recommend using
+[OpenMeter](https://openmeter.io/) to handle metering, customer tracking,
+subscription plans and invoicing.
 
 ## Key Files
 
@@ -9,7 +11,6 @@ In order to enable a flexible approach to monetizing an API, we recommend using
 | `config/routes.oas.json` | Route definitions with policies |
 | `config/policies.json` | Policy configurations |
 | `modules/apiKeys.ts` | Custom module |
-| `modules/pricing.ts` | Custom module |
 | `docs/` | Zudoku documentation portal |
 
 ## Routes
@@ -44,11 +45,13 @@ Or use the [Deploy to Zuplo](https://zuplo.com/docs/examples/metered-monetizatio
 ## Test Commands
 
 ```bash
-# Get all todos
-curl http://localhost:9000/todos
+# Get all todos (requires an API key created via the Developer Portal)
+curl http://localhost:9000/todos \
+  -H "Authorization: Bearer <API_KEY>"
 
 # Create a new todo
 curl -X POST http://localhost:9000/todos \
+  -H "Authorization: Bearer <API_KEY>" \
   -H "Content-Type: application/json" \
   -d '{}'
 
@@ -56,7 +59,6 @@ curl -X POST http://localhost:9000/todos \
 
 ## Policies Used
 
-- **mock-api-inbound** (Built-in): mock-api-inbound
 - **openmeter-metering-inbound** (Built-in): openmeter-inbound
 - **api-key-inbound** (Built-in): api-key-inbound
 - **open-id-jwt-auth-inbound** (Built-in): open-id-jwt-auth-inbound

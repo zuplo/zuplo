@@ -15,7 +15,6 @@ function runRule(input) {
   if (!functionOptions?.startsWith) {
     throw new Error("The option startsWith is not set");
   }
-  console.log(JSON.stringify(input));
   if (typeof input !== "object") {
     throw new Error("Invalid input");
   }

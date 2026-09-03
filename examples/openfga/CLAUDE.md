@@ -52,7 +52,9 @@ curl http://localhost:9000/docs/{id}
 
 ## Environment Variables
 
-None required for this example.
+- `OPENFGA_URL` - Base URL of the OpenFGA service to call.
+- `OPENFGA_STORE_ID` - The OpenFGA store ID to check tuples against.
+- `OPEN_FGA_MODEL_ID` - The OpenFGA authorization model ID to use for the check.
 
 ## Related Docs
 

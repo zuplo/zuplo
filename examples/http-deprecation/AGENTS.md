@@ -145,7 +145,7 @@ If the deployed project needs environment variables, the user must set them in t
 | Symptom | Likely Cause | Agent Action |
 |---------|--------------|--------------|
 | No deprecation headers in response | Policy not on route or wrong policy name | Check `routes.oas.json`: `policies.outbound` must include the policy name that exists in `policies.json` |
-| Wrong sunset format in config | Non-ISO date | Use `"2025-06-30T23:59:59Z"` in options |
+| Wrong sunset format in config | Non-ISO date | Use `"2027-06-30T23:59:59Z"` in options |
 | Backend 4xx/5xx | Todo backend unreachable | Deprecation headers are still added; suggest user check network or backend URL in route |
 | ECONNREFUSED | Dev server not running | Run `npm run dev` |
 
@@ -170,4 +170,4 @@ If the deployed project needs environment variables, the user must set them in t
 > curl -i http://localhost:9000/todos
 > ```
 >
-> Look for `deprecation: true`, `sunset: Mon, 30 Jun 2025 23:59:59 GMT`, and `link: <https://example.com/docs/v2-migration>; rel="deprecation"` in the response headers.
+> Look for `deprecation: true`, `sunset: Wed, 30 Jun 2027 23:59:59 GMT`, and `link: <https://example.com/docs/v2-migration>; rel="deprecation"` in the response headers.

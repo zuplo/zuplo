@@ -447,7 +447,7 @@
             }
           },
           "policies": {
-            "inbound": ["validate-json-schema-inbound-1"]
+            "inbound": ["validate-json-schema-inbound-1", "my-auth-policy"]
           }
         },
         "operationId": "f3334d8b-37f9-489b-87c5-08a8beb5657c",
@@ -514,7 +514,7 @@
             }
           },
           "policies": {
-            "inbound": []
+            "inbound": ["my-auth-policy"]
           }
         },
         "operationId": "1647d06c-2a96-41ab-a2f7-ebb55d5bcd76",

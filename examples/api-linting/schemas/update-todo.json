@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "Update Todo Object",
+  "required": ["userId", "title", "completed"],
+  "additionalProperties": false,
+  "properties": {
+    "userId": {
+      "type": "integer",
+      "description": "The userId that created the todo list item.",
+      "examples": [1]
+    },
+    "title": {
+      "type": "string",
+      "description": "The title of the todo list item.",
+      "examples": ["Make dinner"]
+    },
+    "completed": {
+      "type": "boolean",
+      "description": "Whether or not the todo list item is completed.",
+      "examples": [false]
+    }
+  },
+  "examples": [
+    {
+      "userId": 1,
+      "title": "New Title",
+      "completed": false
+    }
+  ]
+}

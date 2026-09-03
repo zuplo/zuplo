@@ -1,9 +1,13 @@
 .zuplo/
+.zuplo-local/
 .cache/
 dist/
 node_modules/
 .env
 .env.*
+!.env.example
+coverage/
+*.log
 
 # OS Stuff
 .DS_Store

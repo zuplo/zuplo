@@ -41,7 +41,7 @@ If the user is authorized as a reader on that document, the request will be allo
 To develop with this example locally, you can create a new Zuplo project using our CLI
 
 ```bash
-npx create-zuplo-api@latest my-api --example open-fga
+npx create-zuplo-api@latest my-api --example openfga
 ```
 Then, in the project directory run the following commands:
 

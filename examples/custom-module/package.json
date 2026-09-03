@@ -1,15 +1,20 @@
 {
   "name": "custom-module",
-  "version": "1.0.0",
-  "author": "",
-  "copyright": "",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "zup dev",
-    "test": "zup test",
-    "bundle": "npx tsdown ./node_modules/openai --format esm --platform browser --out-dir ./modules/third-party/openai"
+    "dev": "zuplo dev",
+    "test": "zuplo test",
+    "bundle": "npx tsdown ./node_modules/openai --format esm --platform browser --out-dir ./modules/third-party/openai",
+    "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
     "openai": "^4.29.1",
-    "zuplo": "latest"
+    "zuplo": "^7"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "typescript": "^5"
   }
 }

@@ -131,22 +131,22 @@ Use the following curl commands to see the semantic cache in action:
 
 ```bash
 # Request 1: Initial question (expect MISS)
-curl -s -i http://localhost:9000/ask \
+curl -s -i https://localhost:9000/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "What is the capital of France?"}'
 
 # Request 2: Exact same question (expect HIT)
-curl -s -i http://localhost:9000/ask \
+curl -s -i https://localhost:9000/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "What is the capital of France?"}'
 
 # Request 3: Semantically similar question (expect HIT)
-curl -s -i http://localhost:9000/ask \
+curl -s -i https://localhost:9000/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "Tell me the capital city of France"}'
 
 # Request 4: Different question (expect MISS)
-curl -s -i http://localhost:9000/ask \
+curl -s -i https://localhost:9000/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "What is the population of Tokyo?"}'
 ```

@@ -32,7 +32,7 @@ Route API requests to different backends based on the user's geographic location
 | Modify routes | Edit `config/routes.oas.json` |
 | Modify policies | Edit `config/policies.json` |
 | Modify routing logic | Edit `modules/geolocation-routing.ts` |
-| Test endpoints | Use curl with `_testCountry` param |
+| Test endpoints | Use curl with `X-Test-Country` header |
 
 ## Project Structure
 
@@ -53,7 +53,7 @@ modules/
 5. Headers `X-Routed-Region` and `X-Detected-Country` added
 6. `urlForwardHandler` forwards to `${context.custom.backendUrl}`
 
-**Note**: Real geolocation only works when deployed. Locally, use `_testCountry` query param to simulate locations.
+**Note**: Real geolocation only works when deployed. Locally, use the `X-Test-Country` header to simulate locations.
 
 ## Region Configuration
 
@@ -70,16 +70,16 @@ Use `-i` to see routing headers. The `echo.zuplo.io` backend returns your reques
 
 ```bash
 # Simulate Germany (Europe) - check X-Routed-Region header
-curl -i "http://localhost:9000/v1/anything?_testCountry=DE"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: DE"
 
 # Simulate Japan (APAC)
-curl -i "http://localhost:9000/v1/anything?_testCountry=JP"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: JP"
 
 # Simulate United States (Americas)
-curl -i "http://localhost:9000/v1/anything?_testCountry=US"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: US"
 
 # Simulate unknown country (Global fallback)
-curl -i "http://localhost:9000/v1/anything?_testCountry=XX"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: XX"
 ```
 
 ## Common Modifications
@@ -153,7 +153,7 @@ ZA: "europe",  // Route South Africa to Europe region
 | Error | Cause | Solution |
 |-------|-------|----------|
 | Always routes to global | Country not in `ROUTING_CONFIG` | Add country code to appropriate region |
-| `_testCountry` not working | Query param name typo | Use exactly `_testCountry` (case-sensitive) |
+| `X-Test-Country` not working | Header name typo | Use exactly `X-Test-Country` (case-insensitive header, case-sensitive value handling) |
 | Wrong region in response | Country mapped incorrectly | Check `ROUTING_CONFIG` in `geolocation-routing.ts` |
 | Headers missing | Policy not in chain | Verify `geolocation-routing` in route's inbound policies |
 | Connection refused | Dev server not running | Run `npm run dev` |

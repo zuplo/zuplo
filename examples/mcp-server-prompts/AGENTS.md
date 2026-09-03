@@ -57,14 +57,11 @@ curl -X POST http://localhost:9000/bookmarks \
 
 ## Policies Used
 
-- **mock-api-inbound** (Built-in): mock-api-inbound
+None.
 
 ## Environment Variables
 
-Set these in `.env` locally or in Zuplo Portal > Settings > Environment Variables:
-
-- `EXAMPLE_SECRET`
-- `EXAMPLE_CONFIG`
+None required.
 
 ## Related Docs
 

@@ -5,6 +5,10 @@
       "title": "Authentication"
     },
     {
+      "slug": "authorization",
+      "title": "Authorization"
+    },
+    {
       "slug": "bff",
       "title": "Backend-for-Frontend (BFF)"
     },
@@ -52,7 +56,6 @@
       "slug": "validation",
       "title": "Validation"
     }
-
   ],
   "examples": [
     {

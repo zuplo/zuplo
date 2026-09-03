@@ -122,13 +122,9 @@ This returns a 400 error with validation details:
   "type": "https://httpproblems.com/http-status/400",
   "title": "Bad Request",
   "status": 400,
-  "detail": "Incoming request body did not pass schema validation",
-  "errors": [
-    {
-      "path": "",
-      "message": "must have required property 'userId'"
-    }
-  ]
+  "detail": "Incoming body did not pass schema validation",
+  "instance": "/v1/todos",
+  "errors": ["Body must have required property 'userId'"]
 }
 ```
 

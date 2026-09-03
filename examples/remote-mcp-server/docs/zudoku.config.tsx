@@ -9,7 +9,7 @@ const config: ZudokuConfig = {
   site: {
     pageTitle: "My Developer Portal",
     logo: {
-      src: "/logo.svg",
+      src: { light: "/logolight.svg", dark: "/logodark.svg" },
       alt: "My Developer Portal",
     },
   },

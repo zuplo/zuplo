@@ -6,22 +6,17 @@
   "scripts": {
     "dev": "zuplo dev",
     "test": "zuplo test",
-    "docs": "npm run dev --workspace docs",
-    "lint": "eslint",
+    "typecheck": "tsc --noEmit --skipLibCheck",
+    "docs": "zuplo docs",
     "setup": "node setup.js"
   },
   "dependencies": {
     "@openmeter/sdk": "^1.0.0-beta.219",
     "dotenv": "^16.4.5",
-    "zuplo": "^6.58.4"
+    "zuplo": "^7"
   },
   "devDependencies": {
-    "@types/node": "^22",
-    "@typescript-eslint/eslint-plugin": "^8",
-    "@typescript-eslint/parser": "^8",
-    "eslint": "^8",
-    "eslint-config-prettier": "^9",
-    "prettier": "^3",
+    "@types/node": "^24",
     "typescript": "^5"
   },
   "workspaces": [

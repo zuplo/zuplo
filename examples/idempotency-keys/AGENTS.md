@@ -44,21 +44,21 @@ Or use the [Deploy to Zuplo](https://zuplo.com/docs/examples/idempotency-keys) b
 
 ```bash
 # First request (processed normally)
-curl -X POST http://localhost:9000/payments \
+curl -X POST https://localhost:9000/payments \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: payment-abc-123" \
   -d '{"amount": 100, "currency": "USD"}' \
   -i
 
 # Second request with same key (returns cached response)
-curl -X POST http://localhost:9000/payments \
+curl -X POST https://localhost:9000/payments \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: payment-abc-123" \
   -d '{"amount": 100, "currency": "USD"}' \
   -i
 
 # Request without idempotency key (no caching)
-curl -X POST http://localhost:9000/payments \
+curl -X POST https://localhost:9000/payments \
   -H "Content-Type: application/json" \
   -d '{"amount": 100, "currency": "USD"}'
 ```

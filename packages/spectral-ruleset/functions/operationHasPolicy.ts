@@ -52,5 +52,5 @@ export default createRulesetFunction<any, { name: string; type: string }>(
     }
 
     return results;
-  }
+  },
 );

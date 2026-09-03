@@ -38,13 +38,13 @@ Once you have the code on your local machine, start the development server:
 npm run dev
 ```
 
-The API will be available at [http://localhost:9000](http://localhost:9000).
+The API will be available at [https://localhost:9000](https://localhost:9000).
 
 You can access:
-- **API Gateway** - `http://localhost:9000`
-- **Local API Route Designer** - `http://localhost:9100`
-- **MCP Endpoint** - `http://localhost:9000/mcp` (POST)
-- **GraphQL Endpoint** - `http://localhost:9000/graphql` (POST)
+- **API Gateway** - `https://localhost:9000`
+- **Local API Route Designer** - `https://localhost:9100`
+- **MCP Endpoint** - `https://localhost:9000/mcp` (POST)
+- **GraphQL Endpoint** - `https://localhost:9000/graphql` (POST)
 
 The dev server will automatically reload when you modify:
 - Route definitions in `config/routes.oas.json`
@@ -93,7 +93,7 @@ You can then test the MCP server locally, or point your inspector at a deployed 
 ### Local MCP Server
 
 ```
-http://localhost:9000/mcp
+https://localhost:9000/mcp
 ```
 
 ### Deployed

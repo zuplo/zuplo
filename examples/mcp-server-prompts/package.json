@@ -1,21 +1,20 @@
 {
-  "name": "mcp-prompts-example",
+  "name": "mcp-server-prompts",
   "version": "0.1.0",
-  "type": "module",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "zuplo dev",
     "test": "zuplo test",
+    "typecheck": "tsc --noEmit --skipLibCheck",
     "docs": "zuplo docs"
   },
   "dependencies": {
-    "zuplo": "^6"
+    "zuplo": "^7"
   },
   "devDependencies": {
-    "@types/node": "^22",
+    "@types/node": "^24",
     "typescript": "^5"
   },
-  "workspaces": [
-    "docs"
-  ]
+  "workspaces": ["docs"]
 }

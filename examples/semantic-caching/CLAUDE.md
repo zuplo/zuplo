@@ -34,17 +34,17 @@ Or use the [Deploy to Zuplo](https://zuplo.com/docs/examples/semantic-caching) b
 
 ```bash
 # First request (MISS)
-curl -s -i http://localhost:9000/ask \
+curl -s -i https://localhost:9000/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "What is the capital of France?"}'
 
 # Semantically similar (HIT - same cached response)
-curl -s -i http://localhost:9000/ask \
+curl -s -i https://localhost:9000/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "Tell me the capital city of France"}'
 
 # Different question (MISS)
-curl -s -i http://localhost:9000/ask \
+curl -s -i https://localhost:9000/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "What is the population of Tokyo?"}'
 ```

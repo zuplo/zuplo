@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "Todo Insert Schema",
+  "required": ["userId", "title", "completed"],
+  "additionalProperties": false,
+  "properties": {
+    "userId": {
+      "type": "integer",
+      "description": "The userId that created the todo list item.",
+      "examples": [1]
+    },
+    "title": {
+      "type": "string",
+      "description": "The title of the todo list item.",
+      "examples": ["Wash the dishes"]
+    },
+    "completed": {
+      "type": "boolean",
+      "description": "Whether or not the todo list item is completed.",
+      "examples": [false]
+    }
+  },
+  "examples": [
+    {
+      "userId": 1,
+      "title": "Wash the dishes",
+      "completed": false
+    }
+  ]
+}

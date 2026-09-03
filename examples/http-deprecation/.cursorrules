@@ -16,7 +16,7 @@ This is a Zuplo API Gateway example that adds HTTP deprecation and sunset header
 |--------|---------|----------------|
 | `deprecation` | Add deprecation signal | `true` |
 | `link` | Migration doc URL (used in `Link` header with `rel="deprecation"`) | `"https://example.com/docs/v2-migration"` |
-| `sunset` | Retirement date (ISO 8601); sent as HTTP-date in response | `"2025-06-30T23:59:59Z"` |
+| `sunset` | Retirement date (ISO 8601); sent as HTTP-date in response | `"2027-06-30T23:59:59Z"` |
 
 ## Human vs Agent Tasks
 
@@ -61,7 +61,7 @@ This is a Zuplo API Gateway example that adds HTTP deprecation and sunset header
     "options": {
       "deprecation": true,
       "link": "https://example.com/docs/v2-migration",
-      "sunset": "2025-06-30T23:59:59Z"
+      "sunset": "2027-06-30T23:59:59Z"
     }
   },
   "name": "http-deprecation-outbound",
@@ -101,7 +101,7 @@ curl -i http://localhost:9000/todos
 curl -s -D - -o /dev/null http://localhost:9000/todos
 ```
 
-Expect headers: `deprecation: true`, `sunset: Mon, 30 Jun 2025 23:59:59 GMT`, `link: <https://example.com/docs/v2-migration>; rel="deprecation"`.
+Expect headers: `deprecation: true`, `sunset: Wed, 30 Jun 2027 23:59:59 GMT`, `link: <https://example.com/docs/v2-migration>; rel="deprecation"`.
 
 ## Error Handling
 
@@ -114,5 +114,5 @@ Expect headers: `deprecation: true`, `sunset: Mon, 30 Jun 2025 23:59:59 GMT`, `l
 ## Do Not
 
 - Commit `.env` or `.env.zuplo`
-- Use a non-ISO 8601 format for `sunset` in policy options (e.g. use `2025-06-30T23:59:59Z`, not a custom string)
+- Use a non-ISO 8601 format for `sunset` in policy options (e.g. use `2027-06-30T23:59:59Z`, not a custom string)
 - Remove the policy name from a route’s `policies.outbound` if the goal is to keep deprecation headers on that route

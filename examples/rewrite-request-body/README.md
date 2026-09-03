@@ -29,20 +29,26 @@ Create a [custom policy](https://zuplo.com/docs/policies/custom-code-inbound). T
 Create an empty incoming policy called `rewrite-body.ts` and add the following code to the function.
 
 ```ts
-// Read the incoming body
-const body = await request.json();
+import { InboundPolicyHandler, ZuploRequest } from "@zuplo/runtime";
 
-// Create a new body with additional properties
-const outbound = {
-  ...body,
-  id: crypto.randomUUID(),
-  createdOn: new Date(),
+const rewriteBody: InboundPolicyHandler = async (request, context) => {
+  // Read the incoming body
+  const body = await request.json();
+
+  // Create a new body with additional properties
+  const outbound = {
+    ...body,
+    id: crypto.randomUUID(),
+    createdOn: new Date(),
+  };
+
+  // Return a new request with the modified body
+  return new ZuploRequest(request, {
+    body: JSON.stringify(outbound),
+  });
 };
 
-// Return a new request with the modified body
-return new Request(request, {
-  body: JSON.stringify(outbound),
-});
+export default rewriteBody;
 ```
 
 ## 3/ Call the API
@@ -50,9 +56,9 @@ return new Request(request, {
 The API can now be called and will return the echoed response. Note, the echo API returns a serialized version of the entire request so you will get back the body, url, headers, etc. In this example, you will see that the body has the original `hello` property and two new properties `id` and `createdOn`
 
 ```bash
-curl -X POST https://API_URL/rewrite-body
-   -H "Content-Type: application/json"
-   -H "Authorization: user123"
+curl -X POST https://API_URL/rewrite-body \
+   -H "Content-Type: application/json" \
+   -H "Authorization: user123" \
    -d '{"hello": "world" }'
 ```
 

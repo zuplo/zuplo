@@ -1,5 +1,3 @@
-//module - ./modules/rate-limiter.ts
-
 import {
   ContextData,
   CustomRateLimitDetails,

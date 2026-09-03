@@ -6,12 +6,12 @@
   "author": "Zuplo, Inc.",
   "license": "See LICENSE in LICENSE.txt",
   "dependencies": {
-    "@octokit/core": "^6.1.5",
-    "dotenv": "^16.4.5",
-    "p-limit": "^6.1.0"
+    "@octokit/core": "^7.0.8",
+    "dotenv": "^17.4.2",
+    "p-limit": "^7.3.2"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "bin": {
     "bulk-delete-github-environments": "main.mjs"

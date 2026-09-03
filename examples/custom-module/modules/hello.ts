@@ -1,12 +1,13 @@
+import { environment } from "@zuplo/runtime";
 import type { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import OpenAI from "./third-party/openai";
+import OpenAI from "./third-party/openai/openai.mjs";
 
 export default async function echo(
   request: ZuploRequest,
   context: ZuploContext
 ) {
   const openai = new OpenAI({
-    apiKey: process.env["OPENAI_API_KEY"], // This is the default and can be omitted
+    apiKey: environment.OPENAI_API_KEY,
   });
   const chatCompletion = await openai.chat.completions.create({
     messages: [{ role: "user", content: "Say this is a test" }],

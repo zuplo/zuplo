@@ -65,7 +65,7 @@ An **outbound** policy runs on the response after the handler, so it can add or 
 |--------|---------|---------|
 | `deprecation` | Whether to add deprecation signal | `true` |
 | `link` | URL to migration/deprecation docs (used in `Link` header with `rel="deprecation"`) | `"https://example.com/docs/v2-migration"` |
-| `sunset` | When the endpoint may be retired (ISO 8601); Zuplo converts to HTTP-date in response | `"2025-06-30T23:59:59Z"` |
+| `sunset` | When the endpoint may be retired (ISO 8601); Zuplo converts to HTTP-date in response | `"2027-06-30T23:59:59Z"` |
 
 ## Testing Endpoints
 
@@ -84,7 +84,7 @@ curl -i -X POST http://localhost:9000/todos \
   -d '{"title": "Migrate to v2", "completed": false, "userId": 1}'
 ```
 
-Expect headers: `deprecation: true`, `sunset: Mon, 30 Jun 2025 23:59:59 GMT`, `link: <https://example.com/docs/v2-migration>; rel="deprecation"`.
+Expect headers: `deprecation: true`, `sunset: Wed, 30 Jun 2027 23:59:59 GMT`, `link: <https://example.com/docs/v2-migration>; rel="deprecation"`.
 
 ## Common Modifications
 
@@ -111,7 +111,7 @@ Edit `config/policies.json`, policy `http-deprecation-outbound` → `handler.opt
        "options": {
          "deprecation": true,
          "link": "https://example.com/docs/v2-migration",
-         "sunset": "2025-06-30T23:59:59Z"
+         "sunset": "2027-06-30T23:59:59Z"
        }
      },
      "name": "http-deprecation-outbound",
@@ -129,7 +129,7 @@ Create multiple policies in `policies.json` (e.g. `deprecation-v1`, `deprecation
 | Error | Cause | Solution |
 |-------|-------|----------|
 | No `deprecation` / `sunset` / `link` headers | Policy not attached or wrong name | Ensure route’s `policies.outbound` includes `"http-deprecation-outbound"` and name matches `policies.json` |
-| `sunset` format wrong | Config must be ISO 8601 | Use `"2025-06-30T23:59:59Z"`; Zuplo outputs HTTP-date in response |
+| `sunset` format wrong | Config must be ISO 8601 | Use `"2027-06-30T23:59:59Z"`; Zuplo outputs HTTP-date in response |
 | Backend 4xx/5xx | Backend or network | Check `https://todo.zuplo.io` is reachable; deprecation headers are still added to the response |
 | Connection refused | Dev server not running | Run `npm run dev` |
 

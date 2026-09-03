@@ -55,7 +55,6 @@ curl -X POST http://localhost:9000/todos \
 
 ## Policies Used
 
-- **mock-api-inbound** (Built-in): mock-api-inbound
 - **open-id-jwt-auth-inbound** (Built-in): open-id-jwt-auth-inbound
 - **api-key-inbound** (Built-in): api-key-inbound
 

@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  repo:
+    name: Repo checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build spectral ruleset
+        run: npm run build --workspace @zuplo/spectral-ruleset
+      - name: Audit (fail on high or critical)
+        run: npm audit --audit-level=high
+
+  go-tools:
+    name: Go tools
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: tools/api-testing/go.mod
+      - name: Build
+        run: go build ./...
+        working-directory: tools/api-testing
+      - name: Vet
+        run: go vet ./...
+        working-directory: tools/api-testing
+      - name: Gofmt
+        run: test -z "$(gofmt -l .)"
+        working-directory: tools/api-testing
+
+  # Enumerate the example projects so each one type-checks in its own parallel job.
+  discover:
+    name: Discover examples
+    runs-on: ubuntu-latest
+    outputs:
+      examples: ${{ steps.list.outputs.examples }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: list
+        run: |
+          json=$(find examples -mindepth 2 -maxdepth 2 -name package.json \
+            | sed 's|examples/||; s|/package.json||' | sort \
+            | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "examples=$json" >> "$GITHUB_OUTPUT"
+          echo "Found: $json"
+
+  example:
+    name: ${{ matrix.example }}
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        example: ${{ fromJSON(needs.discover.outputs.examples) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install
+        run: npm install
+        working-directory: examples/${{ matrix.example }}
+      # --skipLibCheck is required: @zuplo/runtime ships a type bundle that does not
+      # type-check standalone. See https://github.com/zuplo/zuplo (upstream issue).
+      - name: Type-check
+        run: npx tsc --noEmit --skipLibCheck
+        working-directory: examples/${{ matrix.example }}
+      - name: Build docs
+        run: |
+          if [ -d docs ]; then
+            cd docs && npx zudoku build --zuplo
+          else
+            echo "no docs/ for this example, skipping"
+          fi
+        working-directory: examples/${{ matrix.example }}

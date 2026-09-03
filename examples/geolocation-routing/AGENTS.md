@@ -4,9 +4,9 @@ This file provides instructions for AI agents working with this Zuplo example.
 
 ## Before You Start
 
-This example is simpler than most Zuplo examples because it doesn't require API key authentication. You can test it immediately after starting the dev server using the `_testCountry` query parameter.
+This example is simpler than most Zuplo examples because it doesn't require API key authentication. You can test it immediately after starting the dev server using the `X-Test-Country` header.
 
-**Note**: Real geolocation detection only works on deployed projects (Zuplo detects country from IP at the edge). Locally, use `_testCountry` to simulate different locations.
+**Note**: Real geolocation detection only works on deployed projects (Zuplo detects country from IP at the edge). Locally, use the `X-Test-Country` header to simulate different locations.
 
 ## Setup Workflow
 
@@ -56,10 +56,10 @@ Once running, agents can test immediately:
 
 ```bash
 # Test with simulated locations
-curl "http://localhost:9000/v1/anything?_testCountry=US"
-curl "http://localhost:9000/v1/anything?_testCountry=DE"
-curl "http://localhost:9000/v1/anything?_testCountry=JP"
-curl "http://localhost:9000/v1/anything?_testCountry=XX"
+curl http://localhost:9000/v1/anything -H "X-Test-Country: US"
+curl http://localhost:9000/v1/anything -H "X-Test-Country: DE"
+curl http://localhost:9000/v1/anything -H "X-Test-Country: JP"
+curl http://localhost:9000/v1/anything -H "X-Test-Country: XX"
 ```
 
 ## File Modification Guidelines
@@ -178,19 +178,20 @@ Use `-i` flag to see response headers:
 
 ```bash
 # Americas (United States)
-curl -i "http://localhost:9000/v1/anything?_testCountry=US"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: US"
 
 # Europe (Germany)
-curl -i "http://localhost:9000/v1/anything?_testCountry=DE"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: DE"
 
 # APAC (Japan)
-curl -i "http://localhost:9000/v1/anything?_testCountry=JP"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: JP"
 
 # Global fallback (unknown)
-curl -i "http://localhost:9000/v1/anything?_testCountry=XX"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: XX"
 
 # POST request
-curl -i -X POST "http://localhost:9000/v1/anything?_testCountry=GB" \
+curl -i -X POST http://localhost:9000/v1/anything \
+  -H "X-Test-Country: GB" \
   -H "Content-Type: application/json" \
   -d '{"test": "data"}'
 ```
@@ -214,7 +215,7 @@ zuplo deploy
 | Symptom | Likely Cause | Agent Action |
 |---------|--------------|--------------|
 | Always routes to global | Country not in ROUTING_CONFIG | Add country code to appropriate region |
-| `_testCountry` ignored | Typo in query param | Verify exact spelling `_testCountry` |
+| `X-Test-Country` ignored | Typo in header name | Verify exact spelling `X-Test-Country` |
 | Headers missing | Policy not applied | Check route includes `geolocation-routing` policy |
 | Connection refused | Server not running | Run `npm run dev` |
 | ENV var undefined | Missing .env | Run `cp env.example .env` |
@@ -229,10 +230,10 @@ zuplo deploy
 > npm install && cp env.example .env && npm run dev
 > ```
 >
-> You can then test geolocation routing using the `_testCountry` query parameter:
+> You can then test geolocation routing using the `X-Test-Country` header:
 >
 > ```bash
-> curl -i "http://localhost:9000/v1/anything?_testCountry=DE"
+> curl -i http://localhost:9000/v1/anything -H "X-Test-Country: DE"
 > ```
 >
 > The response headers will show `X-Routed-Region: europe` and `X-Detected-Country: DE`.

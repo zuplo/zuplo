@@ -57,7 +57,13 @@ curl http://localhost:9000/auth/login
 
 ## Environment Variables
 
-None required for this example.
+Required (set in `.env` locally or in the Zuplo Portal under **Settings > Environment Variables**):
+
+- `AUTH0_URL`
+- `CLIENT_ID`
+- `CLIENT_SECRET`
+- `UPSTASH_URL`
+- `UPSTASH_TOKEN`
 
 ## Related Docs
 

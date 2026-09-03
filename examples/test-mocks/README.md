@@ -40,17 +40,14 @@ It is also possible to deploy this example directly to your Zuplo account and wo
 
 ### Mocking ZuploRequest
 
-Since `ZuploRequest` extends the standard `Request` class, you can create a mock by extending `Request` and adding the Zuplo-specific properties:
+`ZuploRequest` can be constructed directly — import it from `@zuplo/runtime` and pass `params` (and any other request init options) straight to the constructor. There's no need to hand-roll a subclass:
 
 ```typescript
-class ZuploRequest extends Request {
-  params: Record<string, string>;
+import { ZuploRequest } from "@zuplo/runtime";
 
-  constructor(input: string | Request, init?: RequestInit & { params?: Record<string, string> }) {
-    super(input, init);
-    this.params = init?.params || {};
-  }
-}
+const mockRequest = new ZuploRequest("https://my-api.zuplo.app", {
+  params: { param1: "hello" },
+});
 ```
 
 ### Mocking ZuploContext
@@ -94,13 +91,14 @@ it("Calls the handler and validates the result", async function () {
 
 ### Mocking External API Calls
 
-Use [undici's MockAgent](https://zuplo.link/undici-mock) to mock fetch calls your handlers make:
+Use [undici's MockAgent](https://zuplo.link/undici-mock) to mock fetch calls your handlers make. Node's built-in `fetch` is its own bundled copy of undici, so `setGlobalDispatcher` alone won't reach it — also point `globalThis.fetch` at undici's own `fetch` so the mocked dispatcher is actually used:
 
 ```typescript
-import { MockAgent, setGlobalDispatcher } from "undici";
+import { MockAgent, setGlobalDispatcher, fetch as undiciFetch } from "undici";
 
 const mockAgent = new MockAgent();
 setGlobalDispatcher(mockAgent);
+globalThis.fetch = undiciFetch as unknown as typeof globalThis.fetch;
 
 const mockPool = mockAgent.get("https://echo.zuplo.io");
 mockPool

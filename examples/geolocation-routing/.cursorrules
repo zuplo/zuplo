@@ -36,7 +36,7 @@ All default to `https://echo.zuplo.io` (an echo service returning request detail
 - `npm run dev` - Start development server
 - `zuplo deploy` - Deploy to Zuplo (after setup complete)
 - Editing any code files
-- Testing with curl using `_testCountry` query parameter
+- Testing with curl using the `X-Test-Country` header
 
 ## Code Conventions
 
@@ -87,12 +87,11 @@ export default async function policy(
 ### Test Mode Pattern
 
 ```typescript
-// Check for test parameter to simulate locations
-const url = new URL(request.url);
-const testCountry = url.searchParams.get("_testCountry");
+// Check for test header to simulate locations
+const testCountry = request.headers.get("X-Test-Country");
 
-const country = testCountry 
-  ? testCountry.toUpperCase() 
+const country = testCountry
+  ? testCountry.toUpperCase()
   : context.incomingRequestProperties.country ?? "DEFAULT";
 ```
 
@@ -101,7 +100,7 @@ const country = testCountry
 1. Run `npm install`
 2. Run `cp env.example .env`
 3. Run `npm run dev`
-4. Test immediately with: `curl -i "http://localhost:9000/v1/anything?_testCountry=DE"`
+4. Test immediately with: `curl -i http://localhost:9000/v1/anything -H "X-Test-Country: DE"`
 5. **If deploying**, inform user to:
    - Create project in Zuplo Portal
    - Run `npx zuplo link` interactively
@@ -167,22 +166,22 @@ Add to `config/routes.oas.json` under `paths`:
 
 ## Testing
 
-Dev server runs on `http://localhost:9000`. Real geolocation only works when deployed; locally use `_testCountry` to simulate.
+Dev server runs on `http://localhost:9000`. Real geolocation only works when deployed; locally use the `X-Test-Country` header to simulate.
 
 Use `-i` flag to see headers. The `echo.zuplo.io` backend returns request details as JSON.
 
 ```bash
 # Americas
-curl -i "http://localhost:9000/v1/anything?_testCountry=US"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: US"
 
 # Europe
-curl -i "http://localhost:9000/v1/anything?_testCountry=DE"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: DE"
 
 # APAC
-curl -i "http://localhost:9000/v1/anything?_testCountry=JP"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: JP"
 
 # Global fallback
-curl -i "http://localhost:9000/v1/anything?_testCountry=XX"
+curl -i http://localhost:9000/v1/anything -H "X-Test-Country: XX"
 ```
 
 Check `X-Routed-Region` and `X-Detected-Country` headers in response.
@@ -192,7 +191,7 @@ Check `X-Routed-Region` and `X-Detected-Country` headers in response.
 | Error | Meaning |
 |-------|---------|
 | Routes to global unexpectedly | Country code not in `ROUTING_CONFIG` |
-| `_testCountry` ignored | Query parameter name is case-sensitive |
+| `X-Test-Country` ignored | Header name typo or header not being sent |
 | Headers missing | Policy not in route's inbound array |
 | Connection refused | Dev server not running |
 
@@ -201,5 +200,5 @@ Check `X-Routed-Region` and `X-Detected-Country` headers in response.
 - Commit `.env` or `.env.zuplo` files
 - Modify `zuplo.jsonc` without clear reason
 - Hardcode backend URLs instead of using environment variables
-- Remove the `_testCountry` test mode (needed for local development)
+- Remove the `X-Test-Country` test mode (needed for local development)
 - Assume real geolocation works locally (only works at edge when deployed)

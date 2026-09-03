@@ -5,7 +5,7 @@ import { RuntimeExtensions, OAuthProtectedResourcePlugin } from "@zuplo/runtime"
 
 export function runtimeInit(runtime: RuntimeExtensions) {
   runtime.addPlugin(new OAuthProtectedResourcePlugin({
-    authorizationServers: ["dev-tc20cgixnv0klo8o.us.auth0.com"],
+    authorizationServers: ["https://<YOUR_AUTH0_DOMAIN>"],
     resourceName: "OAuth MCP Demo"
   }));
 }

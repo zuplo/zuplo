@@ -49,7 +49,8 @@ curl http://localhost:9000/doc/{id}
 
 ## Environment Variables
 
-None required for this example.
+- `SERVICE_ACCOUNT_JSON` - The Firebase Service Account token
+- `FIREBASE_PROJECT` - The Firebase project ID
 
 ## Related Docs
 

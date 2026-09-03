@@ -8,9 +8,9 @@ Use the Request Validation policy with OpenAPI that references external files.
 |------|--------|
 | `config/routes.oas.json` | Route definitions with policies |
 | `config/policies.json` | Policy configurations |
-| `modules/remove-user-id.ts` | Custom module |
-| `modules/todos-and-users.ts` | Custom module |
-| `modules/types.ts` | Custom module |
+| `schemas/insert-todo-object.json` | Request body schema (referenced via `$ref`) |
+| `schemas/todo-object.json` | Response body schema (referenced via `$ref`) |
+| `schemas/schema-validation-error.json` | 400 error response schema (referenced via `$ref`) |
 
 ## Routes
 
@@ -50,7 +50,6 @@ curl -X POST http://localhost:9000/v1/todos \
 
 ## Policies Used
 
-- **remove-user-id** (Custom): custom-code-outbound
 - **request-validation-inbound** (Built-in): request-validation-inbound
 - **set-content-type** (Built-in): set-headers-inbound
 

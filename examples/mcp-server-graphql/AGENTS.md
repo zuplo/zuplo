@@ -41,12 +41,12 @@ Or use the [Deploy to Zuplo](https://zuplo.com/docs/examples/mcp-server-graphql)
 
 ```bash
 # GraphQL
-curl -X POST http://localhost:9000/graphql \
+curl -X POST https://localhost:9000/graphql \
   -H "Content-Type: application/json" \
   -d '{}'
 
 # MCP Server
-curl -X POST http://localhost:9000/mcp \
+curl -X POST https://localhost:9000/mcp \
   -H "Content-Type: application/json" \
   -d '{}'
 
@@ -58,10 +58,7 @@ curl -X POST http://localhost:9000/mcp \
 
 ## Environment Variables
 
-Set these in `.env` locally or in Zuplo Portal > Settings > Environment Variables:
-
-- `EXAMPLE_SECRET`
-- `EXAMPLE_CONFIG`
+None required. This example proxies a public GraphQL API and only reads the built-in `api-key-inbound` policy configuration.
 
 ## Related Docs
 

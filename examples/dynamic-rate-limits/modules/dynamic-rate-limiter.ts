@@ -1,7 +1,10 @@
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 
 export function rateLimit(request: ZuploRequest, context: ZuploContext) {
-  const user = request.user;
+  // `api-key-inbound` runs before this policy and always populates
+  // `request.user`; the `!` narrows the type without altering behavior
+  // (the identifier function must return rate-limit config, not a Response).
+  const user = request.user!;
 
   // premium customers get 1000 requests per mintue
   if (user.data.customerType === "premium") {

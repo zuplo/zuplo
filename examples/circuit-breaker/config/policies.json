@@ -1,15 +1,6 @@
 {
   "policies": [
     {
-      "handler": {
-        "export": "MockApiInboundPolicy",
-        "module": "$import(@zuplo/runtime)",
-        "options": {}
-      },
-      "name": "mock-api-inbound",
-      "policyType": "mock-api-inbound"
-    },
-    {
       "name": "circuit-breaker-inbound",
       "policyType": "custom-code-inbound",
       "handler": {

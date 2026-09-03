@@ -3,13 +3,11 @@ import { Octokit } from "@octokit/core";
 import dotenv from "dotenv";
 import plimit from "p-limit";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const owner = process.env.GITHUB_ORG;
 const repo = process.env.GITHUB_REPO;
 const token = process.env.GITHUB_ACCESS_TOKEN;
-
-const octokit = new Octokit({ auth: token });
 
 if (!owner) {
   console.error("You must set the environment variable GITHUB_ORG.");
@@ -24,7 +22,12 @@ if (!token) {
   process.exit(1);
 }
 
+const octokit = new Octokit({ auth: token });
+
 const limit = plimit(10);
+
+const deleted = [];
+const failed = [];
 
 async function deleteEnvironments() {
   const environments = await octokit.request(
@@ -39,16 +42,18 @@ async function deleteEnvironments() {
     },
   );
 
-  await Promise.all(
-    environments.data.environments.map((env) =>
+  const names = environments.data.environments.map((env) => env.name);
+
+  const results = await Promise.allSettled(
+    names.map((name) =>
       limit(() => {
-        console.log(`Deleting environment ${env.name}...`);
+        console.log(`Deleting environment ${name}...`);
         return octokit.request(
           "DELETE /repos/{owner}/{repo}/environments/{environment_name}",
           {
             owner,
             repo,
-            environment_name: env.name,
+            environment_name: name,
             headers: {
               "X-GitHub-Api-Version": "2022-11-28",
             },
@@ -58,10 +63,40 @@ async function deleteEnvironments() {
     ),
   );
 
+  let batchFailures = 0;
+  results.forEach((result, index) => {
+    const name = names[index];
+    if (result.status === "fulfilled") {
+      deleted.push(name);
+    } else {
+      batchFailures++;
+      const error = result.reason;
+      const status = error?.status ? `HTTP ${error.status}` : "error";
+      failed.push({ name, message: `${status}: ${error?.message ?? error}` });
+      console.error(`Failed to delete environment ${name} (${status}).`);
+    }
+  });
+
+  // Stop paging if anything in this batch failed - the undeleted environments
+  // would otherwise be re-listed forever.
+  if (batchFailures > 0) {
+    return false;
+  }
+
   return environments.data.total_count > 100;
 }
 
 let moreEnvironments = true;
 while (moreEnvironments) {
   moreEnvironments = await deleteEnvironments();
+}
+
+console.log(`\nDeleted ${deleted.length} environment(s).`);
+
+if (failed.length > 0) {
+  console.error(`Failed to delete ${failed.length} environment(s):`);
+  for (const { name, message } of failed) {
+    console.error(`  - ${name}: ${message}`);
+  }
+  process.exit(1);
 }

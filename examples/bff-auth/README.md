@@ -65,7 +65,7 @@ UPSTASH_TOKEN=your_upstash_token
 3. **Token Exchange**: BFF exchanges code for tokens with Auth0
 4. **Session Storage**: Tokens stored in Upstash Redis with session ID
 5. **Cookie**: Session ID returned to browser as HTTP-only cookie
-6. **API Calls**: Frontend calls `/bff/token` to get access token for API requests
+6. **API Calls**: Frontend calls `/auth/bff-token` to get access token for API requests
 
 ### Endpoints
 
@@ -74,8 +74,8 @@ UPSTASH_TOKEN=your_upstash_token
 | `/auth/login` | Redirects user to Auth0 login page |
 | `/auth/callback` | OAuth callback - exchanges code for tokens |
 | `/auth/logout` | Clears session and cookie |
-| `/bff/token` | Returns access token for authenticated requests |
-| `/bff/sessioninfo` | Returns user profile information |
+| `/auth/bff-token` | Returns access token for authenticated requests |
+| `/auth/bff-sessioninfo` | Returns user profile information |
 | `/app` | Sample protected application page |
 
 ### Security Features
@@ -112,14 +112,14 @@ npm run dev
 4. After redirect, check the session info:
 
 ```bash
-curl http://localhost:9000/bff/sessioninfo \
+curl http://localhost:9000/auth/bff-sessioninfo \
   -H "Cookie: app-session=YOUR_SESSION_ID"
 ```
 
 5. Get an access token for API calls:
 
 ```bash
-curl http://localhost:9000/bff/token \
+curl http://localhost:9000/auth/bff-token \
   -H "Cookie: app-session=YOUR_SESSION_ID"
 ```
 
@@ -130,7 +130,7 @@ Your frontend can use the BFF endpoints to manage authentication:
 ```javascript
 // Check if user is logged in
 async function getSessionInfo() {
-  const response = await fetch('/bff/sessioninfo', {
+  const response = await fetch('/auth/bff-sessioninfo', {
     credentials: 'include'  // Include cookies
   });
   if (response.status === 401) {
@@ -143,7 +143,7 @@ async function getSessionInfo() {
 
 // Get access token for API calls
 async function getAccessToken() {
-  const response = await fetch('/bff/token', {
+  const response = await fetch('/auth/bff-token', {
     credentials: 'include'
   });
   const data = await response.json();

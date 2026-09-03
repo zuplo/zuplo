@@ -53,7 +53,9 @@ curl -X POST http://localhost:9000/todos/{name} \
 
 ## Environment Variables
 
-None required for this example.
+- `FIREBASE_PROJECT` - The Firebase project ID
+- `SERVICE_ACCOUNT_JSON` - The Firebase Service Account token
+- `WEB_API_KEY` - The Firebase web api key
 
 ## Related Docs
 

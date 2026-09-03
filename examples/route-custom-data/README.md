@@ -26,7 +26,7 @@ In the `routes.oas.json` set a custom value inside of the route configuration as
 {
   "paths": {
     "/custom-data": {
-      "post": {
+      "get": {
         "x-custom": {
           "isSet": true,
           "hello": "world"
@@ -44,3 +44,10 @@ From a handler or policy custom data can be read using `ZuploContext` as shown b
 ```ts
 const data = context.route.raw<{ "x-custom": { hello: boolean } }>();
 ```
+
+## Routes
+
+This example also includes two additional routes that demonstrate the same pattern with different custom properties, both handled by `modules/echo.ts`:
+
+- `GET /custom-flag` — reads the `x-flag` boolean set on the route.
+- `GET /internal-route` — reads the `x-internal` boolean set on the route.

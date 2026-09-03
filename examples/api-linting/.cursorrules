@@ -1,12 +1,17 @@
-# Zuplo API Gateway Examples
+# Zuplo API Linting Example
 
-You are working in a Zuplo API Gateway examples repository.
+You are working in the `api-linting` example of the Zuplo examples repository.
+This example demonstrates linting a Zuplo OpenAPI config with Vacuum. It is not
+run as a gateway here — the only documented workflow is `npm run lint`.
 
 ## Project Structure
-- config/routes.oas.json - OpenAPI routes with x-zuplo-route extensions
+- config/api-ruleset.yaml - Vacuum ruleset (the rules enforced)
+- config/routes.oas.json - OpenAPI routes with x-zuplo-route extensions (the linted file)
 - config/policies.json - Policy configurations
+- lint-functions/*.js - Custom Vacuum lint functions
+- schemas/*.json - JSON Schemas imported by the validation policies
 - modules/*.ts - Custom handlers and policies
-- Tests: npm run test
+- Lint: npm run lint
 
 ## Code Conventions
 - TypeScript with @zuplo/runtime imports
@@ -25,7 +30,10 @@ You are working in a Zuplo API Gateway examples repository.
 - Edit config/routes.oas.json
 - Add handler reference in x-zuplo-route.handler
 - Add policies in x-zuplo-route.policies.inbound/outbound
+- Every policy named on a route must be defined in config/policies.json
+- Every route's inbound policies must include my-auth-policy, and every path
+  must start with /v1, or the lint fails
 
 ## Local Development
-- npm run dev starts server on https://localhost:9000
-- Hot reload is automatic
+- npm run lint runs Vacuum over config/routes.oas.json; it must exit 0
+- npx tsc --noEmit --skipLibCheck typechecks modules/

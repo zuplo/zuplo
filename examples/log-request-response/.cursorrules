@@ -27,5 +27,5 @@ You are working in a Zuplo API Gateway examples repository.
 - Add policies in x-zuplo-route.policies.inbound/outbound
 
 ## Local Development
-- npm run dev starts server on https://localhost:9000
+- npm run dev starts server on http://localhost:9000
 - Hot reload is automatic

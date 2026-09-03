@@ -4,10 +4,10 @@
   "required": ["id", "userId", "title", "completed"],
   "properties": {
     "id": {
-      "type": "string"
+      "type": "integer"
     },
     "userId": {
-      "type": "string"
+      "type": "integer"
     },
     "title": {
       "type": "string"

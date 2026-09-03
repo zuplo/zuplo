@@ -133,15 +133,52 @@ Run the linter against your routes:
 npm run lint
 ```
 
-Example output when rules fail:
+The routes in this example satisfy every rule, so the command exits `0`:
 
 ```text
-ERROR: zuplo-require-policy - Require all routes have a specific zuplo policy
-  at $.paths./v1/todos.post.x-zuplo-route.policies.inbound
+ INFO  Located custom javascript function: 'pathStartsWithPolicy'
+ INFO  Located custom javascript function: 'zuploRequiredPolicy'
+ INFO  Loaded 2 custom function(s) successfully.
+ INFO  Linting file 'config/routes.oas.json' against 7 rules: https://github.com/zuplo/zuplo/api-linting
 
-ERROR: path-starts-with - Require all paths to start with a specific value
-  at $.paths./users
+          Linting passed, A perfect score! well done!
 ```
+
+Example output when rules fail. Removing `my-auth-policy` from the `PATCH` and
+`DELETE` operations on `/v1/todos/{todoId}` in `config/routes.oas.json`
+produces:
+
+```text
+config/routes.oas.json
+--------------------------------------------------------------------------------------------------------------------------
+Location                      | Severity | Message                                                      | Rule                 | Category   | Path
+config/routes.oas.json:450:24 | error    | The route does not have the required policy 'my-auth-policy' | zuplo-require-policy | Validation | $.paths[*]['get','put','post','delete','options','head','pat...
+
+447 |           },
+448 |           "policies": {
+449 |             "inbound": ["validate-json-schema-inbound-1"]
+450 |           }
+451 |         },
+
+Location                      | Severity | Message                                                      | Rule                 | Category   | Path
+config/routes.oas.json:517:24 | error    | The route does not have the required policy 'my-auth-policy' | zuplo-require-policy | Validation | $.paths[*]['get','put','post','delete','options','head','pat...
+
+514 |           },
+515 |           "policies": {
+516 |             "inbound": []
+517 |           }
+518 |         },
+
+Category   | Errors | Warnings | Info
+Validation | 2      | 0        | 0
+
+          Linting file 'config/routes.oas.json' failed with 2 errors,
+          0 warnings and 0 informs
+
+Error: failed with 2 errors
+```
+
+The command exits non-zero, which is what makes it usable as a CI gate.
 
 ## Customizing Rules
 

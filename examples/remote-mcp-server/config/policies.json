@@ -44,20 +44,6 @@
       },
       "name": "prompt-injection-outbound",
       "policyType": "prompt-injection-outbound"
-    },
-    {
-      "handler": {
-        "export": "QueryParamToHeaderInboundPolicy",
-        "module": "$import(@zuplo/runtime)",
-        "options": {
-          "headerName": "Authorization",
-          "headerValue": "Bearer {value}",
-          "queryParam": "apiKey",
-          "removeFromUrl": true
-        }
-      },
-      "name": "query-param-to-header-inbound",
-      "policyType": "query-param-to-header-inbound"
     }
   ]
 }

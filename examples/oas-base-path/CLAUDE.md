@@ -9,12 +9,12 @@ Demonstrates how to store base path and backend server configuration in the Open
 | `config/routes1.oas.json` | First OpenAPI route file with server config |
 | `config/routes2.oas.json` | Second OpenAPI route file with different server |
 | `config/policies.json` | Policy configurations |
-| `modules/server-lookup.ts` | Policy that reads x-base-path and sets forwarding URL |
+| `modules/strip-base-path.ts` | Policy that reads x-base-path and sets forwarding URL |
 
 ## How It Works
 
 1. Each OpenAPI file defines routes under a different base path with `x-base-path` extension
-2. The `server-lookup` policy reads the request path and matches it to the server config
+2. The `strip-base-path` policy reads the request path and matches it to the server config
 3. The policy removes the base path and sets the forwarded URL to the correct backend
 
 ## Getting Started
@@ -41,10 +41,10 @@ Or use the [Deploy to Zuplo](https://zuplo.com/docs/examples/oas-base-path) butt
 
 ```bash
 # Request with base path /my-base-1 (routes to first backend)
-curl http://localhost:9000/my-base-1/hello
+curl https://localhost:9000/my-base-1/route1
 
 # Request with base path /my-base-2 (routes to second backend)
-curl http://localhost:9000/my-base-2/hello
+curl https://localhost:9000/my-base-2/route1
 ```
 
 ## OpenAPI Server Configuration

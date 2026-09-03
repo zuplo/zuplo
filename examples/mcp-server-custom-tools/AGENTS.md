@@ -45,13 +45,13 @@ Or use the [Deploy to Zuplo](https://zuplo.com/docs/examples/mcp-server-custom-t
 
 ```bash
 # Get weather forecast for a city
-curl http://localhost:9000/weather/{city}
+curl https://localhost:9000/weather/{city}
 
 # Get recommended activities for a city
-curl http://localhost:9000/activities/{city}
+curl https://localhost:9000/activities/{city}
 
 # Get packing suggestions for a climate type
-curl http://localhost:9000/packing/{climate}
+curl https://localhost:9000/packing/{climate}
 
 ```
 

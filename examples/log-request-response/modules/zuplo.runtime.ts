@@ -25,7 +25,7 @@ export function runtimeInit(runtime: RuntimeExtensions) {
     // Get the response headers
     const responseHeaders: Record<string, string> = {};
     for (const [name, value] of response.headers) {
-      requestHeaders[name] = value;
+      responseHeaders[name] = value;
     }
 
     // Get the response body

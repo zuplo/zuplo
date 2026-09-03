@@ -106,11 +106,11 @@ Make multiple requests to trigger the rate limit:
 
 ```bash
 # First two requests succeed (within the 2 request limit)
-curl http://localhost:9000/test
-curl http://localhost:9000/test
+curl https://localhost:9000/test
+curl https://localhost:9000/test
 
 # Third request returns custom 429 response
-curl http://localhost:9000/test -i
+curl https://localhost:9000/test -i
 ```
 
 ### Expected 429 Response

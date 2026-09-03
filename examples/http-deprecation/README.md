@@ -75,7 +75,7 @@ When you call any of the API endpoints, the response includes standard HTTP head
 | `date` | `Tue, 17 Feb 2026 12:07:40 GMT` |
 | `deprecation` | `true` |
 | `link` | `<https://example.com/docs/v2-migration>; rel="deprecation"` |
-| `sunset` | `Mon, 30 Jun 2025 23:59:59 GMT` |
+| `sunset` | `Wed, 30 Jun 2027 23:59:59 GMT` |
 | `transfer-encoding` | `chunked` |
 | `vary` | `Accept-Encoding` |
 
@@ -140,7 +140,7 @@ To see only the headers:
 curl -s -D - -o /dev/null http://localhost:9000/todos
 ```
 
-Look for `deprecation: true`, `sunset: Mon, 30 Jun 2025 23:59:59 GMT`, and `link: <https://example.com/docs/v2-migration>; rel="deprecation"` in the output.
+Look for `deprecation: true`, `sunset: Wed, 30 Jun 2027 23:59:59 GMT`, and `link: <https://example.com/docs/v2-migration>; rel="deprecation"` in the output.
 
 **Example response** (status and key headers; body is a list of todos):
 
@@ -149,7 +149,7 @@ HTTP/1.1 200 OK
 content-type: application/json
 deprecation: true
 link: <https://example.com/docs/v2-migration>; rel="deprecation"
-sunset: Mon, 30 Jun 2025 23:59:59 GMT
+sunset: Wed, 30 Jun 2027 23:59:59 GMT
 
 [{"id":1,"title":"Buy groceries","completed":false,"userId":123},{"id":2,"title":"Write documentation","completed":true,"userId":456},...]
 ```
@@ -185,7 +185,7 @@ If deprecation headers are missing or incorrect, work through this checklist:
 | Error | Cause | Fix |
 |-------|-------|-----|
 | No `deprecation` / `sunset` / `link` headers | Policy not attached or wrong name | Ensure the route’s `outbound` array includes the policy name from `policies.json` |
-| `sunset` format looks wrong | Policy expects ISO 8601 (e.g. `2025-06-30T23:59:59Z`) | Zuplo converts to HTTP-date in the response; keep config in ISO 8601 |
+| `sunset` format looks wrong | Policy expects ISO 8601 (e.g. `2027-06-30T23:59:59Z`) | Zuplo converts to HTTP-date in the response; keep config in ISO 8601 |
 | Backend returns 4xx/5xx | Backend or network issue | Check backend URL and that `https://todo.zuplo.io` is reachable; deprecation headers are still added to the response |
 
 ## Learn More

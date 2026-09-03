@@ -103,7 +103,7 @@ In the Zuplo logs (or your terminal when running locally), you'll see output lik
 {
   "requestHeaders": {
     "host": "localhost:9000",
-    "user-agent": "curl/8.1.2",
+    "user-agent": "curl/8.7.1",
     "accept": "*/*"
   },
   "requestUrl": "http://localhost:9000/test",
@@ -111,9 +111,11 @@ In the Zuplo logs (or your terminal when running locally), you'll see output lik
   "requestBody": null,
   "responseStatus": 200,
   "responseHeaders": {
-    "content-type": "application/json"
+    "content-type": "application/json",
+    "content-length": "11",
+    "zp-rid": "0d8d64c7-7ed3-429b-9783-2efc35426584"
   },
-  "responseBody": "{\"message\":\"Hello, world!\"}"
+  "responseBody": "\"What zup?\""
 }
 ```
 

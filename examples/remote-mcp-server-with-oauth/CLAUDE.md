@@ -44,10 +44,10 @@ Or use the [Deploy to Zuplo](https://zuplo.com/docs/examples/remote-mcp-server-w
 
 ```bash
 # Get all todos
-curl http://localhost:9000/todos
+curl https://localhost:9000/todos
 
 # Create a new todo
-curl -X POST http://localhost:9000/todos \
+curl -X POST https://localhost:9000/todos \
   -H "Content-Type: application/json" \
   -d '{}'
 
@@ -55,7 +55,6 @@ curl -X POST http://localhost:9000/todos \
 
 ## Policies Used
 
-- **mock-api-inbound** (Built-in): mock-api-inbound
 - **auth0-jwt-auth-inbound** (Built-in): auth0-jwt-auth-inbound
 
 ## Environment Variables

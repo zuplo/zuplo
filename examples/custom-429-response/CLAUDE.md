@@ -40,7 +40,7 @@ Or use the [Deploy to Zuplo](https://zuplo.com/docs/examples/custom-429-response
 
 ```bash
 # Test
-curl http://localhost:9000/test
+curl https://localhost:9000/test
 
 ```
 

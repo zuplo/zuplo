@@ -58,6 +58,17 @@ You need to modify `config/policies.json` to reflect the settings for your own A
 
 *It is important that you set `oAuthResourceMetadataEnabled` to `true` so that the client MCP consumer can discover the oAuth resource metadata it requires to start and complete the authentication flow.*
 
+You also need to update `modules/zuplo.runtime.ts`, which registers the `OAuthProtectedResourcePlugin` and tells MCP clients which authorization server(s) are trusted for this resource. Replace the placeholder value with your own Auth0 (or other IDP) domain, including the `https://` scheme:
+
+```ts title="modules/zuplo.runtime.ts"
+runtime.addPlugin(new OAuthProtectedResourcePlugin({
+  authorizationServers: ["https://<YOUR_AUTH0_DOMAIN>"],
+  resourceName: "OAuth MCP Demo"
+}));
+```
+
+*This example ships with a Zuplo demo Auth0 tenant configured here for illustration only — replace it with your own domain before deploying, otherwise your MCP server will advertise Zuplo's demo tenant as its authorization server.*
+
 ## Running the example
 
 Start the API Gateway by running:
@@ -79,7 +90,7 @@ npx @modelcontextprotocol/inspector
 Load the inspector (`https://localhost:6274`) in your browser, then:
 
 - Set the _Transport Type_ to _Streamable HTTP_
-- Set the _URL_ to _http://localhost:9000/mcp_
+- Set the _URL_ to _https://localhost:9000/mcp_
 
 Next, click on the OAuth Settings button and choose the _Guided Flow_. This will run through all the steps of authenticating with OAuth one by one, so you can see where any errors occur.
 

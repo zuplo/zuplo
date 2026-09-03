@@ -2,14 +2,6 @@
   "policies": [
     {
       "handler": {
-        "export": "default",
-        "module": "$import(./modules/remove-user-id)"
-      },
-      "name": "remove-user-id",
-      "policyType": "custom-code-outbound"
-    },
-    {
-      "handler": {
         "export": "RequestValidationInboundPolicy",
         "module": "$import(@zuplo/runtime)",
         "options": {

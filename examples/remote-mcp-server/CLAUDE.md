@@ -8,7 +8,7 @@ Create a remote MCP server for an API with authentication and additional securit
 |------|--------|
 | `config/routes.oas.json` | Route definitions with policies |
 | `config/policies.json` | Policy configurations |
-| `modules/hello-world.ts` | Custom module |
+| `config/mcp.oas.json` | MCP server route definition |
 | `modules/transform-body-outbound.ts` | Outbound policy |
 | `docs/` | Zudoku documentation portal |
 
@@ -46,10 +46,10 @@ Or use the [Deploy to Zuplo](https://zuplo.com/docs/examples/remote-mcp-server) 
 
 ```bash
 # Get all todos
-curl http://localhost:9000/v1/todos
+curl https://localhost:9000/v1/todos
 
 # Create Todo
-curl -X POST http://localhost:9000/v1/todos \
+curl -X POST https://localhost:9000/v1/todos \
   -H "Content-Type: application/json" \
   -d '{}'
 
@@ -61,7 +61,6 @@ curl -X POST http://localhost:9000/v1/todos \
 - **custom-code-outbound** (Custom): custom-code-outbound
 - **secret-masking-outbound** (Built-in): secret-masking-outbound
 - **prompt-injection-outbound** (Built-in): prompt-injection-outbound
-- **query-param-to-header-inbound** (Built-in): query-param-to-header-inbound
 
 ## Environment Variables
 

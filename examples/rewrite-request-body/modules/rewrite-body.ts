@@ -1,11 +1,6 @@
-import { InboundPolicyHandler } from "@zuplo/runtime";
+import { InboundPolicyHandler, ZuploRequest } from "@zuplo/runtime";
 
-const rewriteBody: InboundPolicyHandler<{ apiKey: string }> = async (
-  request,
-  context,
-  options,
-  policyName
-) => {
+const rewriteBody: InboundPolicyHandler = async (request, context) => {
   // Read the incoming body
   const body = await request.json();
 
@@ -17,7 +12,7 @@ const rewriteBody: InboundPolicyHandler<{ apiKey: string }> = async (
   };
 
   // Return a new request with the modified body
-  return new Request(request, {
+  return new ZuploRequest(request, {
     body: JSON.stringify(outbound),
   });
 };

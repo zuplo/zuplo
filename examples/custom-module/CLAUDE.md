@@ -25,6 +25,7 @@ npx create-zuplo-api@latest --example custom-module
 **Run locally:**
 ```bash
 npm install
+npm run bundle
 npm run dev
 # Server runs on https://localhost:9000
 ```
@@ -45,7 +46,7 @@ curl http://localhost:9000/hello-module
 
 ## Environment Variables
 
-None required for this example.
+- `OPENAI_API_KEY` — required by `modules/hello.ts` to call the OpenAI API.
 
 ## Related Docs
 

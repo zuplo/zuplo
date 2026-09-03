@@ -1,23 +1,22 @@
 {
   "name": "api-linting",
-  "version": "1.0.0",
-  "author": "",
-  "copyright": "",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "zup dev",
-    "test": "zup test",
-    "lint": "vacuum lint -f ./lint-functions -r config/api-ruleset.yaml -s -d config/routes.oas.json",
-    "docs": "npm run dev --workspace docs"
-  },
-  "workspaces": {
-    "packages": ["docs"]
+    "dev": "zuplo dev",
+    "test": "zuplo test",
+    "typecheck": "tsc --noEmit --skipLibCheck",
+    "docs": "zuplo docs",
+    "lint": "vacuum lint -f ./lint-functions -r config/api-ruleset.yaml -s -d config/routes.oas.json"
   },
   "dependencies": {
-    "cookie": "^0.7.2",
-    "zuplo": "latest"
+    "zuplo": "^7"
   },
   "devDependencies": {
     "@quobix/vacuum": "^0.5.9",
-    "@types/cookie": "^0.5.2"
-  }
+    "@types/node": "^24",
+    "typescript": "^5"
+  },
+  "workspaces": ["docs"]
 }

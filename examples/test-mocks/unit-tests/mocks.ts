@@ -2,7 +2,9 @@ import { ZuploContext } from "@zuplo/runtime";
 import { randomUUID } from "crypto";
 
 export const context: ZuploContext = {
+  contextId: randomUUID(),
   requestId: randomUUID(),
+  parentContext: undefined,
   log: {
     debug: console.debug,
     info: console.info,
@@ -19,10 +21,11 @@ export const context: ZuploContext = {
       module: "@zuplo/runtime",
       export: "default",
     },
-    version: "none",
   },
   custom: {},
   incomingRequestProperties: {
+    ip: "127.0.0.1",
+    httpProtocol: "HTTP/1.1",
     asn: 12345,
     asOrganization: "Example, Inc.",
     city: "Seattle",
@@ -38,6 +41,12 @@ export const context: ZuploContext = {
     timezone: "EST",
   },
   invokeInboundPolicy: async (policyName, request) => {
+    return new Response("OK");
+  },
+  invokeOutboundPolicy: async (policyName, response, request) => {
+    return response;
+  },
+  invokeRoute: async (input, init) => {
     return new Response("OK");
   },
   waitUntil: (promise: Promise<any>) => {},

@@ -2,18 +2,29 @@
 
 This is a monorepo containing a few public-facing projects for Zuplo.
 
+## Requirements
+
+- **Node.js 24 or greater.** The Zuplo CLI v7 requires it, and Zuplo cloud builds run
+  Node 24. See [.tool-versions](./.tool-versions).
+
 ## Examples
 
-This subfolder contains examples showing how to perform various tasks with [Zuplo](https://zuplo.com).
+[`examples/`](./examples) contains examples showing how to perform various tasks with
+[Zuplo](https://zuplo.com). Each example is a standalone Zuplo project.
 
-## Starter Kits
+To create a local copy of any example:
 
-`starter-kits/` contains 50 forkable API starter kits, each pairing a REST API with an MCP server backed by a pluggable, HTTP-only database adapter (Supabase, Firestore, ClickHouse, Upstash Redis, Neon, in-memory). Every kit ships multi-tenant via API-key metadata, deployable as a SaaS replacement.
+```bash
+npx create-zuplo-api@latest --example <example-name>
+```
 
-Coverage: HR (6), Finance (7), Sales (6), Customer Success (4), Marketing (6), IT/Operations (7), Productivity (5), Verticals (9). 718 MCP tools registered across all kits.
-
-Start with the gallery in [starter-kits/README.md](./starter-kits/README.md) or the index at [starter-kits/starter-kits.json](./starter-kits/starter-kits.json).
+The index used by zuplo.com is [examples/examples.json](./examples/examples.json).
 
 ## Packages
 
-This subfolder contains various NodeJS packages that are published to NPM.
+[`packages/`](./packages) contains NodeJS packages that are published to NPM.
+
+## Tools
+
+[`tools/`](./tools) contains internal utilities used to maintain this repo and Zuplo's
+infrastructure.

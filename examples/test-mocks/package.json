@@ -1,24 +1,26 @@
 {
-  "name": "samples-todo-list",
-  "version": "1.0.0",
-  "author": "",
-  "copyright": "",
+  "name": "test-mocks",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "zup dev",
-    "test": "zup test",
-    "unit": "mocha --require @swc-node/register unit-tests/*.spec.ts"
+    "dev": "zuplo dev",
+    "test": "zuplo test",
+    "unit": "mocha --node-option=import=@swc-node/register/esm-register unit-tests/*.spec.ts",
+    "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "zuplo": "latest"
+    "zuplo": "^7"
   },
   "devDependencies": {
     "@swc-node/register": "^1.10.9",
+    "@swc/helpers": "^0.5",
     "@types/mocha": "^10.0.1",
-    "@types/node": "^18.17.14",
+    "@types/node": "^24",
     "@types/sinon": "^10.0.16",
     "mocha": "^10.2.0",
-    "sinon": "^15.2.0",
-    "typescript": "^5.2.2",
+    "sinon": "^22",
+    "typescript": "^5",
     "undici": "^5.23.0"
   }
 }

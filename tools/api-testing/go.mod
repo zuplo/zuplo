@@ -1,3 +1,3 @@
 module github.com/zuplo/api-testing
 
-go 1.23.3
+go 1.27.1

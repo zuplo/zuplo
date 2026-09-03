@@ -1,24 +1,19 @@
 /// <reference types="node" />
 
-// Remove the @zuplo/runtime import and create our own mock class
-class ZuploRequest extends Request {
-  params: Record<string, string>;
-  
-  constructor(input: string | Request, init?: RequestInit & { params?: Record<string, string> }) {
-    super(input, init);
-    this.params = init?.params || {};
-  }
-}
-
 import assert from "assert";
 import sinon from "sinon";
-import { MockAgent, setGlobalDispatcher } from "undici";
+import { MockAgent, setGlobalDispatcher, fetch as undiciFetch } from "undici";
+import { ZuploRequest } from "@zuplo/runtime";
 import handler1 from "../modules/handler1";
 import handler2 from "../modules/handler2";
 import { context } from "./mocks";
 
 const mockAgent = new MockAgent();
 setGlobalDispatcher(mockAgent);
+// Node's built-in `fetch` is a separate bundled copy of undici, so it does not
+// see the dispatcher set above. Point the global `fetch` at undici's own
+// implementation so handlers using the ambient `fetch` are actually mocked.
+globalThis.fetch = undiciFetch as unknown as typeof globalThis.fetch;
 
 describe("Handler test", function () {
   const sandbox = sinon.createSandbox();

@@ -1,20 +1,19 @@
 {
   "name": "docs",
   "version": "0.1.0",
-  "type": "module",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "zudoku dev --zuplo",
     "build": "zudoku build --zuplo"
   },
   "dependencies": {
-    "react": "^19",
-    "react-dom": "^19",
-    "@mdx-js/react": "3.0.1",
-    "zudoku": "^0.67"
+    "react": ">=19.2.7",
+    "react-dom": ">=19.2.7",
+    "zudoku": "^0.86"
   },
   "devDependencies": {
-    "@types/node": "^22",
+    "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "typescript": "^5"
